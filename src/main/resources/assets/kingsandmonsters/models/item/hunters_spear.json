@@ -1,0 +1,19 @@
+{
+  "loader": "neoforge:separate_transforms",
+  "gui_light": "front",
+  "ambientocclusion": false,
+  "base": {
+    "parent": "kingsandmonsters:item/hunters_spear_held"
+  },
+  "perspectives": {
+    "gui": {
+      "parent": "kingsandmonsters:item/hunters_spear_gui"
+    }
+  },
+  "overrides": [
+    {
+      "predicate": { "throwing": 1 },
+      "model": "kingsandmonsters:item/hunters_spear_throwing"
+    }
+  ]
+}

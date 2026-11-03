@@ -1,0 +1,13 @@
+{
+  "loader": "neoforge:separate_transforms",
+  "gui_light": "front",
+  "ambientocclusion": false,
+  "base": {
+    "parent": "kingsandmonsters:item/ogre_kings_club_held"
+  },
+  "perspectives": {
+    "gui": {
+      "parent": "kingsandmonsters:item/ogre_kings_club_gui"
+    }
+  }
+}

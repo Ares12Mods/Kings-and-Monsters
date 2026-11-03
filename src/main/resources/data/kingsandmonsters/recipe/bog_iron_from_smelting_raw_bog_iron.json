@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "cookingtime": 200,
+  "experience": 0.7,
+  "group": "bog_iron",
+  "ingredient": {
+    "item": "kingsandmonsters:raw_bog_iron"
+  },
+  "result": {
+    "id": "kingsandmonsters:bog_iron"
+  }
+}

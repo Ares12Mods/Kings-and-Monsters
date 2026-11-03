@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "kingsandmonsters:raw_bog_iron_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "id": "kingsandmonsters:raw_bog_iron"
+  }
+}
