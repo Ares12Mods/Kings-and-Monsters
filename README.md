@@ -81,55 +81,38 @@ path nodes, and there is a lot of new content around them. The full list is in
 - New idle, hurt and death sounds for every ogre, new attack sounds, boar and toad sounds, and
   a multi-part Ogre King boss track by Soul.
 
-Development Setup
------------------
+Building
+--------
 
-Install a JDK 21 and make sure it is on your path, then build with:
-
-```powershell
-.\gradlew.bat build
-```
-
-Useful Gradle tasks:
+You need a JDK 21. Build the mod with:
 
 ```powershell
 .\gradlew.bat build
-.\gradlew.bat runClient
-.\gradlew.bat runServer
-.\gradlew.bat runData
 ```
 
-### Editing structures with Forgematica
+On Linux or macOS use `./gradlew build`. The jar ends up in `build/libs`. Other useful tasks are
+`runClient`, `runServer` and `runData`.
 
-The development client includes Forgematica (the NeoForge Litematica port) and
-MaFgLib, plus JourneyMap for worldgen testing. Running `runClient` automatically
-copies the checked-in Ogre structure templates to
-`run/schematics/kingsandmonsters`.
+Structures
+----------
 
-In Forgematica's Schematic Manager, import the desired vanilla `.nbt` template,
-edit it in a creative test world, then export/save the finished template as
-vanilla structure NBT under the same relative filename. Copy finished NBT files
-back into the mod with:
+The development client also loads Forgematica, MaFgLib and JourneyMap for editing and checking
+structures. They are not bundled into the mod and are not required to play. `runClient` copies the
+structure templates to `run/schematics/kingsandmonsters`. After editing a template in Forgematica,
+copy it back with `.\gradlew.bat importStructureSchematics`. Only the finished `.nbt` templates are
+packaged.
 
-```powershell
-.\gradlew.bat importStructureSchematics
-```
+Project layout
+--------------
 
-This workflow includes the King's Fort plus every grunt, brute, mage, and
-variant Ogre outpost. Keep `.litematic` working files in `run/schematics`; only
-the final `.nbt` templates are packaged by the mod.
+- `src/main/java/com/kingsandmonsters`: the mod's code. Entities are in `entity`, the tribute and quest
+  systems in `tribute`, worldgen in `world` and the public addon API in `api`.
+- `src/main/resources`: assets, data, structures and the Patchouli compendium.
+- `release-notes`: changelogs for each release.
+- `description`: the text used on the mod pages.
+- `tools`: helper scripts for converting structures and exporting animations.
 
-Continuation Notes
-------------------
+License
+-------
 
-- Main mod bootstrap: `src/main/java/com/kingsandmonsters/KingsAndMonsters.java`
-- Registries: `ModBlocks`, `ModItems`, `ModEntities`, `world/ModFeatures`, and `world/ModStructures`
-- Ogre entity logic: `src/main/java/com/kingsandmonsters/entity`
-- GeckoLib render/model classes: `src/main/java/com/kingsandmonsters/entity/client`
-- Tribute and patrol systems: `src/main/java/com/kingsandmonsters/tribute`
-- Public addon API: `src/main/java/com/kingsandmonsters/api`
-- Worldgen JSON and NBT structures: `src/main/resources/data/kingsandmonsters`
-
-Before handing off changes, run `.\gradlew.bat build`. Use
-`.\gradlew.bat build --warning-mode all` when touching Gradle files or
-dependency versions.
+All Rights Reserved. The source is published so it can be read. See `LICENSE`.
