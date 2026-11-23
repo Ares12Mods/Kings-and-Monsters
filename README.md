@@ -1,8 +1,10 @@
 Kings and Monsters
 ==================
 
-Kings and Monsters is a NeoForge 1.21.1 mod that adds bog iron equipment,
-animated ogre enemies, tribute/patrol systems, and ogre outpost worldgen.
+Kings and Monsters is a NeoForge 1.21.1 adventure and progression mod built around
+organized monster factions. The Ogre Tribe is the first complete one: animated ogres,
+guarded outposts and a royal fort, a shared anger system, personal favor and quests,
+and an Ogre King to challenge. Version 2.0 adds a swamp, tameable boars and much more.
 
 Current State
 -------------
@@ -13,69 +15,78 @@ Current State
 - Java: 21
 - Animation library: GeckoLib 4.8.4
 - Required dependencies: GeckoLib, Curios
-- Optional integrations: Better Combat, JEI, Jade, Patchouli, Boss Checklist
+- Optional integrations: Better Combat, JEI, Jade, AppleSkin, Patchouli, Boss Checklist,
+  Iron's Spells 'n Spellbooks, Spell Power (RPG Series) and Wildscapes
 
 Version 2.0 Update
 ------------------
 
-Version 2.0 is a major update: it adds the swamp, the Mudsnout Boars, the tribe's favor and
-quest system, the Ogre King's court and much more.
+Version 2.0 is the biggest update so far. Every ogre was animated again from scratch
+with new attacks and sounds, mobs chase in straight lines instead of zigzagging along
+path nodes, and there is a lot of new content around them. The full list is in
+`release-notes/Kings-and-Monsters-2.0.0-Changelog.md`.
 
 ### New creatures
 
-- **Bog Toad** — a large animated swamp creature with custom movement, attacks,
-  landing impacts, natural spawning, loot, sounds, and progression rewards.
-- **Bogpole** — the Bog Toad's smaller aquatic life stage, with its own model,
-  animation, behavior, renderer, and spawn egg.
-- **Plague Ogre** — a Bogrot-infested Ogre variant that can spawn naturally and
-  around Ogre outposts, with unique visuals, combat behavior, loot, and Bogrot
-  immunity.
+- **Bog Toad**: a large swamp predator that hops and bites with Bogrot II. Its heavy
+  landings daze whatever is underneath. Toads can't be bred.
+- **Bog Pole**: the toad's young. Poles hatch from Bog Toad Eggs on muddy banks and grow
+  into toads over time.
+- **Plague Ogre**: an Ogre Grunt that died infected with Bogrot II. They wander swamps and
+  the edges of plains outposts and are immune to the rot.
+- **Mudsnout Boar**: wild boars keep their distance and warn before they charge. They can
+  be tamed, saddled, ridden and bred for speed and health traits. Some ogres ride them.
+- **Ogre Trapper**: a hunter ogre found at Trapper huts and boar traps. He throws Bogjaw
+  Traps and fights with the Trapper's Knife.
 
-### Bogrot and swamp equipment
+### The Ogre Tribe
 
-- Adds the complete **Bogrot** status system, including custom particles,
-  periodic damage, Ogre vulnerability, immunity rules, brewing, and tooltips.
-- Bog Toad Venom can be brewed into Potions of Bogrot.
-- The **Bogfang Blade** applies Bogrot and can rupture the remaining effect
-  damage with critical hits.
-- The **Bogburst** enchantment spreads Bogrot to nearby targets when it is
-  ruptured.
-- Adds Bog Toad Skin, Boghide, Bogfangs, raw and cooked Toad Legs, Toad Stew,
-  Boghide Boots, recipes, loot tables, and swamp-related advancements.
-- Boghide Boots provide Bogstride swimming benefits and a sprint-jump landing
-  attack.
+- **Favor** is a personal reputation with the Tribe, separate from the shared anger level.
+  At 50 favor you are appeased and ogres leave you alone.
+- **Gold Coins** and **Golden Ogre Teeth** are tribute and currency. Hold a coin out to an ogre
+  to pass for a while, or give coins to a Captain, the King or the Merchant for favor.
+- **Quests**: 18 errands from Captains and the King, three offered at a time, with an
+  on-screen tracker.
+- **The King's court**: trade for royal relics, ask for a fair duel, or take the crown and
+  call a warband of ogres to fight for you.
+- **The Ogre King** has a new boss track, ground ripples you can jump, and a roar that also
+  affects your tamed boars and summoned army.
 
-### New equipment
+### Swamp and boar equipment
 
-- **Candle Helmet** — an iron helmet that can be placed as a block, lit with
-  flint and steel, worn while lit, and used as a moving light source. The
-  Brightwick enchantment increases its light level. Its placed model rests
-  naturally on its front rim.
-- **Padded Earmuffs** — a Curios head-slot item that reduces the penalties from
-  the Ogre King's roar.
+- **Bogrot** is a full status effect: periodic armor-ignoring damage, extra damage to
+  ogres, immunity rules, brewing, particles and Jade support.
+- **Bogfang Blade** applies Bogrot and ruptures it on repeated critical hits. The **Bogburst**
+  enchantment spreads the rupture.
+- **Boghide armor** (swimming, a toad leap and Bogrot immunity with the full set) and
+  **Blackhide armor** (a running Charge that rams enemies).
+- Toad Stew, Toad Legs, Bone Broth, potions of Bogrot, Bog Sight and Amphibiousness.
 
-### Ogre and general bug fixes
+### Structures and world
 
-- Ogre Merchant Backpacks now have expanded storage and reliably save items
-  after stacking, shift-clicking, and closing the menu.
-- Ogre Merchants correctly become invisible when loaded at night or when time
-  is changed directly to night.
-- Merchant guards now despawn with their assigned merchant instead of wandering
-  indefinitely.
-- Includes completed Ogre combat, movement, rendering, equipment, loot, and
-  nametag corrections from the later development line.
-- Includes completed Bog Iron armor/tool behavior fixes, Hunter's Spear combat
-  fixes, effect-immunity handling, and related resource/tag corrections.
+- New structures: the King's quarry, supply camps, a moving camp, an abandoned camp, Trapper
+  huts, boar traps and mud wallows.
+- Bog Toads, Bog Poles, Plague Ogres and Mudsnout boars spawn naturally.
+- Bog Iron generates in swamps, mangroves and lush caves and stays locked until the King
+  is beaten or yields a fair duel.
+
+### Enchantments and items
+
+- **Tyrant** works on swords, axes, maces and the ogre relics. **Heavy Throw** works on
+  tridents and the Hunter's Spear. New: **Timber**, **Brightwick** and **Bogburst**.
+- **Candle Helmet**, **Padded Earmuffs**, Bogsteel and Brute gear, the Ogre Stomach and more.
+
+### Sound
+
+- New idle, hurt and death sounds for every ogre, new attack sounds, boar and toad sounds, and
+  a multi-part Ogre King boss track by Soul.
 
 Development Setup
 -----------------
 
-Install or select a JDK 21 before running Gradle. On this workstation, the
-project builds with:
+Install a JDK 21 and make sure it is on your path, then build with:
 
 ```powershell
-$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.11'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
 .\gradlew.bat build
 ```
 
