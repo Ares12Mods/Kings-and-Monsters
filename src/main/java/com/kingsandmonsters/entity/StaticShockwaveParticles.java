@@ -4,7 +4,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 
-/** Shared instantaneous white ground shockwave used by Ogre impacts. */
+/** Shared instantaneous white ground shockwave used by Ogre and Bog Toad impacts. */
 final class StaticShockwaveParticles {
     private StaticShockwaveParticles() {}
 

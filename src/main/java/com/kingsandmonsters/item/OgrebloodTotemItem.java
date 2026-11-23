@@ -20,11 +20,11 @@ public class OgrebloodTotemItem extends Item {
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
-        tooltip.add(Component.literal("When held in either hand:").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Saves you at 2 hearts and unleashes an Ogre shockwave")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogreblood_totem.condition").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogreblood_totem.revive")
                 .withStyle(ChatFormatting.DARK_GREEN));
-        tooltip.add(Component.literal("Resistance II (0:05), Strength I (0:08), Regeneration II (0:05)")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogreblood_totem.effects")
                 .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("Consumed on use").withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogreblood_totem.consumed").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

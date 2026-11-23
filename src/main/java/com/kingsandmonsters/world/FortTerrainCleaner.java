@@ -11,24 +11,22 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Grades terrain per-column, using each column's own real structure extent
- * (from FortFootprintProcessor) rather than a single bounding-box-wide
- * floor/roof line - the fort's foundation height varies around its
- * perimeter (the entrance is aligned separately in
- * OgreKingsFortStructure.findGenerationPoint), so a uniform cut would
- * either bury shorter walls or leave taller ones floating.
- * <p>
- * For each occupied column: terrain above that column's own highest
- * structure block is cleared (so a hillside can't drape over a short wall
- * segment), and any air gap directly below that column's lowest structure
- * block is filled with locally sampled terrain (so nothing floats over a local dip). Columns
- * outside the recorded footprint are never touched - block_ignore on the
- * template already keeps the paste itself from overwriting terrain there.
+ * Grades terrain per column using each column's own structure extent (from FortFootprintProcessor)
+ * instead of one bounding-box-wide floor and roof. The foundation height varies around the
+ * perimeter (the entrance is aligned separately in OgreKingsFortStructure.findGenerationPoint), so
+ * a uniform cut would bury shorter walls or leave taller ones floating.
+ *
+ * <p>For each occupied column, terrain above its highest structure block is cleared so a hillside
+ * can't drape over a short wall, and any air gap below its lowest structure block is filled with
+ * locally sampled terrain. Columns outside the footprint are never touched; block_ignore on the
+ * template already stops the paste overwriting terrain there.</p>
  */
 public final class FortTerrainCleaner {
     private static final int UPDATE_FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
     private static final int OVERHANG_CLEARANCE = 24;
-    private static final int FOUNDATION_DEPTH = 8;
+    // The fill stops at the first solid block, so this is only a ceiling. It used to be 8, which left
+    // the downhill side of a Fort on a steep slope hanging over open air; now it reaches the ground.
+    private static final int FOUNDATION_DEPTH = 40;
 
     private FortTerrainCleaner() {
     }
@@ -38,6 +36,19 @@ public final class FortTerrainCleaner {
             BoundingBox chunkBox,
             Map<Long, int[]> columnExtents,
             Set<Long> authoredBlocks) {
+        grade(level, chunkBox, columnExtents, authoredBlocks, false);
+    }
+
+    /**
+     * {@code fillThroughFluid} lets the foundation fill replace water below a column, so a structure
+     * built on a swamp's shallows gets solid ground under it instead of floating on the water.
+     */
+    public static void grade(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            Map<Long, int[]> columnExtents,
+            Set<Long> authoredBlocks,
+            boolean fillThroughFluid) {
         if (columnExtents.isEmpty()) {
             return;
         }
@@ -76,7 +87,8 @@ public final class FortTerrainCleaner {
             BlockState foundationFill = sampleFoundationFill(level, pos, x, z, columnMinY, fillTo);
             for (int y = columnMinY - 1; y >= fillTo; y--) {
                 pos.set(x, y, z);
-                if (!level.getBlockState(pos).isAir()) {
+                BlockState below = level.getBlockState(pos);
+                if (!below.isAir() && !(fillThroughFluid && !below.getFluidState().isEmpty())) {
                     break;
                 }
                 level.setBlock(pos, foundationFill, UPDATE_FLAGS);

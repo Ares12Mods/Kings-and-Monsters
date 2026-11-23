@@ -1,6 +1,5 @@
 package com.kingsandmonsters.item;
 
-import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.network.ScreenShakePayload;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -67,6 +66,10 @@ public final class OgreKingsClubEvents {
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area,
                 target -> target != player && target.isAlive()
                         && player.canAttack(target)
+                        // The slam is for enemies: not the wearer's own pets, and not ogres at peace
+                        // with them (hitting one ends that peace and costs favor).
+                        && !(target instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isOwnedBy(player))
+                        && !(target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(player))
                         && horizontalDistanceSqr(center, target) <= SLAM_RADIUS * SLAM_RADIUS)) {
             if (target.hurt(player.damageSources().playerAttack(player), SLAM_DAMAGE)) {
                 Vec3 movement = target.getDeltaMovement();
@@ -77,8 +80,6 @@ public final class OgreKingsClubEvents {
 
         level.playSound(null, center.x, center.y, center.z,
                 SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.35F, 0.55F);
-        level.playSound(null, center.x, center.y, center.z,
-                ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(), SoundSource.PLAYERS, 1.25F, 0.72F);
         level.sendParticles(ParticleTypes.CLOUD, center.x, center.y + 0.2, center.z,
                 44, 1.4, 0.2, 1.4, 0.04);
         level.sendParticles(ParticleTypes.POOF, center.x, center.y + 0.3, center.z,
@@ -112,5 +113,10 @@ public final class OgreKingsClubEvents {
         private PendingSlam(int ticksRemaining) {
             this.ticksRemaining = ticksRemaining;
         }
+    }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        PENDING_SLAMS.clear();
     }
 }

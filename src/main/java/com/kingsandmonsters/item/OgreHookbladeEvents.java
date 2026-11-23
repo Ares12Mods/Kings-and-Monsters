@@ -71,4 +71,9 @@ public final class OgreHookbladeEvents {
             attacker.getCooldowns().addCooldown(ModItems.OGRE_HOOKBLADE.get(), PULL_COOLDOWN_TICKS);
         }
     }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        SWEEP_PULL_TICKS.clear();
+    }
 }

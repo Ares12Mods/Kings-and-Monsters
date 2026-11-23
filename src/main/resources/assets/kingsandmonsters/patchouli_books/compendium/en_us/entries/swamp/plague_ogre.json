@@ -1,0 +1,34 @@
+{
+  "name": "Plague Ogre",
+  "category": "kingsandmonsters:swamp",
+  "icon": "minecraft:rotten_flesh",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A Plague Ogre is what is left when the mire's rot finishes an ogre. It shambles on long after it should have fallen, carries Bogrot in its bones, and goes looking for healthy ogres first. Players are only second choice."
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "kingsandmonsters:plague_ogre",
+      "scale": 0.8,
+      "offset": 0.0,
+      "rotate": true,
+      "text": "Slow to turn, but no tougher to stop for it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "How Ogres Fall",
+      "text": "A plain Ogre Grunt that dies while infected with $(thing)Bogrot II$() rises as a Plague Ogre. Bog Toads and Plague Ogres are the only sources of that level of the rot.$(br2)Archers, Mages and Guards that die the same way simply die, and a rupture cures the infection before it can turn."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Toads and Ogres",
+      "text": "Ogres know what a toad bite means. A Grunt, Archer, Mage or Guard that spots a toad rolls its nerve: alone, it will often run; in company, more of them stand and fight. A badly wounded ogre always runs.$(br2)Ogres are not clever about it, and enough of them keep fighting the toads and the plague that the rot stays alive."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Where They Wander",
+      "text": "Plague Ogres wander swamps and mangrove swamps by day or night, and are never harmed by the rot they carry.$(br2)Now and then one drifts out of the mire to the edge of a plains outpost, rarely more than a pair. Ogres treat them as the threat they are."
+    }
+  ]
+}

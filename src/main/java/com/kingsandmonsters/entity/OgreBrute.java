@@ -1,9 +1,12 @@
 package com.kingsandmonsters.entity;
 
 import com.kingsandmonsters.Config;
-import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.ModSoundEvents;
+import com.kingsandmonsters.network.ScreenShakePayload;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.DamageTypeTags;
@@ -11,6 +14,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvent;
@@ -24,11 +28,13 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.Animation;
-import software.bernie.geckolib.animation.AnimationController;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
 import software.bernie.geckolib.animation.AnimationState;
@@ -42,10 +48,11 @@ import java.util.Set;
 import java.util.UUID;
 
 public class OgreBrute extends OgreGrunt {
+    private static final float BRUTE_VOCAL_VOLUME = 1.5F;
     private static final String TANTRUM_MILESTONE_QUEUED_TAG = "TemperTantrumMilestoneQueued";
     private static final String TANTRUM_MILESTONE_CONSUMED_TAG = "TemperTantrumMilestoneConsumed";
-    private static final int AMBIENT_HUFF_MIN_COOLDOWN_TICKS = 600;
-    private static final int AMBIENT_HUFF_RANDOM_COOLDOWN_TICKS = 500;
+    private static final int AMBIENT_HUFF_MIN_COOLDOWN_TICKS = 760;
+    private static final int AMBIENT_HUFF_RANDOM_COOLDOWN_TICKS = 120;
     private static final int AMBIENT_HUFF_CHANCE = 80;
     private static final int LEVEL_15_XP_REWARD = 315;
 
@@ -63,6 +70,32 @@ public class OgreBrute extends OgreGrunt {
     protected int getMinimumStepSoundIntervalTicks() {
         return 8;
     }
+
+    @Override
+    protected boolean usesAnimatedFootsteps() {
+        return true;
+    }
+
+    // Animation ticks where a foot lands, from the leg keyframes.
+    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+            "walk", new double[]{0.0, 20.0},
+            "combat walk", new double[]{0.0, 15.84});
+
+    /** Client-side: a dull thud each time a foot visibly lands, a softer take on the King's. */
+    private void playFootfall() {
+        if (!onGround() || isInWater() || isSilent()) {
+            return;
+        }
+        float variation = getRandom().nextFloat() * 0.08F;
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.WARDEN_STEP, SoundSource.HOSTILE,
+                0.8F, 0.7F + variation, false);
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.HOSTILE_BIG_FALL, SoundSource.HOSTILE,
+                0.35F, 0.75F + variation, false);
+        BlockPos ground = getOnPos();
+        SoundType surface = level().getBlockState(ground).getSoundType(level(), ground, this);
+        level().playLocalSound(getX(), getY(), getZ(), surface.getStepSound(), SoundSource.HOSTILE,
+                0.7F, 0.65F + variation, false);
+    }
     private static final EntityDataAccessor<Integer> DATA_BRUTE_ATTACK_ID =
             SynchedEntityData.defineId(OgreBrute.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> DATA_BRUTE_ATTACK_START_TICK =
@@ -70,30 +103,44 @@ public class OgreBrute extends OgreGrunt {
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
     private static final RawAnimation IDLE_2 = RawAnimation.begin().thenLoop("idle2");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
-    private static final RawAnimation RUN = RawAnimation.begin().thenLoop("run");
-    private static final RawAnimation ATTACK = RawAnimation.begin().thenPlay("attack");
-    private static final RawAnimation SIDE_SWIPE = RawAnimation.begin().thenPlay("side_swipe");
-    private static final RawAnimation UPSWING_LAUNCH = RawAnimation.begin().thenPlay("upswing_launch");
-    private static final RawAnimation BELLY_BUMP = RawAnimation.begin().thenPlay("belly_bump");
-    private static final RawAnimation BELLY_SLAM = RawAnimation.begin().thenPlay("belly_slam");
-    private static final RawAnimation TEMPER_TANTRUM = RawAnimation.begin().thenPlay("temper_tantrum");
-    private static final int IDLE_VARIANT_TICKS = 40;
-    private static final int WALK_CYCLE_TICKS = 40;
-    private static final int WALK_VARIANT_MIN_CYCLES = 3;
-    private static final int ATTACK_ANIMATION_TICKS = 40;
-    private static final int SIDE_SWIPE_ANIMATION_TICKS = 30;
-    private static final int UPSWING_LAUNCH_ANIMATION_TICKS = 35;
-    private static final int BELLY_BUMP_ANIMATION_TICKS = 30;
+    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("combat walk");
+    private static final RawAnimation REGULAR_ATTACK = RawAnimation.begin().thenPlay("Regular attack 1");
+    private static final RawAnimation REGULAR_ATTACK_2 = RawAnimation.begin().thenPlay("Regular attack 2");
+    private static final RawAnimation REGULAR_ATTACK_3 = RawAnimation.begin().thenPlay("Regular attack 3");
+    private static final RawAnimation SIDE_SWIPE = RawAnimation.begin().thenPlay("side swipe");
+    private static final RawAnimation BITE = RawAnimation.begin().thenPlay("Bite");
+    private static final RawAnimation JUMP_SMASH = RawAnimation.begin().thenPlay("jump smash");
+    private static final RawAnimation TEMPER_TANTRUM = RawAnimation.begin().thenPlay("temper tantrum");
+    // idle2 is 2.857s long, so the variant plays out one whole loop before the plain idle returns.
+    private static final int IDLE_VARIANT_TICKS = 57;
+    // Attack ids: 1 and 6 are the two regular slams (right arm, left arm), 5 the side swipe, 3 the
+    // jump smash and 4 the temper tantrum. The first three are thrown over the combat walk.
+    private static final int ATTACK_ID_REGULAR_ATTACK = 1;
+    private static final int ATTACK_ID_JUMP_SMASH = 3;
+    private static final int ATTACK_ID_TEMPER_TANTRUM = 4;
+    private static final int ATTACK_ID_SIDE_SWIPE = 5;
+    private static final int ATTACK_ID_REGULAR_ATTACK_2 = 6;
+    private static final int ATTACK_ID_REGULAR_ATTACK_3 = 7;
+    private static final int ATTACK_ID_BITE = 8;
+    private static final int BITE_ANIMATION_TICKS = 45;
+    private static final int REGULAR_ATTACK_ANIMATION_TICKS = 50;
+    private static final int SIDE_SWIPE_ANIMATION_TICKS = 25;
+    /** How long the last pose of a swing takes to ease out once it ends. Read by the model. */
+    public static final float ATTACK_OVERLAY_FADE_OUT_TICKS = 4.0F;
+    // Fraction of his movement speed while he is in a fight: about 0.21 against the 0.325 attribute,
+    // a little under the King's 0.225 (0.25 * 0.90) so the boss stays the faster of the two.
+    private static final double COMBAT_WALK_SPEED = 0.643;
+    // He stops closing in once he is this far (block edge to block edge) from his target.
+    private static final double COMBAT_WALK_TARGET_GAP = 0.9;
+    private static final double COMBAT_WALK_MAX_VERTICAL_DIFFERENCE = 3.5;
     // jump smash animation_length grew from 2.75s to 3.25s (a uniform +0.5s
     // windup added before everything else, confirmed keyframe-by-keyframe),
     // so every tick offset tied to its timeline below shifts by +10 ticks.
     private static final int BELLY_SLAM_ANIMATION_TICKS = 65;
     private static final int TEMPER_TANTRUM_ANIMATION_TICKS = 105;
-    // Authored contact keyframes: 1.4167s, 2.1667s, 3.1667s (28/43/63 ticks). Every other Brute
-    // attack's damage delay adds the 3-tick ATTACK_SYNC_DELAY_TICKS (declared further below, so
-    // it can't be referenced here directly) on top of its raw keyframe to account for the same
-    // animation/server sync lag; these three never got that offset, which read as the hits
-    // landing slightly before the hands visibly reach the ground.
+    // Contact keyframes at 28/43/63 ticks. Other Brute attacks add ATTACK_SYNC_DELAY_TICKS (3,
+    // declared further down) for animation sync lag; these three didn't, so the hits landed
+    // just before the hands reached the ground.
     private static final int TEMPER_TANTRUM_FIRST_IMPACT_TICK = 28 + 3;
     private static final int TEMPER_TANTRUM_SECOND_IMPACT_TICK = 43 + 3;
     private static final int TEMPER_TANTRUM_FINAL_IMPACT_TICK = 63 + 3;
@@ -108,110 +155,115 @@ public class OgreBrute extends OgreGrunt {
     private static final int RIPPLE_JUMP_GRACE_TICKS = 2;
     private static final int FORCED_MINI_LAUNCH_DODGE_SUPPRESSION_TICKS = 24;
     private static final int ATTACK_SYNC_DELAY_TICKS = 3;
-    private static final int PUNCH_IMPACT_SOUND_DELAY_TICKS = 23 + ATTACK_SYNC_DELAY_TICKS;
-    // side_swipe impact keyframe is now at 0.54s (0.54 * 20 ticks/s ≈ 11 ticks).
-    private static final int SIDE_SWIPE_IMPACT_SOUND_DELAY_TICKS = 10 + ATTACK_SYNC_DELAY_TICKS;
-    // The updated upswing lands at 0.92s (about 18 ticks) into the animation.
-    private static final int UPSWING_IMPACT_DELAY_TICKS = 18 + ATTACK_SYNC_DELAY_TICKS;
-    private static final int UPSWING_WHOOSH_SOUND_DELAY_TICKS = UPSWING_IMPACT_DELAY_TICKS;
+    // Both regular slams land at 1.17s into their clip (tick 23); the side swipe at 0.54s (tick 11).
+    private static final int REGULAR_ATTACK_IMPACT_TICK = 23 + ATTACK_SYNC_DELAY_TICKS;
+    private static final int SIDE_SWIPE_IMPACT_TICK = 11 + ATTACK_SYNC_DELAY_TICKS;
+    // The double overhead slam lands 1.33s into its clip (tick 27).
+    private static final int DOUBLE_SLAM_IMPACT_TICK = 27 + ATTACK_SYNC_DELAY_TICKS;
+    private static final int DOUBLE_SLAM_RECOVERY_TICKS = 70;
+    // The bite closes at 1.21s into its clip (tick 24). He lunges about a block as he snaps, so it
+    // reaches a little past the slams' start range, and takes the one target nearest in front.
+    private static final int BITE_IMPACT_TICK = 24 + ATTACK_SYNC_DELAY_TICKS;
+    private static final int BITE_RECOVERY_TICKS = 70;
+    private static final double BITE_REACH = 3.4;
+    private static final double BITE_HALF_WIDTH = 1.3;
+    private static final float BITE_ARMOR_PIERCE_FRACTION = 0.15F;
+    private static final float BITE_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.BRUTE, OgreDamage.Blow.STANDARD);
+    // A Grunt's bite heals with Regeneration II; the Brute's heals with Regeneration III.
+    private static final int BITE_REGENERATION_TICKS = 80;
+    private static final int BITE_REGENERATION_AMPLIFIER = 2;
+    // Both fists come down together a little way in front of him and the blow spreads from there,
+    // weaker the further out it reaches. The inner part of it also leaves a target dazed.
+    private static final double DOUBLE_SLAM_REACH = 2.4;
+    private static final float DOUBLE_SLAM_RADIUS = 6.5F;
+    private static final float DOUBLE_SLAM_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.BRUTE, OgreDamage.Blow.HEAVY);
+    private static final float DOUBLE_SLAM_EDGE_SHARE = OgreDamage.BLAST_EDGE_SHARE;
+    private static final double DOUBLE_SLAM_DAZE_FRACTION = 0.55;
+    private static final double DOUBLE_SLAM_PUSH = 1.0;
+    private static final double DOUBLE_SLAM_LIFT = 0.35;
+    private static final float GAUNTLET_BLOCK_BREAK_CHANCE = 0.6F;
     private static final int BELLY_SLAM_GRUNT_SOUND_DELAY_TICKS = 23;
     private static final int BELLY_SLAM_IMPACT_SOUND_DELAY_TICKS = 38 + ATTACK_SYNC_DELAY_TICKS;
-    // Mirrors the King's own Belly Bump sound cue, which fires exactly on the hit-delay tick
-    // rather than a tick early.
-    private static final int BELLY_BUMP_IMPACT_SOUND_DELAY_TICKS = 18 + ATTACK_SYNC_DELAY_TICKS;
-    private static final int BELLY_BUMP_COOLDOWN_TICKS = 180;
     private static final int BELLY_SLAM_COOLDOWN_TICKS = 600;
     private static final int TEMPER_TANTRUM_COOLDOWN_TICKS = 560;
     private static final int TEMPER_TANTRUM_WHINE_DELAY_TICKS = 5;
-    private static final int BELLY_BUMP_CLOSE_PRESSURE_TICKS = 40;
-    private static final double BELLY_BUMP_CLOSE_PRESSURE_RANGE = 3.65;
+    // His gauntlets are iron: a slam's hit point sits about this far in front of him.
+    private static final double GAUNTLET_REACH = 2.6;
+    // The fist comes down along a path from just in front of him out to the impact point, offset
+    // toward the swinging arm. Anyone in that path (widened by the radius) is struck outright.
+    private static final double GAUNTLET_STRIKE_START = 0.9;
+    private static final double GAUNTLET_SIDE_OFFSET = 0.55;
+    private static final double GAUNTLET_STRIKE_RADIUS = 1.7;
+    // The ring around the impact takes less the further out it is.
+    private static final float GAUNTLET_RING_RADIUS = 3.2F;
+    // Someone the fist drives through is carried this fast along the slam and lifted a little.
+    private static final double SLAM_CARRY_PUSH = 1.5;
+    private static final double SLAM_CARRY_LIFT = 0.3;
+    // The side swipe covers an arc this far in front of him and this far to either side.
+    private static final double SWIPE_REACH = 3.4;
+    private static final double SWIPE_HALF_WIDTH = 3.0;
+    private static final double SWIPE_RADIUS = Math.hypot(SWIPE_REACH, SWIPE_HALF_WIDTH);
+    // Area hits skip the line-of-sight check inside this range.
+    private static final double CLOSE_HIT_RANGE = 4.5;
     private static final double REGULAR_ATTACK_START_RANGE = 3.7;
     private static final double BELLY_SLAM_RANGE = 7.0;
     private static final double BELLY_SLAM_MIN_RANGE = 3.25;
     private static final double TEMPER_TANTRUM_START_RANGE = 6.25;
     private static final double TEMPER_TANTRUM_SLOWNESS_RADIUS = 7.0;
     private static final double ATTACK_AOE_SCALE = 1.2;
+
+    /** Only Temper Tantrum draws the ripple; its slams are the only Brute areas wider than 7 blocks. */
+    @Override
+    protected boolean showsGroundRippleVisual(MeleeAttackHit hit, GroundRippleProfile profile) {
+        return hit.areaRadius() > 7.0F;
+    }
     private static final double ATTACK_KNOCKBACK_SCALE = 1.2;
     // Eased back up from the 43/41/41/53 values that made him attack a bit too often — still a net
     // cut from the original 50/48/48/62, just not as aggressive a reduction.
     // Belly Slam/Temper Tantrum keep their own separate, untouched cooldowns.
-    private static final int PUNCH_RECOVERY_TICKS = 47;
+    // A swing is thrown while he keeps walking, so the recovery has to outlast the clip (50 / 25
+    // ticks) or the next swing would start on top of the last one.
+    private static final int REGULAR_ATTACK_RECOVERY_TICKS = 70;
     private static final int SIDE_SWIPE_RECOVERY_TICKS = 45;
-    private static final int UPSWING_RECOVERY_TICKS = 45;
-    private static final int BELLY_BUMP_RECOVERY_TICKS = 58;
-    // Impact lands at SIDE_SWIPE_IMPACT_DELAY_TICKS (11) + ATTACK_SYNC_DELAY_TICKS (3) = tick 14.
-    // The advance now waits out the windup and only steps forward in the final approach to
-    // contact, instead of moving from the moment the swing commits.
-    private static final int SIDE_SWIPE_ADVANCE_DELAY_TICKS = 11;
-    private static final int SIDE_SWIPE_ADVANCE_TICKS = 3;
-    private static final double SIDE_SWIPE_ADVANCE_SPEED = 0.045;
-    // Punch impact lands at 24 + ATTACK_SYNC_DELAY_TICKS = tick 27. Driven directly from aiStep
-    // every tick (same pattern as the Side Swipe advance above) instead of the shared per-attack
-    // catch hook, which — despite setting real velocity every tick — never reads as a visible
-    // surge on his scale. This is the same mechanism already proven to move him for Side Swipe.
-    // Pulled in tight against the impact (a short, late, contained window) so the surge reads as
-    // "right before impact" instead of starting well into the windup, and covers less ground.
-    private static final int PUNCH_ADVANCE_DELAY_TICKS = 24;
-    private static final int PUNCH_ADVANCE_TICKS = 2;
-    private static final double PUNCH_ADVANCE_SPEED = 0.45;
-    // Moderate, capped body tracking during the windup only — locks in once the forward drive
-    // starts so the final surge still reads as fully committed.
-    private static final int PUNCH_TRACKING_TICKS = PUNCH_ADVANCE_DELAY_TICKS - 1;
-    private static final float PUNCH_TRACKING_MAX_TURN_PER_TICK = 1.5F;
-    // Multipliers against the 11.0 base ATTACK_DAMAGE attribute. Diamond armor's reduction curve eats most
-    // flat damage, so these are calibrated against full diamond armor (20 armor / 8 toughness, no pierce).
-    // Deliberately scaled down (~0.65x of the old values) so he reads as noticeably weaker than OgreLord,
-    // whose moves land 3-4 hearts vs the same armor: punch ~= 3.2 hearts effective, side swipe/upswing/
-    // belly bump ~= 2.3 hearts effective.
-    private static final float PUNCH_DAMAGE_MULTIPLIER = 1.6F;
-    private static final float SIDE_SWIPE_DAMAGE_MULTIPLIER = 1.2F;
-    private static final float UPSWING_LAUNCH_DAMAGE_MULTIPLIER = 1.2F;
-    private static final float BELLY_BUMP_DAMAGE_MULTIPLIER = 1.2F;
-    // Set as flat raw hit damage instead of a scaling multiplier: every mini slam hit (ripple or
-    // direct) deals 2.5 raw damage, the final slam deals 4.5 raw damage, before armor/toughness
-    // (and its pierce fraction) reduce that further. doScaledHurtTarget only takes a multiplier
-    // against the 11.0 base ATTACK_DAMAGE attribute, so these are expressed as raw/11.
+    // Multipliers on the 11.0 base ATTACK_DAMAGE, tuned against full diamond armor. Kept below
+    // OgreLord's so the Brute reads weaker: slam ~3.2 hearts, side swipe ~2.3.
+    private static final float REGULAR_ATTACK_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.BRUTE, OgreDamage.Blow.STANDARD);
+    private static final float SIDE_SWIPE_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.BRUTE, OgreDamage.Blow.LIGHT);
+    // Flat raw damage: 2.5 per mini slam hit, 4.5 for the final slam, before armor. Written as
+    // raw/11 because doScaledHurtTarget takes a multiplier on the 11.0 base ATTACK_DAMAGE.
     private static final float TEMPER_TANTRUM_MINI_SLAM_DAMAGE_MULTIPLIER = 2.5F / 11.0F;
     private static final float TEMPER_TANTRUM_BIG_SLAM_DAMAGE_MULTIPLIER = 4.5F / 11.0F;
     private static final float TEMPER_TANTRUM_MINI_DIRECT_DAMAGE_MULTIPLIER = 2.5F / 11.0F;
     private static final float TEMPER_TANTRUM_FINAL_DIRECT_DAMAGE_MULTIPLIER = 4.5F / 11.0F;
     // Belly slam (the jump attack) — also scaled down from the old 2.25F, to stay in line with the rest.
-    private static final float BELLY_SLAM_DAMAGE_MULTIPLIER = 1.5F;
+    private static final float BELLY_SLAM_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.BRUTE, OgreDamage.Blow.STANDARD);
 
     private int idleAnimationTicks;
     private int idleVariantTicks;
     private int attackAnimationTicks;
-    private int bellyBumpCooldownTicks;
     private int bellySlamCooldownTicks;
     private int temperTantrumCooldownTicks;
     private int bellySlamTakeoffDelayTicks;
     private int bellySlamFlightTicks;
     private int bellySlamFacingLockTicks;
     private int temperTantrumWhineDelayTicks = -1;
-    private int punchImpactSoundDelayTicks = -1;
-    private int sideSwipeImpactSoundDelayTicks = -1;
-    private int upswingWhooshSoundDelayTicks = -1;
+    private int strikeDelayTicks = -1;
     private int bellySlamGruntSoundDelayTicks = -1;
     private int bellySlamImpactSoundDelayTicks = -1;
-    private int bellyBumpImpactSoundDelayTicks = -1;
     private int activeBruteAttackId;
     private int lastRegularAttackId;
-    private int closePressureTicks;
+    private boolean attackOverlayVisible;
+    private boolean jumpSmashReady;
     private int ambientHuffCooldownTicks = AMBIENT_HUFF_MIN_COOLDOWN_TICKS;
     private int lastAnimationTick = -1;
-    private int movementAnimationGraceTicks;
+    private long lastMovingAnimationTick = Long.MIN_VALUE / 2;
+    private static final int MOVEMENT_ANIMATION_GRACE_TICKS = 4;
     private final CanonicalOneShotState visualOneShot = new CanonicalOneShotState();
+    private final CanonicalOneShotState visualOverlayOneShot = new CanonicalOneShotState();
     private RawAnimation activeIdleAnimation = IDLE;
     private LivingEntity bellySlamTarget;
     private Vec3 bellySlamDirection = Vec3.ZERO;
-    private Vec3 sideSwipeAdvanceDirection = Vec3.ZERO;
-    private int sideSwipeAdvanceDelayTicks;
     private float bellySlamYaw;
-    private int sideSwipeAdvanceTicks;
-    private Vec3 punchAdvanceDirection = Vec3.ZERO;
-    private int punchAdvanceDelayTicks;
-    private int punchAdvanceTicks;
-    private int punchTrackingTicks;
     private final Set<UUID> pendingTemperTantrumRippleExclusions = new HashSet<>();
     private boolean temperTantrumMilestoneQueued;
     private boolean temperTantrumMilestoneConsumed;
@@ -227,7 +279,7 @@ public class OgreBrute extends OgreGrunt {
         if (!hasCustomName()) {
             setCustomName(Component.translatable("title.kingsandmonsters.brute_captain"));
         }
-        setCustomNameVisible(true);
+        setCustomNameVisible(Config.SHOW_CAPTAIN_NAMETAGS.get());
     }
 
     @Override
@@ -247,11 +299,11 @@ public class OgreBrute extends OgreGrunt {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 120.0)
+                .add(Attributes.MAX_HEALTH, 150.0)
                 .add(Attributes.ATTACK_DAMAGE, 11.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.325)
                 .add(Attributes.FOLLOW_RANGE, 30.0)
-                .add(Attributes.ARMOR, 18.0)
+                .add(Attributes.ARMOR, 20.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.9)
                 .add(Attributes.ATTACK_KNOCKBACK, 1.5)
                 .add(Attributes.STEP_HEIGHT, 1.2)
@@ -264,10 +316,9 @@ public class OgreBrute extends OgreGrunt {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        // Retain a small piece of the removed defensive phase as a passive trait:
-        // every projectile hit independently has an exact one-in-three chance to
-        // be rejected. Returning false also lets arrows use their normal failed-hit
-        // response instead of embedding in and damaging the brute.
+        // Passive trait left over from the removed defensive phase: each projectile hit has a
+        // 1-in-3 chance to be rejected. Returning false lets arrows use their normal failed-hit
+        // response instead of embedding in the brute.
         if (!level().isClientSide
                 && source.is(DamageTypeTags.IS_PROJECTILE)
                 && getRandom().nextInt(3) == 0) {
@@ -278,6 +329,12 @@ public class OgreBrute extends OgreGrunt {
                     SoundSource.HOSTILE,
                     1.0F,
                     0.65F + getRandom().nextFloat() * 0.1F);
+            if (level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT,
+                        getX(), getY() + getBbHeight() * 0.65, getZ(), 10, 0.3, 0.3, 0.3, 0.3);
+                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,
+                        getX(), getY() + getBbHeight() * 0.65, getZ(), 6, 0.25, 0.25, 0.25, 0.4);
+            }
             return false;
         }
 
@@ -294,12 +351,19 @@ public class OgreBrute extends OgreGrunt {
     @Override
     public void aiStep() {
         super.aiStep();
+        if (!level().isClientSide && isDeadOrDying()) {
+            // Dying cancels the swing, the belly slam's flight and its delayed impact sounds.
+            strikeDelayTicks = -1;
+            bellySlamTakeoffDelayTicks = 0;
+            bellySlamFlightTicks = 0;
+            bellySlamTarget = null;
+            return;
+        }
         if (!level().isClientSide) {
             if (!temperTantrumMilestoneConsumed && getHealth() <= getMaxHealth() * 0.5F) {
                 temperTantrumMilestoneQueued = true;
             }
             tickAmbientHuff();
-            bellyBumpCooldownTicks = Math.max(bellyBumpCooldownTicks - 1, 0);
             bellySlamCooldownTicks = Math.max(bellySlamCooldownTicks - 1, 0);
             temperTantrumCooldownTicks = Math.max(temperTantrumCooldownTicks - 1, 0);
             tickTemperTantrumWhineSound();
@@ -307,19 +371,8 @@ public class OgreBrute extends OgreGrunt {
             tickDelayedImpactSounds();
             tickBellySlamFlight();
             tickBellySlamFacingLock();
-            tickSideSwipeAdvance();
-            tickPunchTracking();
-            tickPunchAdvance();
-
-            LivingEntity target = getTarget();
-            if (target != null
-                    && target.isAlive()
-                    && distanceToSqr(target) <= BELLY_BUMP_CLOSE_PRESSURE_RANGE * BELLY_BUMP_CLOSE_PRESSURE_RANGE
-                    && getSensing().hasLineOfSight(target)) {
-                closePressureTicks = Math.min(closePressureTicks + (hurtTime > 0 ? 2 : 1), BELLY_BUMP_CLOSE_PRESSURE_TICKS);
-            } else {
-                closePressureTicks = Math.max(closePressureTicks - 2, 0);
-            }
+            tickStrike();
+            tickJumpSmashReady();
         }
     }
 
@@ -334,7 +387,7 @@ public class OgreBrute extends OgreGrunt {
         }
 
         level().playSound(null, getX(), getY(), getZ(),
-                ModSoundEvents.OGRE_GRUNT_HUFF.get(), SoundSource.HOSTILE, 1.0F, 0.68F);
+                ModSoundEvents.OGRE_BRUTE_IDLE.get(), SoundSource.HOSTILE, BRUTE_VOCAL_VOLUME, 1.0F);
         ambientHuffCooldownTicks = AMBIENT_HUFF_MIN_COOLDOWN_TICKS
                 + getRandom().nextInt(AMBIENT_HUFF_RANDOM_COOLDOWN_TICKS + 1);
     }
@@ -362,103 +415,6 @@ public class OgreBrute extends OgreGrunt {
         }
     }
 
-    private void beginPunchAdvance() {
-        punchAdvanceDelayTicks = PUNCH_ADVANCE_DELAY_TICKS;
-        punchAdvanceTicks = PUNCH_ADVANCE_TICKS;
-        punchAdvanceDirection = Vec3.ZERO;
-    }
-
-    private void tickPunchAdvance() {
-        if (activeBruteAttackId != 1) {
-            punchAdvanceDelayTicks = 0;
-            punchAdvanceTicks = 0;
-            punchAdvanceDirection = Vec3.ZERO;
-            return;
-        }
-
-        if (punchAdvanceDelayTicks > 0) {
-            punchAdvanceDelayTicks--;
-            if (punchAdvanceDelayTicks == 0) {
-                // Lock in the drive direction now, using whatever heading the capped tracking
-                // nudge above settled on — not the heading at commit — so the surge actually
-                // drives toward where the target ended up during the windup.
-                punchAdvanceDirection = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
-            }
-            return;
-        }
-
-        if (punchAdvanceTicks <= 0) {
-            return;
-        }
-
-        punchAdvanceTicks--;
-        Vec3 movement = getDeltaMovement();
-        setDeltaMovement(
-                punchAdvanceDirection.x * PUNCH_ADVANCE_SPEED,
-                movement.y,
-                punchAdvanceDirection.z * PUNCH_ADVANCE_SPEED);
-        hasImpulse = true;
-    }
-
-    private void tickPunchTracking() {
-        if (activeBruteAttackId != 1 || punchTrackingTicks <= 0) {
-            punchTrackingTicks = 0;
-            return;
-        }
-
-        punchTrackingTicks--;
-        LivingEntity target = getTarget();
-        if (target == null) {
-            return;
-        }
-
-        double dx = target.getX() - getX();
-        double dz = target.getZ() - getZ();
-        if (dx * dx + dz * dz < 1.0E-4) {
-            return;
-        }
-
-        float desiredYaw = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
-        float turn = Mth.clamp(Mth.wrapDegrees(desiredYaw - getYRot()),
-                -PUNCH_TRACKING_MAX_TURN_PER_TICK, PUNCH_TRACKING_MAX_TURN_PER_TICK);
-        float newYaw = getYRot() + turn;
-        setYRot(newYaw);
-        setYBodyRot(newYaw);
-        setYHeadRot(newYaw);
-    }
-
-    private void beginSideSwipeAdvance() {
-        sideSwipeAdvanceDirection = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
-        sideSwipeAdvanceDelayTicks = SIDE_SWIPE_ADVANCE_DELAY_TICKS;
-        sideSwipeAdvanceTicks = SIDE_SWIPE_ADVANCE_TICKS;
-    }
-
-    private void tickSideSwipeAdvance() {
-        if (activeBruteAttackId != 5) {
-            sideSwipeAdvanceDelayTicks = 0;
-            sideSwipeAdvanceTicks = 0;
-            sideSwipeAdvanceDirection = Vec3.ZERO;
-            return;
-        }
-
-        if (sideSwipeAdvanceDelayTicks > 0) {
-            sideSwipeAdvanceDelayTicks--;
-            return;
-        }
-
-        if (sideSwipeAdvanceTicks <= 0) {
-            return;
-        }
-
-        sideSwipeAdvanceTicks--;
-        Vec3 movement = getDeltaMovement();
-        setDeltaMovement(
-                sideSwipeAdvanceDirection.x * SIDE_SWIPE_ADVANCE_SPEED,
-                movement.y,
-                sideSwipeAdvanceDirection.z * SIDE_SWIPE_ADVANCE_SPEED);
-        hasImpulse = true;
-    }
-
     @Override
     protected MeleeAttackPlan startMeleeAttack() {
         LivingEntity target = getTarget();
@@ -468,7 +424,6 @@ public class OgreBrute extends OgreGrunt {
             playAttackAnimation(4);
             temperTantrumCooldownTicks = TEMPER_TANTRUM_COOLDOWN_TICKS;
             temperTantrumWhineDelayTicks = TEMPER_TANTRUM_WHINE_DELAY_TICKS;
-            closePressureTicks = 0;
             getNavigation().stop();
             setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
             warmUpRippleBlockVisual();
@@ -493,73 +448,53 @@ public class OgreBrute extends OgreGrunt {
                             .withBlockRippleParticles()));
         }
 
-        if (canStartBellySlam(target)) {
+        if (jumpSmashReady && target != null) {
+            jumpSmashReady = false;
             return startBellySlamAttack(target);
         }
 
-        if (bellyBumpCooldownTicks <= 0 && closePressureTicks >= BELLY_BUMP_CLOSE_PRESSURE_TICKS) {
-            playAttackAnimation(2);
-            bellyBumpCooldownTicks = BELLY_BUMP_COOLDOWN_TICKS;
-            bellyBumpImpactSoundDelayTicks = BELLY_BUMP_IMPACT_SOUND_DELAY_TICKS;
-            closePressureTicks = 0;
-            return new MeleeAttackPlan(BELLY_BUMP_RECOVERY_TICKS, BELLY_BUMP_ANIMATION_TICKS, List.of(MeleeAttackHit.areaSpecial(18 + ATTACK_SYNC_DELAY_TICKS, BELLY_BUMP_DAMAGE_MULTIPLIER, (float) (4.0 * ATTACK_AOE_SCALE), true,
-                    0.0F, 3.2 * ATTACK_KNOCKBACK_SCALE, 110.0F, 1.38, 0, 0, false)));
-        }
-
-        // Punch/Side Swipe/Upswing split roughly 40/30/30 (see chooseRegularAttack's weighting),
-        // with the immediately previous regular attack excluded whenever another is available so
-        // he doesn't repeat the same swing back-to-back.
-        return switch (chooseRegularAttack()) {
-            case 1 -> {
-                playAttackAnimation(1);
-                punchImpactSoundDelayTicks = PUNCH_IMPACT_SOUND_DELAY_TICKS;
-                beginPunchAdvance();
-                punchTrackingTicks = PUNCH_TRACKING_TICKS;
-                yield new MeleeAttackPlan(PUNCH_RECOVERY_TICKS, ATTACK_ANIMATION_TICKS, List.of(
-                        // Hit coverage widened (radius 3.25 -> 3.6, forward offset 1.05 -> 1.3) to
-                        // better match the arm's visual reach. Damage, delay, and knockback unchanged.
-                        MeleeAttackHit.areaSpecial(24 + ATTACK_SYNC_DELAY_TICKS, PUNCH_DAMAGE_MULTIPLIER, (float) (3.6 * ATTACK_AOE_SCALE), true,
-                                0.0F, 3.3 * ATTACK_KNOCKBACK_SCALE, 75.0F, 0.36, 0, 0, false)
-                                .withAreaOffset(1.3, 0.0)
-                                .withDirectionalKnockback(1.0, 0.0)
-                                .withVerticalHitRange(3.0)));
+        // Both regular slams and the side swipe are thrown while he keeps walking. The pick rotates
+        // roughly 3/3/4 and never repeats the previous swing when another is available.
+        int pick = chooseRegularAttack();
+        return switch (pick) {
+            case ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2 -> {
+                playAttackAnimation(pick);
+                strikeDelayTicks = REGULAR_ATTACK_IMPACT_TICK;
+                // The slam itself is thrown from aiStep at the clip's 1.17s impact (see tickStrike), so
+                // the plan only carries the animation and the recovery.
+                yield new MeleeAttackPlan(REGULAR_ATTACK_RECOVERY_TICKS, REGULAR_ATTACK_ANIMATION_TICKS, List.of());
             }
-            case 5 -> {
-                playAttackAnimation(5);
-                beginSideSwipeAdvance();
-                sideSwipeImpactSoundDelayTicks = SIDE_SWIPE_IMPACT_SOUND_DELAY_TICKS;
-                yield new MeleeAttackPlan(SIDE_SWIPE_RECOVERY_TICKS, SIDE_SWIPE_ANIMATION_TICKS, List.of(
-                        MeleeAttackHit.areaSpecial(11 + ATTACK_SYNC_DELAY_TICKS, SIDE_SWIPE_DAMAGE_MULTIPLIER, (float) (3.2 * ATTACK_AOE_SCALE), true,
-                                0.0F, 2.65 * ATTACK_KNOCKBACK_SCALE, 125.0F, 0.66, 0, 0, false)
-                                .withAreaOffset(1.15, 0.0)
-                                .withDirectionalKnockback(1.0, -1.0)
-                                .withVerticalHitRange(3.0)));
+            case ATTACK_ID_REGULAR_ATTACK_3 -> {
+                playAttackAnimation(pick);
+                strikeDelayTicks = DOUBLE_SLAM_IMPACT_TICK;
+                yield new MeleeAttackPlan(DOUBLE_SLAM_RECOVERY_TICKS, REGULAR_ATTACK_ANIMATION_TICKS, List.of());
+            }
+            case ATTACK_ID_BITE -> {
+                playAttackAnimation(pick);
+                strikeDelayTicks = BITE_IMPACT_TICK;
+                yield new MeleeAttackPlan(BITE_RECOVERY_TICKS, BITE_ANIMATION_TICKS, List.of());
             }
             default -> {
-                playAttackAnimation(6);
-                upswingWhooshSoundDelayTicks = UPSWING_WHOOSH_SOUND_DELAY_TICKS;
-                yield new MeleeAttackPlan(UPSWING_RECOVERY_TICKS, UPSWING_LAUNCH_ANIMATION_TICKS, List.of(
-                        // Vertical launch raised 1.35 -> 1.65; damage, delay, cone, and horizontal
-                        // knockback are untouched.
-                        MeleeAttackHit.areaSpecial(UPSWING_IMPACT_DELAY_TICKS, UPSWING_LAUNCH_DAMAGE_MULTIPLIER, (float) (3.5 * ATTACK_AOE_SCALE), true,
-                                0.0F, 0.65 * ATTACK_KNOCKBACK_SCALE, 110.0F, 1.65, 0, 0, false)
-                                .withAreaOffset(1.0, 0.0)
-                                .withVerticalHitRange(3.5)));
+                playAttackAnimation(ATTACK_ID_SIDE_SWIPE);
+                strikeDelayTicks = SIDE_SWIPE_IMPACT_TICK;
+                yield new MeleeAttackPlan(SIDE_SWIPE_RECOVERY_TICKS, SIDE_SWIPE_ANIMATION_TICKS, List.of());
             }
         };
     }
 
-    /**
-     * Weighted 4/3/3 pick across Punch/Side Swipe/Upswing (matching the previous nextInt(10)
-     * split), with the last regular attack excluded whenever that leaves another option — same
-     * lightweight "drop the last pick" idea as the King's chooseVariedNormalAttack, simplified to
-     * a single most-recent exclusion since the Brute only has three attacks to rotate here.
-     */
+    /** Picks the next swing: a slam with either arm or the side swipe, never a repeat of the last one when another exists. */
     private int chooseRegularAttack() {
-        List<Integer> choices = new ArrayList<>(List.of(1, 1, 1, 1, 5, 5, 5, 6, 6, 6));
-        choices.removeIf(id -> id == lastRegularAttackId);
-        if (choices.isEmpty()) {
-            choices = new ArrayList<>(List.of(1, 1, 1, 1, 5, 5, 5, 6, 6, 6));
+        List<Integer> choices = new ArrayList<>(List.of(
+                ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK,
+                ATTACK_ID_REGULAR_ATTACK_2, ATTACK_ID_REGULAR_ATTACK_2, ATTACK_ID_REGULAR_ATTACK_2,
+                ATTACK_ID_SIDE_SWIPE, ATTACK_ID_SIDE_SWIPE, ATTACK_ID_SIDE_SWIPE, ATTACK_ID_SIDE_SWIPE,
+                ATTACK_ID_BITE, ATTACK_ID_BITE, ATTACK_ID_BITE,
+                // The double overhead slam is the rare one.
+                ATTACK_ID_REGULAR_ATTACK_3));
+        List<Integer> fresh = new ArrayList<>(choices);
+        fresh.removeIf(id -> id == lastRegularAttackId);
+        if (!fresh.isEmpty()) {
+            choices = fresh;
         }
         return choices.get(getRandom().nextInt(choices.size()));
     }
@@ -569,7 +504,10 @@ public class OgreBrute extends OgreGrunt {
             return new MeleeAttackPlan(6, List.of());
         }
 
-        playAttackAnimation(3);
+        playAttackAnimation(ATTACK_ID_JUMP_SMASH);
+        // The clip crouches in place for its first second; don't let the walk's momentum slide him.
+        getNavigation().stop();
+        setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
         bellySlamCooldownTicks = BELLY_SLAM_COOLDOWN_TICKS;
         bellySlamTarget = target;
         lockBellySlamDirection(target);
@@ -579,35 +517,93 @@ public class OgreBrute extends OgreGrunt {
         bellySlamFacingLockTicks = BELLY_SLAM_ANIMATION_TICKS;
         bellySlamGruntSoundDelayTicks = BELLY_SLAM_GRUNT_SOUND_DELAY_TICKS;
         bellySlamImpactSoundDelayTicks = BELLY_SLAM_IMPACT_SOUND_DELAY_TICKS;
-        closePressureTicks = 0;
-        // Explicit duration matching BELLY_SLAM_ANIMATION_TICKS — without it, the plan's active
-        // duration defaults to the hit's delay (41 ticks), letting the goal reclaim navigation
-        // control mid-flight while tickBellySlamFlight() is still independently driving velocity,
-        // which looks like the attack getting cancelled/interrupted.
+        // Match BELLY_SLAM_ANIMATION_TICKS explicitly. The default (the hit's 41-tick delay) lets
+        // the goal take navigation back mid-flight while tickBellySlamFlight() still drives velocity.
         return new MeleeAttackPlan(85, BELLY_SLAM_ANIMATION_TICKS, List.of(MeleeAttackHit.areaSpecial(38 + ATTACK_SYNC_DELAY_TICKS, BELLY_SLAM_DAMAGE_MULTIPLIER, (float) (4.4 * ATTACK_AOE_SCALE), true,
                 0.3F, 1.4 * ATTACK_KNOCKBACK_SCALE, 0.0F, 0.0, 100, 0, true).withVerticalHitRange(5.0)));
     }
 
     @Override
     protected double getMeleeAttackReachSqr(LivingEntity target) {
-        // Never stop early at the optional belly-slam range. If its random roll failed, that
-        // previously left the brute staring from several blocks away through an empty cooldown.
-        return REGULAR_ATTACK_START_RANGE * REGULAR_ATTACK_START_RANGE;
+        // While the jump smash is ready he starts his attack routine from its longer range; the
+        // swings only come out once the target is inside the regular reach (see startMeleeAttack).
+        double reach = jumpSmashReady ? BELLY_SLAM_RANGE : REGULAR_ATTACK_START_RANGE;
+        return reach * reach;
     }
 
     @Override
     public boolean canDisableShield() {
-        // The punch puts the target's shield on cooldown too, same as the grunt's bite.
-        return activeBruteAttackId == 1 || super.canDisableShield();
+        // The slams put the target's shield on cooldown too, same as the grunt's bite.
+        return activeBruteAttackId == ATTACK_ID_REGULAR_ATTACK
+                || activeBruteAttackId == ATTACK_ID_REGULAR_ATTACK_2
+                || activeBruteAttackId == ATTACK_ID_REGULAR_ATTACK_3
+                || activeBruteAttackId == ATTACK_ID_BITE || super.canDisableShield();
+    }
+
+    /** The swings that are thrown over the combat walk instead of stopping him. */
+    private static boolean isWalkingAttack(int attackId) {
+        return attackId == ATTACK_ID_REGULAR_ATTACK || attackId == ATTACK_ID_REGULAR_ATTACK_2
+                || attackId == ATTACK_ID_REGULAR_ATTACK_3 || attackId == ATTACK_ID_BITE
+                || attackId == ATTACK_ID_SIDE_SWIPE;
+    }
+
+    private boolean isMidSwing() {
+        return activeBruteAttackId != 0 && attackAnimationTicks > 0;
+    }
+
+    @Override
+    protected boolean isAttackCommitted() {
+        // Every attack plays out once it has started, so a swing whose target dies or dodges
+        // still lands on the ground with its impact.
+        return activeBruteAttackId != 0;
     }
 
     @Override
     protected boolean shouldFaceMeleeTarget(LivingEntity target) {
-        // Lock facing for the whole swing once an attack is triggered — letting the look control
-        // keep rotating toward the target's current position mid-swing turns the body away from
-        // where the hit was actually aimed, causing whiffs and an "angled" look on impact.
-        boolean midSwing = activeBruteAttackId != 0 && attackAnimationTicks > 0;
-        return bellySlamFacingLockTicks <= 0 && !isTemperTantrumActive() && !midSwing;
+        // The planted attacks lock their facing once triggered: letting the look control keep
+        // rotating mid-swing turns the body away from where the hit was aimed. The swings thrown
+        // while walking keep turning him toward his target instead.
+        return bellySlamFacingLockTicks <= 0 && !isTemperTantrumActive()
+                && (!isMidSwing() || isWalkingAttack(activeBruteAttackId));
+    }
+
+    @Override
+    protected boolean canCombatWalkDuringAttack() {
+        return isWalkingAttack(activeBruteAttackId);
+    }
+
+    @Override
+    protected boolean keepsMovingThroughAttackRange() {
+        return true;
+    }
+
+    @Override
+    protected boolean shouldApproachDuringMeleeRecovery() {
+        return true;
+    }
+
+    @Override
+    protected boolean shouldUseCombatWalk(LivingEntity target, boolean closeEnoughToAttack,
+                                          int ticksUntilNextAttack, boolean currentlyCombatWalking) {
+        // With a target, the combat walk is his only gait; the jump smash and the tantrum are what
+        // stop him.
+        return target != null && target.isAlive()
+                && (!isMidSwing() || isWalkingAttack(activeBruteAttackId));
+    }
+
+    @Override
+    protected double getCombatWalkSpeedModifier() {
+        return COMBAT_WALK_SPEED;
+    }
+
+    @Override
+    protected boolean shouldHoldCombatSpacing(LivingEntity target) {
+        // Closes in to a body's width of his target and stays there, instead of shoving into them.
+        double x = target.getX() - getX();
+        double z = target.getZ() - getZ();
+        double preferred = (getBbWidth() + target.getBbWidth()) * 0.5 + COMBAT_WALK_TARGET_GAP;
+        return x * x + z * z <= preferred * preferred
+                && Math.abs(target.getY() - getY()) <= COMBAT_WALK_MAX_VERTICAL_DIFFERENCE;
     }
 
     @Override
@@ -619,21 +615,18 @@ public class OgreBrute extends OgreGrunt {
 
     @Override
     protected boolean shouldStayStationaryDuringMeleeAttack() {
-        // Every attack commits in place except the belly slam's scripted leap, the side
-        // swipe/backhand's subtle authored advance, and the punch's own driven surge.
-        return activeBruteAttackId != 0
-                && activeBruteAttackId != 1
-                && activeBruteAttackId != 3
-                && activeBruteAttackId != 5
-                && attackAnimationTicks > 0;
+        // The tantrum commits in place. The swings keep him walking and the jump smash drives its
+        // own leap (see below), so neither is held still.
+        return isMidSwing()
+                && !isWalkingAttack(activeBruteAttackId)
+                && activeBruteAttackId != ATTACK_ID_JUMP_SMASH;
     }
 
     @Override
     protected boolean shouldSuspendNavigationDuringMeleeAttack() {
-        // These moves supply their own velocity (via aiStep, not the shared catch hook), so block
-        // path navigation without zeroing the motion they set.
-        return (activeBruteAttackId == 1 || activeBruteAttackId == 3 || activeBruteAttackId == 5)
-                && attackAnimationTicks > 0;
+        // The jump smash supplies its own velocity (via aiStep, not the shared catch hook), so
+        // block path navigation without zeroing the motion it sets.
+        return activeBruteAttackId == ATTACK_ID_JUMP_SMASH && attackAnimationTicks > 0;
     }
 
     @Override
@@ -665,6 +658,21 @@ public class OgreBrute extends OgreGrunt {
         return ModSoundEvents.OGRE_BRUTE_HURT.get();
     }
 
+    @Override
+    protected SoundEvent getDeathSound() {
+        return ModSoundEvents.OGRE_BRUTE_DEATH.get();
+    }
+
+    @Override
+    protected float getSoundVolume() {
+        return BRUTE_VOCAL_VOLUME;
+    }
+
+    @Override
+    public float getVoicePitch() {
+        return 0.96F + getRandom().nextFloat() * 0.08F;
+    }
+
     private boolean shouldSuppressReactiveSounds() {
         return isTemperTantrumActive()
                 || activeBruteAttackId == 3 && attackAnimationTicks > 0;
@@ -672,12 +680,59 @@ public class OgreBrute extends OgreGrunt {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new SynchronizedAnimationController<>(this, "Brute Movement", 5, this::animateBrute));
+        controllers.add(new SynchronizedAnimationController<>(this, "Brute Movement", 5, this::animateBrute)
+                .withFootfalls(FOOT_CONTACTS, this::playFootfall));
+        // Registered second so it is applied after the walk: his swings only key the upper body,
+        // and this controller blends them in from whatever pose the walk has him in. Same 5-tick
+        // blend-in as the movement controller, so the hit timings calibrated against it
+        // (ATTACK_SYNC_DELAY_TICKS) hold for these swings too. See OgreBruteModel for the blend out.
+        controllers.add(new SynchronizedAnimationController<>(this, "Brute Attack Overlay", 5,
+                this::animateAttackOverlay));
+    }
+
+    /** True on the client while a swing is playing over the walk. */
+    public boolean isAttackOverlayVisible() {
+        return attackOverlayVisible;
+    }
+
+    @Override
+    public double getBoneResetTime() {
+        // Bones an animation stops keying (the legs when the jump smash takes over) ease back to
+        // rest over a few ticks instead of snapping there.
+        return 6.0;
+    }
+
+    private PlayState animateAttackOverlay(AnimationState<OgreBrute> state) {
+        state.setControllerSpeed(1.0F);
+        if (isDeadOrDying()) {
+            visualOverlayOneShot.clear();
+            attackOverlayVisible = false;
+            return PlayState.STOP;
+        }
+        int syncedAttackId = entityData.get(DATA_BRUTE_ATTACK_ID);
+        boolean overlayAttack = isWalkingAttack(syncedAttackId);
+        int visualAttackId = visualOverlayOneShot.update(state.getController(),
+                overlayAttack ? syncedAttackId : 0,
+                overlayAttack ? entityData.get(DATA_BRUTE_ATTACK_START_TICK) : 0L,
+                this::getAttackAnimationTicks, level().getGameTime());
+        attackOverlayVisible = visualAttackId > 0;
+        return attackOverlayVisible ? state.setAndContinue(getAttackAnimation(visualAttackId)) : PlayState.STOP;
     }
 
     private PlayState animateBrute(AnimationState<OgreBrute> state) {
+        if (isDeadOrDying()) {
+            // A swing, slam or tantrum in progress is cancelled the moment he dies.
+            visualOneShot.clear();
+            state.setControllerSpeed(1.0F);
+            return state.setAndContinue(IDLE);
+        }
+        // The swings thrown while walking belong to the overlay controller; this one keeps playing
+        // the walk underneath them.
+        int syncedAttackId = entityData.get(DATA_BRUTE_ATTACK_ID);
+        boolean overlayAttack = isWalkingAttack(syncedAttackId);
         int visualAttackId = visualOneShot.update(state.getController(),
-                entityData.get(DATA_BRUTE_ATTACK_ID), entityData.get(DATA_BRUTE_ATTACK_START_TICK),
+                overlayAttack ? 0 : syncedAttackId,
+                overlayAttack ? 0L : entityData.get(DATA_BRUTE_ATTACK_START_TICK),
                 this::getAttackAnimationTicks, level().getGameTime());
         if (visualAttackId > 0) {
             return state.setAndContinue(getAttackAnimation(visualAttackId));
@@ -685,12 +740,13 @@ public class OgreBrute extends OgreGrunt {
 
         // isAggressive() is a synced data flag (set by the inherited melee goal), unlike getTarget()
         // which is server-only and always null on the client — using target here left clients stuck on WALK.
-        if (shouldUseRunAnimation()) {
+        // Heading to the King or home runs at the same combat-walk pace, so it gets the same clip.
+        if (isAggressive() || isRunMovementState()) {
             idleAnimationTicks = 0;
             idleVariantTicks = 0;
             // Follow actual movement rather than recomputing target distance on the client.
             if (isMovingForAnimation(state)) {
-                return state.setAndContinue(RUN);
+                return state.setAndContinue(COMBAT_WALK);
             }
             return state.setAndContinue(IDLE);
         }
@@ -710,15 +766,14 @@ public class OgreBrute extends OgreGrunt {
 
     private boolean isMovingForAnimation(AnimationState<OgreBrute> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
+        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
+        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        long now = level().getGameTime();
         if (moving) {
-            movementAnimationGraceTicks = 4;
+            lastMovingAnimationTick = now;
             return true;
         }
-        if (movementAnimationGraceTicks > 0) {
-            movementAnimationGraceTicks--;
-            return true;
-        }
-        return false;
+        return now - lastMovingAnimationTick <= MOVEMENT_ANIMATION_GRACE_TICKS;
     }
 
     private boolean canStartTemperTantrum(LivingEntity target) {
@@ -763,7 +818,7 @@ public class OgreBrute extends OgreGrunt {
     }
 
     @Override
-    protected void applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
+    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
         boolean ogreAlly = target instanceof OgreGrunt;
         float multiplier = ogreAlly ? hit.damageMultiplier() * 0.5F : hit.damageMultiplier();
         if (doScaledHurtTarget(target, multiplier, hit.armorPierceFraction())) {
@@ -771,7 +826,9 @@ public class OgreBrute extends OgreGrunt {
                 RippleJumpTracker.recordForcedRippleLaunch(target);
             }
             applyAttackHitExtras(target, hit);
+            return true;
         }
+        return false;
     }
 
     @Override
@@ -814,6 +871,19 @@ public class OgreBrute extends OgreGrunt {
         return exclusions;
     }
 
+    /** His iron gauntlets ring on the ground: a clang for each fist, and a heavier one on the final slam. */
+    @Override
+    protected void playShockwaveLayers(Vec3 center, MeleeAttackHit hit) {
+        if (!isTemperTantrumActive()) {
+            return;
+        }
+        boolean finalImpact = hit.delayTicks() == TEMPER_TANTRUM_FINAL_IMPACT_TICK;
+        level().playSound(null, center.x, center.y, center.z, SoundEvents.ANVIL_LAND,
+                SoundSource.HOSTILE, finalImpact ? 0.9F : 0.6F, finalImpact ? 0.55F : 0.7F);
+        level().playSound(null, center.x, center.y, center.z, SoundEvents.IRON_GOLEM_ATTACK,
+                SoundSource.HOSTILE, finalImpact ? 1.2F : 0.8F, finalImpact ? 0.5F : 0.65F);
+    }
+
     private void tickTemperTantrumSlowness() {
         if (!isTemperTantrumActive()) {
             return;
@@ -847,54 +917,329 @@ public class OgreBrute extends OgreGrunt {
                     getZ(),
                     ModSoundEvents.OGRE_BRUTE_TANTRUM_WHINE.get(),
                     SoundSource.HOSTILE,
-                    1.5F,
+                    BRUTE_VOCAL_VOLUME,
                     1.0F);
             temperTantrumWhineDelayTicks = -1;
         }
     }
 
     private void tickDelayedImpactSounds() {
-        punchImpactSoundDelayTicks = tickDelayedImpactSound(
-                punchImpactSoundDelayTicks,
-                1,
-                SoundEvents.PLAYER_ATTACK_STRONG,
-                1.1F,
-                0.74F);
-        sideSwipeImpactSoundDelayTicks = tickDelayedImpactSound(
-                sideSwipeImpactSoundDelayTicks,
-                5,
-                SoundEvents.PLAYER_ATTACK_STRONG,
-                1.2F,
-                0.72F);
-        upswingWhooshSoundDelayTicks = tickDelayedImpactSound(
-                upswingWhooshSoundDelayTicks,
-                6,
-                ModSoundEvents.OGRE_BRUTE_UPSWING_WHOOSH.get(),
-                1.15F,
-                0.88F);
         bellySlamImpactSoundDelayTicks = tickDelayedImpactSound(
                 bellySlamImpactSoundDelayTicks,
                 3,
-                ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(),
-                1.65F,
-                0.76F);
+                () -> {
+                    // Lighter than the King's slam, but the ground still cracks under it.
+                    playSlamLayers(position(), 1.0F, 0.0F);
+                });
         bellySlamGruntSoundDelayTicks = tickDelayedImpactSound(
                 bellySlamGruntSoundDelayTicks,
                 3,
                 ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_GRUNT.get(),
-                1.2F,
+                BRUTE_VOCAL_VOLUME,
                 0.84F);
-        // Same sound the King uses for his own Belly Bump (PLAYER_ATTACK_STRONG at 1.2/0.6),
-        // tuned lighter here: quieter and higher-pitched so it reads as less powerful than his.
-        bellyBumpImpactSoundDelayTicks = tickDelayedImpactSound(
-                bellyBumpImpactSoundDelayTicks,
-                2,
-                SoundEvents.PLAYER_ATTACK_STRONG,
-                1.0F,
-                0.78F);
+    }
+
+    /** Throws the swing on the clip's impact tick, with the arm the clip is swinging. */
+    private void tickStrike() {
+        if (strikeDelayTicks < 0) {
+            return;
+        }
+        if (!isWalkingAttack(activeBruteAttackId) || attackAnimationTicks <= 0) {
+            strikeDelayTicks = -1;
+            return;
+        }
+        if (strikeDelayTicks-- > 0) {
+            return;
+        }
+        strikeDelayTicks = -1;
+        if (activeBruteAttackId == ATTACK_ID_SIDE_SWIPE) {
+            performSideSwipe();
+        } else if (activeBruteAttackId == ATTACK_ID_BITE) {
+            performBite();
+        } else if (activeBruteAttackId == ATTACK_ID_REGULAR_ATTACK_3) {
+            performDoubleSlam();
+        } else {
+            // Entity-right is the model's right arm: attack 1 swings it, attack 6 swings the left.
+            performGauntletSlam(activeBruteAttackId == ATTACK_ID_REGULAR_ATTACK ? 1.0 : -1.0);
+        }
+    }
+
+    /**
+     * The backhand sweeps the whole arc in front of him, right to left, so everything in front
+     * and within arm's reach is hit, whatever height it is at. Tested against the target's whole
+     * body, not the point at its feet, so someone hopping in close can't slip under or over it.
+     */
+    private void performSideSwipe() {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        double search = SWIPE_REACH + SWIPE_HALF_WIDTH;
+        MeleeAttackHit knockback = MeleeAttackHit.areaSpecial(
+                        SIDE_SWIPE_IMPACT_TICK, SIDE_SWIPE_DAMAGE_MULTIPLIER, 0.0F, true,
+                        0.0F, 2.65 * ATTACK_KNOCKBACK_SCALE, 0.0F, 0.66, 0, 0, false)
+                .withDirectionalKnockback(1.0, -1.0);
+
+        List<LivingEntity> candidates = level().getEntitiesOfClass(
+                LivingEntity.class, getBoundingBox().inflate(search, 4.0, search),
+                target -> target != this && target.isAlive() && canAttackOgreTarget(target));
+        for (LivingEntity target : candidates) {
+            AABB bounds = target.getBoundingBox();
+            Vec3 relative = bounds.getCenter().subtract(position());
+            double halfWidth = target.getBbWidth() * 0.5;
+            double ahead = relative.dot(forward);
+            double across = relative.dot(right);
+            boolean inArc = ahead >= -0.3 - halfWidth && ahead <= SWIPE_REACH + halfWidth
+                    && Math.abs(across) <= SWIPE_HALF_WIDTH + halfWidth;
+            boolean reachable = bounds.maxY >= getY() - 0.5 && bounds.minY <= getY() + 3.8;
+            // The far end of the arc lands softer than the part right in front of him.
+            float falloff = areaFalloff(Math.hypot(ahead, across), SWIPE_RADIUS, OgreDamage.ARC_EDGE_SHARE);
+            if (inArc && reachable && doScaledHurtTarget(target, SIDE_SWIPE_DAMAGE_MULTIPLIER * falloff)) {
+                applyAttackHitExtras(target, knockback);
+                if (!(target instanceof OgreGrunt)) {
+                    CombatEffects.applyDazed(target, Config.DAZED_HEAVY_ATTACK_DURATION_TICKS.get(), this);
+                }
+            }
+        }
+
+        playGauntletSwipeImpact();
+        if (level() instanceof ServerLevel serverLevel) {
+            Vec3 at = gauntletImpactPoint();
+            PacketDistributor.sendToPlayersNear(serverLevel, null, at.x, at.y, at.z, 24.0,
+                    new ScreenShakePayload(at.x, at.y, at.z, 0.4F));
+        }
+    }
+
+    /**
+     * The Brute's bite: his jaws close on the one target nearest in front of him. It hits like his
+     * slams, cripples what it catches and leaves him on Regeneration III, so a long fight feeds him.
+     * The chomp sounds whether or not anything was caught.
+     */
+    private void performBite() {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        double search = BITE_REACH + BITE_HALF_WIDTH + 1.0;
+        LivingEntity bitten = null;
+        double nearest = Double.MAX_VALUE;
+        for (LivingEntity target : level().getEntitiesOfClass(
+                LivingEntity.class, getBoundingBox().inflate(search, 2.5, search),
+                candidate -> candidate != this && candidate.isAlive() && canAttackOgreTarget(candidate))) {
+            AABB bounds = target.getBoundingBox();
+            Vec3 relative = bounds.getCenter().subtract(position());
+            double halfWidth = target.getBbWidth() * 0.5;
+            double ahead = relative.dot(forward);
+            double across = relative.dot(right);
+            boolean inReach = ahead >= -0.3 - halfWidth && ahead <= BITE_REACH + halfWidth
+                    && Math.abs(across) <= BITE_HALF_WIDTH + halfWidth
+                    && bounds.maxY >= getY() - 0.5 && bounds.minY <= getY() + 3.0;
+            if (inReach && ahead < nearest) {
+                bitten = target;
+                nearest = ahead;
+            }
+        }
+
+        if (bitten != null && doScaledHurtTarget(bitten, BITE_DAMAGE_MULTIPLIER, BITE_ARMOR_PIERCE_FRACTION)) {
+            CombatEffects.applyCrippled(bitten, Config.CRIPPLED_BITE_DURATION_TICKS.get(), this);
+            addEffect(new MobEffectInstance(MobEffects.REGENERATION, BITE_REGENERATION_TICKS,
+                    BITE_REGENERATION_AMPLIFIER));
+        }
+        playBiteImpact();
+    }
+
+    /** The Grunt's two-layer bite, deepened slightly, with a faint Ravager impact underneath. */
+    private void playBiteImpact() {
+        Vec3 mouth = position().add(Vec3.directionFromRotation(0.0F, getYRot()).scale(1.6)).add(0.0, 1.9, 0.0);
+        level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.FOX_BITE,
+                SoundSource.HOSTILE, 1.0F, 0.58F);
+        level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.GENERIC_EAT,
+                SoundSource.HOSTILE, 0.38F, 0.54F);
+        level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.RAVAGER_ATTACK,
+                SoundSource.HOSTILE, 0.28F, 0.68F);
+    }
+
+    /**
+     * The iron fist driving through whatever is in front of him and into the ground. Anyone in the
+     * path it comes down along takes the full hit and is carried through it; the rest of the
+     * ring around the impact takes a share. The ground is hit either way, so the slam always
+     * lands, hit or miss. Nothing here asks for line of sight, so trees and leaves can't make
+     * it whiff.
+     */
+    private void performGauntletSlam(double rightSign) {
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        Vec3 side = right.scale(GAUNTLET_SIDE_OFFSET * rightSign);
+        Vec3 strikeStart = position().add(forward.scale(GAUNTLET_STRIKE_START)).add(side);
+        Vec3 impact = position().add(forward.scale(GAUNTLET_REACH)).add(side);
+        AABB strikePath = new AABB(
+                Math.min(strikeStart.x, impact.x) - GAUNTLET_STRIKE_RADIUS, getY() - 1.0,
+                Math.min(strikeStart.z, impact.z) - GAUNTLET_STRIKE_RADIUS,
+                Math.max(strikeStart.x, impact.x) + GAUNTLET_STRIKE_RADIUS, getY() + 3.5,
+                Math.max(strikeStart.z, impact.z) + GAUNTLET_STRIKE_RADIUS);
+        double ringSqr = (double) GAUNTLET_RING_RADIUS * GAUNTLET_RING_RADIUS;
+        double search = GAUNTLET_REACH + GAUNTLET_RING_RADIUS + 1.0;
+
+        List<LivingEntity> candidates = level().getEntitiesOfClass(
+                LivingEntity.class, getBoundingBox().inflate(search, 3.5, search),
+                target -> target != this && target.isAlive() && canAttackOgreTarget(target));
+        for (LivingEntity target : candidates) {
+            AABB bounds = target.getBoundingBox();
+            double dx = target.getX() - impact.x;
+            double dz = target.getZ() - impact.z;
+            boolean struck = bounds.intersects(strikePath);
+            boolean inRing = dx * dx + dz * dz <= ringSqr
+                    && bounds.maxY >= getY() - 1.0 && bounds.minY <= getY() + 3.5;
+            if (!struck && !inRing) {
+                continue;
+            }
+
+            float share = struck ? 1.0F : areaFalloff(Math.sqrt(dx * dx + dz * dz), GAUNTLET_RING_RADIUS, OgreDamage.BLAST_EDGE_SHARE);
+            if (!doScaledHurtTarget(target, REGULAR_ATTACK_DAMAGE_MULTIPLIER * share)) {
+                continue;
+            }
+            double carried = 1.0 - Mth.clamp(target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0);
+            Vec3 motion = target.getDeltaMovement();
+            if (struck && !(target instanceof OgreGrunt)) {
+                CombatEffects.applyDazed(target, Config.DAZED_HEAVY_ATTACK_DURATION_TICKS.get(), this);
+            }
+            if (struck) {
+                // Carried through along the slam and driven back down, not flung into the air.
+                target.setDeltaMovement(forward.x * SLAM_CARRY_PUSH * carried,
+                        Math.max(motion.y, SLAM_CARRY_LIFT * carried), forward.z * SLAM_CARRY_PUSH * carried);
+            } else {
+                target.setDeltaMovement(motion.x, Math.max(motion.y, SLAM_CARRY_LIFT * 0.5 * carried), motion.z);
+            }
+            target.hasImpulse = true;
+        }
+
+        playGauntletSlamImpact(impact);
+        spawnGauntletGroundImpact(serverLevel, impact);
+    }
+
+    /**
+     * Both iron fists down together: a big area around the impact, hit hardest at its centre and
+     * less and less toward the edge. The inner part also leaves a target dazed. No line of sight is
+     * needed, so trees can't shelter anyone.
+     */
+    private void performDoubleSlam() {
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 impact = position().add(forward.scale(DOUBLE_SLAM_REACH));
+        double radiusSqr = (double) DOUBLE_SLAM_RADIUS * DOUBLE_SLAM_RADIUS;
+
+        List<LivingEntity> candidates = level().getEntitiesOfClass(
+                LivingEntity.class,
+                new AABB(impact.x - DOUBLE_SLAM_RADIUS, getY() - 1.5, impact.z - DOUBLE_SLAM_RADIUS,
+                        impact.x + DOUBLE_SLAM_RADIUS, getY() + 4.0, impact.z + DOUBLE_SLAM_RADIUS),
+                target -> target != this && target.isAlive() && canAttackOgreTarget(target));
+        for (LivingEntity target : candidates) {
+            double dx = target.getX() - impact.x;
+            double dz = target.getZ() - impact.z;
+            double distanceSqr = dx * dx + dz * dz;
+            if (distanceSqr > radiusSqr) {
+                continue;
+            }
+
+            double distance = Math.sqrt(distanceSqr);
+            float falloff = areaFalloff(distance, DOUBLE_SLAM_RADIUS, DOUBLE_SLAM_EDGE_SHARE);
+            if (!doScaledHurtTarget(target, DOUBLE_SLAM_DAMAGE_MULTIPLIER * falloff)) {
+                continue;
+            }
+            if (distance <= DOUBLE_SLAM_RADIUS * DOUBLE_SLAM_DAZE_FRACTION && !(target instanceof OgreGrunt)) {
+                CombatEffects.applyDazed(target, Config.DAZED_HEAVY_ATTACK_DURATION_TICKS.get(), this);
+            }
+            // Shoved out from the impact, harder the closer it was.
+            double carried = 1.0 - Mth.clamp(target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0);
+            Vec3 away = distance < 1.0E-3 ? forward : new Vec3(dx, 0.0, dz).normalize();
+            Vec3 motion = target.getDeltaMovement();
+            target.setDeltaMovement(away.x * DOUBLE_SLAM_PUSH * falloff * carried,
+                    Math.max(motion.y, DOUBLE_SLAM_LIFT * falloff * carried), away.z * DOUBLE_SLAM_PUSH * falloff * carried);
+            target.hasImpulse = true;
+        }
+
+        playGauntletSlamImpact(impact);
+        playSlamLayers(impact, 1.3F, 0.0F);
+        spawnGauntletGroundImpact(serverLevel, impact);
+        // The same expanding ring of cloud the jump smash draws, out at the slam's full radius, so it
+        // is clear how far the blow reaches.
+        StaticShockwaveParticles.spawn(serverLevel, impact, DOUBLE_SLAM_RADIUS);
+        // The double slam shatters a few more soft blocks around the impact, but no crater.
+        OgreGroundBreaker.breakAround(serverLevel, this, impact, 2.0, 3, 0.4F);
+        serverLevel.sendParticles(ParticleTypes.POOF, impact.x, impact.y + 0.3, impact.z,
+                24, 2.4, 0.15, 2.4, 0.03);
+        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 28.0,
+                new ScreenShakePayload(impact.x, impact.y, impact.z, 1.0F));
+    }
+
+    /** Debris off the block he hit, a puff of dust and a little screen shake. */
+    private void spawnGauntletGroundImpact(ServerLevel serverLevel, Vec3 impact) {
+        BlockPos ground = BlockPos.containing(impact.x, impact.y - 0.5, impact.z);
+        BlockState state = serverLevel.getBlockState(ground);
+        // The iron fist usually breaks the soft block it lands on, and sometimes one beside it.
+        boolean broke = OgreGroundBreaker.breakBlock(serverLevel, this, ground, GAUNTLET_BLOCK_BREAK_CHANCE);
+        OgreGroundBreaker.breakAround(serverLevel, this, impact, 1.2, 2, 0.35F);
+        if (state.isAir()) {
+            ground = getOnPos();
+            state = serverLevel.getBlockState(ground);
+        }
+        if (!state.isAir()) {
+            if (!broke) {
+                serverLevel.levelEvent(2001, ground, Block.getId(state));
+            }
+            serverLevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, state),
+                    impact.x, impact.y + 0.1, impact.z, 28, 0.9, 0.15, 0.9, 0.12);
+        }
+        serverLevel.sendParticles(ParticleTypes.POOF, impact.x, impact.y + 0.2, impact.z,
+                10, 0.8, 0.1, 0.8, 0.02);
+        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 24.0,
+                new ScreenShakePayload(impact.x, impact.y, impact.z, 0.6F));
+    }
+
+    @Override
+    protected boolean canAreaHitReach(LivingEntity target) {
+        // Leaves and trunks block the sight ray, so a target stood among trees used to dodge the
+        // area attacks just by being behind one. Up close it is a hit regardless.
+        return getSensing().hasLineOfSight(target) || distanceToSqr(target) <= CLOSE_HIT_RANGE * CLOSE_HIT_RANGE;
+    }
+
+    /** Where an iron fist comes down: in front of him, at the ground. */
+    private Vec3 gauntletImpactPoint() {
+        return position().add(Vec3.directionFromRotation(0.0F, getYRot()).scale(GAUNTLET_REACH));
+    }
+
+    /**
+     * An iron-fisted slam: a deep boom, the belly-slam body hit, the clang of metal on the ground
+     * and the ground's own crack. Lighter than the King's slam, but it still has to land hard.
+     */
+    private void playGauntletSlamImpact(Vec3 at) {
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.HOSTILE, 0.9F, 0.7F);
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.ANVIL_LAND,
+                SoundSource.HOSTILE, 0.6F, 0.6F);
+        playSlamLayers(at, 0.9F, 0.0F);
+    }
+
+    /** The backhand: a heavy whack with a metal clang on top of it. */
+    private void playGauntletSwipeImpact() {
+        Vec3 at = gauntletImpactPoint();
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_ATTACK_STRONG,
+                SoundSource.HOSTILE, 1.3F, 0.6F);
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.IRON_GOLEM_ATTACK,
+                SoundSource.HOSTILE, 1.2F, 0.5F);
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.ANVIL_LAND,
+                SoundSource.HOSTILE, 0.45F, 0.75F);
     }
 
     private int tickDelayedImpactSound(int ticks, int attackId, SoundEvent sound, float volume, float pitch) {
+        return tickDelayedImpactSound(ticks, attackId, () ->
+                level().playSound(null, getX(), getY(), getZ(), sound, SoundSource.HOSTILE, volume, pitch));
+    }
+
+    private int tickDelayedImpactSound(int ticks, int attackId, Runnable play) {
         if (ticks < 0) {
             return ticks;
         }
@@ -904,7 +1249,7 @@ public class OgreBrute extends OgreGrunt {
         }
 
         if (ticks <= 0) {
-            level().playSound(null, getX(), getY(), getZ(), sound, SoundSource.HOSTILE, volume, pitch);
+            play.run();
             return -1;
         }
 
@@ -921,17 +1266,21 @@ public class OgreBrute extends OgreGrunt {
         }
     }
 
-    private boolean canStartBellySlam(LivingEntity target) {
-        if (!canReachForBellySlam(target)) {
-            return false;
+    /**
+     * Rolls for the jump smash on its own schedule, so the walk toward his target is left alone
+     * until the jump actually starts. Once it is ready, his attack range stretches out to the
+     * jump's, and the next attack he starts is the jump.
+     */
+    private void tickJumpSmashReady() {
+        LivingEntity target = getTarget();
+        if (isMidSwing() || !canReachForBellySlam(target)) {
+            jumpSmashReady = false;
+            return;
         }
-
-        double distanceSqr = distanceToSqr(target);
-        if (distanceSqr >= BELLY_SLAM_MIN_RANGE * BELLY_SLAM_MIN_RANGE) {
-            return getRandom().nextInt(3) == 0;
+        if (!jumpSmashReady) {
+            int odds = distanceToSqr(target) >= BELLY_SLAM_MIN_RANGE * BELLY_SLAM_MIN_RANGE ? 60 : 240;
+            jumpSmashReady = getRandom().nextInt(odds) == 0;
         }
-
-        return getRandom().nextInt(12) == 0;
     }
 
     private boolean canReachForBellySlam(LivingEntity target) {
@@ -940,12 +1289,6 @@ public class OgreBrute extends OgreGrunt {
                 && target.isAlive()
                 && distanceToSqr(target) <= BELLY_SLAM_RANGE * BELLY_SLAM_RANGE
                 && getSensing().hasLineOfSight(target);
-    }
-
-    private boolean isWithinRegularAttackStartRange(LivingEntity target) {
-        return target != null
-                && target.isAlive()
-                && distanceToSqr(target) <= REGULAR_ATTACK_START_RANGE * REGULAR_ATTACK_START_RANGE;
     }
 
     private void tickBellySlamFlight() {
@@ -1039,10 +1382,10 @@ public class OgreBrute extends OgreGrunt {
             entityData.set(DATA_BRUTE_ATTACK_START_TICK, level().getGameTime());
         }
 
-        // Punch/Belly Bump/Side Swipe/Upswing are the "regular" pool chooseRegularAttack() rotates
-        // through; Belly Slam/Temper Tantrum have their own separate cooldown-gated eligibility and
-        // are intentionally left out of this tracking.
-        if (attackId == 1 || attackId == 2 || attackId == 5 || attackId == 6) {
+        // The two slams and the side swipe are the "regular" pool chooseRegularAttack() rotates
+        // through; the jump smash and the tantrum have their own cooldown-gated eligibility and are
+        // intentionally left out of this tracking.
+        if (isWalkingAttack(attackId)) {
             lastRegularAttackId = attackId;
         }
 
@@ -1052,28 +1395,24 @@ public class OgreBrute extends OgreGrunt {
 
     private RawAnimation getAttackAnimation(int attackId) {
         return switch (attackId) {
-            case 2 -> BELLY_BUMP;
-            case 3 -> BELLY_SLAM;
-            case 4 -> TEMPER_TANTRUM;
-            case 5 -> SIDE_SWIPE;
-            case 6 -> UPSWING_LAUNCH;
-            default -> ATTACK;
+            case ATTACK_ID_JUMP_SMASH -> JUMP_SMASH;
+            case ATTACK_ID_TEMPER_TANTRUM -> TEMPER_TANTRUM;
+            case ATTACK_ID_SIDE_SWIPE -> SIDE_SWIPE;
+            case ATTACK_ID_REGULAR_ATTACK_2 -> REGULAR_ATTACK_2;
+            case ATTACK_ID_REGULAR_ATTACK_3 -> REGULAR_ATTACK_3;
+            case ATTACK_ID_BITE -> BITE;
+            default -> REGULAR_ATTACK;
         };
     }
 
     private int getAttackAnimationTicks(int attackId) {
         return switch (attackId) {
-            case 2 -> BELLY_BUMP_ANIMATION_TICKS;
-            case 3 -> BELLY_SLAM_ANIMATION_TICKS;
-            case 4 -> TEMPER_TANTRUM_ANIMATION_TICKS;
-            case 5 -> SIDE_SWIPE_ANIMATION_TICKS;
-            case 6 -> UPSWING_LAUNCH_ANIMATION_TICKS;
-            default -> ATTACK_ANIMATION_TICKS;
+            case ATTACK_ID_JUMP_SMASH -> BELLY_SLAM_ANIMATION_TICKS;
+            case ATTACK_ID_TEMPER_TANTRUM -> TEMPER_TANTRUM_ANIMATION_TICKS;
+            case ATTACK_ID_SIDE_SWIPE -> SIDE_SWIPE_ANIMATION_TICKS;
+            case ATTACK_ID_BITE -> BITE_ANIMATION_TICKS;
+            default -> REGULAR_ATTACK_ANIMATION_TICKS;
         };
-    }
-
-    private boolean shouldUseRunAnimation() {
-        return isRunMovementState() || isAggressive();
     }
 
     private void updateIdleAnimationTimers(AnimationState<OgreBrute> state) {

@@ -1,0 +1,23 @@
+{
+  "name": "Brewing Bogrot",
+  "category": "kingsandmonsters:effects",
+  "icon": "kingsandmonsters:bog_toad_venom",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Potion of Bogrot",
+      "text": "Begin with an Awkward Potion, brewed normally by adding Nether Wart to Water Bottles.$(br2)Add $(item)Bog Toad Venom$() to the Awkward Potion to brew a $(thing)Potion of Bogrot$(). Venom does not work directly on Water Bottles or unrelated potions."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:bog_toad_venom",
+      "title": "The Primary Brew",
+      "text": "$(item)Awkward Potion$() + $(item)Bog Toad Venom$()$(br)→ $(thing)Potion of Bogrot$()$(br2)This is the only primary recipe for Bogrot."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Bottle Conversions",
+      "text": "Once Bogrot has been brewed, vanilla bottle conversions apply:$(br2)$(thing)Potion of Bogrot$() + $(item)Gunpowder$()$(br)→ $(thing)Splash Potion of Bogrot$()$(br2)$(thing)Splash Potion of Bogrot$() + $(item)Dragon's Breath$()$(br)→ $(thing)Lingering Potion of Bogrot$()$(br2)These ingredients convert an existing Bogrot potion; they do not brew the base potion."
+    }
+  ]
+}

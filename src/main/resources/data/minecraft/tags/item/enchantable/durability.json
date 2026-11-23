@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "#kingsandmonsters:bog_iron_armor",
+    "#kingsandmonsters:boghide_armor",
+    "#kingsandmonsters:blackhide_armor",
+    "kingsandmonsters:ogre_kings_crown",
+    "kingsandmonsters:candle_helmet",
+    "kingsandmonsters:bog_iron_sword",
+    "kingsandmonsters:bog_iron_pickaxe",
+    "kingsandmonsters:bog_iron_axe",
+    "kingsandmonsters:bog_iron_shovel",
+    "kingsandmonsters:bog_iron_hoe",
+    "kingsandmonsters:skinning_knife",
+    "kingsandmonsters:boar_calling_horn",
+    "kingsandmonsters:hunters_spear",
+    "kingsandmonsters:bog_eye_charm"
+  ]
+}

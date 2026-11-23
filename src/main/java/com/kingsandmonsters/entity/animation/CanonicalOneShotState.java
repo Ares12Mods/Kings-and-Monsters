@@ -61,6 +61,11 @@ public final class CanonicalOneShotState {
 
         boolean renderGap = lastEvaluationGameTime != Long.MIN_VALUE
                 && currentGameTime - lastEvaluationGameTime > 2L;
+        if (renderGap) {
+            AnimationDebug.log("render gap: type={} start={} now={} lastSeen={} elapsed={}/{}",
+                    eventType, startGameTime, currentGameTime, lastEvaluationGameTime,
+                    currentGameTime - startGameTime, durationTicks);
+        }
         lifecycle = renderGap ? Lifecycle.ACTIVE_AFTER_RENDER_GAP : Lifecycle.ACTIVE_VISIBLE;
         lastEvaluationGameTime = currentGameTime;
 
@@ -105,6 +110,8 @@ public final class CanonicalOneShotState {
     }
 
     private void accept(int type, long start, int duration) {
+        AnimationDebug.log("accept: type={} start={} duration={} (previous type={} start={})",
+                type, start, duration, eventType, startGameTime);
         eventType = type;
         startGameTime = start;
         durationTicks = duration;
@@ -115,6 +122,7 @@ public final class CanonicalOneShotState {
     private void expireIfNecessary(long currentGameTime) {
         if ((lifecycle == Lifecycle.ACTIVE_VISIBLE || lifecycle == Lifecycle.ACTIVE_AFTER_RENDER_GAP)
                 && currentGameTime >= startGameTime + durationTicks) {
+            AnimationDebug.log("expired: type={} start={} now={}", eventType, startGameTime, currentGameTime);
             lifecycle = Lifecycle.EXPIRED;
         }
     }

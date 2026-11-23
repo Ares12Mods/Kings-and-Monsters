@@ -3,7 +3,8 @@
   "category": "kingsandmonsters:creatures",
   "icon": "kingsandmonsters:hunters_spear",
   "pages": [
-    { "type": "patchouli:text", "text": "Guards protect the royal Fort and carry Hunter's Spears suited to both melee and throwing.$(br2)Their discipline makes them more than another wandering Grunt. A recovered spear can be improved with the Barbed or Heavy Throw enchantment paths, but those paths do not mix." },
-    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_guard", "scale": 0.72, "offset": 0.0, "rotate": true, "text": "The spear is dangerous at every distance. Closing the gap is not the whole answer." }
+    { "type": "patchouli:text", "text": "Guards protect the royal Fort and carry Hunter's Spears suited to both melee and throwing.$(br2)Their discipline makes them more than another wandering Grunt. A recovered spear can be improved with Barbed or Heavy Throw, and the two combine." },
+    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_guard", "scale": 0.72, "offset": 0.0, "rotate": true, "text": "The spear is dangerous at every distance. Closing the gap is not the whole answer." },
+    { "type": "patchouli:text", "title": "Armored Hide", "text": "Now and then a blow glances off a Guard's armor and does no damage at all, with a spark and a ring of steel. It cannot happen twice in a few seconds, so keep swinging." }
   ]
 }

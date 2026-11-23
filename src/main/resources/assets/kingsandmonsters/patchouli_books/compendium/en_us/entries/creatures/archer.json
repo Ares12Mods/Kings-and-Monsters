@@ -4,6 +4,9 @@
   "icon": "kingsandmonsters:buckler",
   "pages": [
     { "type": "patchouli:text", "text": "Archers punish travelers who focus only on the largest threat. They support ogre groups from range and are most dangerous when a palisade or another ogre keeps you occupied.$(br2)An Archer may drop its buckler, a hands-slot relic useful to bow users and anyone tired of incoming arrows." },
-    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_archer", "scale": 0.76, "offset": 0.0, "rotate": true, "text": "Break line of sight, then choose when to cross the open ground." }
+    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_archer", "scale": 0.76, "offset": 0.0, "rotate": true, "text": "Break line of sight, then choose when to cross the open ground." },
+    { "type": "patchouli:text", "title": "Close Quarters", "text": "An Archer is lanky and hits lightly, but it will not stand still when you close in. A wide sweep catches everything in front of it, and a heavier swing follows, both thrown while it keeps walking.$(br2)Neither hurts like an Ogre's club. The arrows are the danger; the swings only buy it room." },
+    { "type": "patchouli:text", "title": "Mounted", "text": "Some Archers ride Mudsnout Boars. A mounted Archer cannot steer; the boar carries it wherever the boar wants to go. It twists in place to shoot, but only inside a cone ahead of the boar, so get to its side or behind it." },
+    { "type": "patchouli:text", "title": "Buckler", "text": "An Archer carries its own buckler: one arrow in four glances off it, which includes yours. Thrown spears still get through, and so does anything that is not an arrow." }
   ]
 }

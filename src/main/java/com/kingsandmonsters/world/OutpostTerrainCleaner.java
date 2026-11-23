@@ -9,6 +9,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
+import net.minecraft.util.RandomSource;
 
 import java.util.Map;
 import java.util.Set;
@@ -64,15 +66,47 @@ public final class OutpostTerrainCleaner {
             Map<Long, int[]> columnExtents,
             Set<Long> authoredBlocks,
             boolean swamp) {
+        integrate(level, chunkBox, structureBox, columnExtents, authoredBlocks, swamp, true);
+    }
+
+    /**
+     * {@code normalizeGround} turns the swampy ground mosaic of the shared outpost templates into
+     * grass on plains. The camp templates have their own authored ground, so they pass false.
+     */
+    public static void integrate(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            BoundingBox structureBox,
+            Map<Long, int[]> columnExtents,
+            Set<Long> authoredBlocks,
+            boolean swamp,
+            boolean normalizeGround) {
         if (columnExtents.isEmpty()) {
             return;
         }
         if (!swamp) {
-            normalizePlainsGround(level, chunkBox, columnExtents, authoredBlocks);
-            blendPlainsFootprint(level, chunkBox, columnExtents, authoredBlocks);
+            if (normalizeGround) {
+                normalizePlainsGround(level, chunkBox, columnExtents, authoredBlocks);
+            }
+            blendPlainsFootprint(level, chunkBox, columnExtents, authoredBlocks,
+                    PLAINS_BLEND_RADIUS, PLAINS_MAX_CUT, PLAINS_MAX_FILL);
             clearPlainsEntranceApproaches(level, chunkBox, columnExtents, authoredBlocks);
         }
         supportShallowGaps(level, chunkBox, columnExtents, swamp);
+    }
+
+    /** A broader taper for small camps whose authored ground would otherwise read as a flat slab. */
+    public static void integrateCampSite(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            Map<Long, int[]> columnExtents,
+            Set<Long> authoredBlocks) {
+        if (columnExtents.isEmpty()) {
+            return;
+        }
+        blendPlainsFootprint(level, chunkBox, columnExtents, authoredBlocks, 8, 4, 4);
+        clearPlainsEntranceApproaches(level, chunkBox, columnExtents, authoredBlocks);
+        supportShallowGaps(level, chunkBox, columnExtents, false);
     }
 
     /**
@@ -86,13 +120,18 @@ public final class OutpostTerrainCleaner {
             WorldGenLevel level,
             BoundingBox chunkBox,
             Map<Long, int[]> columnExtents,
-            Set<Long> authoredBlocks) {
+            Set<Long> authoredBlocks,
+            int blendRadius,
+            int maxCut,
+            int maxFill) {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        ImprovedNoise edgeNoise = new ImprovedNoise(
+                RandomSource.create(level.getSeed() ^ 0xA24BAED4963EE407L));
 
         for (int x = chunkBox.minX(); x <= chunkBox.maxX(); x++) {
             for (int z = chunkBox.minZ(); z <= chunkBox.maxZ(); z++) {
                 if (columnExtents.containsKey(BlockPos.asLong(x, 0, z))) continue;
-                LocalFoundation nearest = nearestFoundation(x, z, columnExtents, PLAINS_BLEND_RADIUS);
+                LocalFoundation nearest = nearestFoundation(x, z, columnExtents, blendRadius);
                 if (nearest == null || !opensAwayFromFootprint(x, z, nearest, columnExtents)) continue;
 
                 int surfaceY = level.getHeight(
@@ -105,13 +144,18 @@ public final class OutpostTerrainCleaner {
                 // Preserve more of the natural height with every outward ring.
                 // The footprint edge, rather than the structure bounding box,
                 // drives this target so the resulting bank is not rectangular.
-                float naturalWeight = nearest.distance() / (float) PLAINS_BLEND_RADIUS;
+                float naturalWeight = nearest.distance() / (float) blendRadius;
+                // Break up mechanically even contour rings while still converging completely to
+                // untouched terrain at the outside edge of the blend.
+                double noise = edgeNoise.noise(x * 0.13, 0.0, z * 0.13);
+                naturalWeight += (float) (noise * 0.22 * (1.0F - naturalWeight));
+                naturalWeight = Math.max(0.0F, Math.min(1.0F, naturalWeight));
                 int targetY = Math.round(nearest.foundationY() + difference * naturalWeight);
                 if (targetY < surfaceY) {
-                    targetY = Math.max(targetY, surfaceY - PLAINS_MAX_CUT);
+                    targetY = Math.max(targetY, surfaceY - maxCut);
                     lowerPlainsColumn(level, pos, x, z, surfaceY, targetY, authoredBlocks);
                 } else if (targetY > surfaceY) {
-                    targetY = Math.min(targetY, surfaceY + PLAINS_MAX_FILL);
+                    targetY = Math.min(targetY, surfaceY + maxFill);
                     raisePlainsColumn(level, pos, x, z, surfaceY, targetY, authoredBlocks);
                 }
             }
@@ -349,7 +393,8 @@ public final class OutpostTerrainCleaner {
                 || state.is(Blocks.TALL_SEAGRASS)
                 || state.is(Blocks.KELP)
                 || state.is(Blocks.KELP_PLANT)
-                || state.is(Blocks.LILY_PAD);
+                || state.is(Blocks.LILY_PAD)
+                || OptionalVegetationCompat.isWildscapesPlant(state);
     }
 
 }

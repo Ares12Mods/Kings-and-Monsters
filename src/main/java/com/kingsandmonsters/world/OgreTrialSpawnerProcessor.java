@@ -137,11 +137,17 @@ public final class OgreTrialSpawnerProcessor extends StructureProcessor {
                     .putBoolean(OgreGrunt.ROYAL_PATROL_SQUAD_TAG, true);
         }
 
+        if (royalFortTemplate && nbt.contains("spawn_data")) {
+            // The royal trials are real fights, whatever the tribe thinks of the player.
+            nbt.getCompound("spawn_data").getCompound("entity")
+                    .putBoolean(OgreGrunt.ROYAL_TRIAL_OGRE_TAG, true);
+        }
+
         boolean royalPatrolTrial = royalBruteTrial || royalGruntTrial;
         nbt.put("normal_config", createConfig(profile, entityId, false, royalMageTrial, royalPatrolTrial,
-                outpostTemplate));
+                outpostTemplate, royalFortTemplate));
         nbt.put("ominous_config", createConfig(profile, entityId, true, royalMageTrial, royalPatrolTrial,
-                outpostTemplate));
+                outpostTemplate, royalFortTemplate));
         nbt.putInt("target_cooldown_length", profile.cooldownTicks());
         nbt.putInt("required_player_range", profile.requiredPlayerRange());
         return new StructureTemplate.StructureBlockInfo(
@@ -178,7 +184,8 @@ public final class OgreTrialSpawnerProcessor extends StructureProcessor {
             boolean ominous,
             boolean royalMageTrial,
             boolean royalPatrolTrial,
-            boolean outpostReinforcement) {
+            boolean outpostReinforcement,
+            boolean royalFort) {
         CompoundTag config = new CompoundTag();
         config.putInt("spawn_range", profile.spawnRange());
         config.putFloat("total_mobs", ominous ? profile.ominousTotalMobs() : profile.totalMobs());
@@ -192,16 +199,19 @@ public final class OgreTrialSpawnerProcessor extends StructureProcessor {
                 ? entityId
                 : profile.followupEntityId();
         config.put("spawn_potentials", weightedSpawnPotential(
-                followupEntityId, royalMageTrial, royalPatrolTrial, outpostReinforcement));
+                followupEntityId, royalMageTrial, royalPatrolTrial, outpostReinforcement, royalFort));
         config.put("loot_tables_to_eject", weightedValue(profile.rewardLootTable()));
         return config;
     }
 
     private static ListTag weightedSpawnPotential(
             String entityId, boolean royalMageTrial, boolean royalPatrolTrial,
-            boolean outpostReinforcement) {
+            boolean outpostReinforcement, boolean royalFort) {
         CompoundTag entity = new CompoundTag();
         entity.putString("id", entityId);
+        if (royalFort) {
+            entity.putBoolean(OgreGrunt.ROYAL_TRIAL_OGRE_TAG, true);
+        }
         if (royalMageTrial) {
             entity.putBoolean(ROYAL_MAGE_SQUAD_TAG, true);
         }

@@ -2,6 +2,8 @@ package com.kingsandmonsters;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.kingsandmonsters.item.BogIronArmorItem;
+import com.kingsandmonsters.item.BogjawTrapItem;
+import com.kingsandmonsters.item.CandleHelmetItem;
 import com.kingsandmonsters.item.OgreKingsCrownItem;
 import com.kingsandmonsters.item.OgreKingsClubItem;
 import com.kingsandmonsters.item.KingsCleaverItem;
@@ -11,6 +13,17 @@ import com.kingsandmonsters.item.BogEyeCharmItem;
 import com.kingsandmonsters.item.GoldenOgreToothItem;
 import com.kingsandmonsters.item.CreativeDestroyerItem;
 import com.kingsandmonsters.item.OgreHookbladeItem;
+import com.kingsandmonsters.item.BlackhideArmorItem;
+import com.kingsandmonsters.item.BoghideArmorItem;
+import com.kingsandmonsters.item.ToadStewItem;
+import com.kingsandmonsters.item.RoastedMudsnoutHaunchItem;
+import com.kingsandmonsters.item.BoarCallingHornItem;
+import com.kingsandmonsters.item.BoneBrothItem;
+import com.kingsandmonsters.item.SkinningKnifeItem;
+import com.kingsandmonsters.item.BruteGauntletsItem;
+import com.kingsandmonsters.item.OgreHelmetItem;
+import com.kingsandmonsters.item.OgreLoinclothItem;
+import com.kingsandmonsters.item.BogsteelChestplateItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.core.Holder;
@@ -31,6 +44,8 @@ import net.minecraft.world.item.DiggerItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.HoeItem;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.item.ShovelItem;
@@ -43,6 +58,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.common.SimpleTier;
+import com.kingsandmonsters.item.BoarJockeySpawnEggItem;
 import net.neoforged.neoforge.common.DeferredSpawnEggItem;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -67,8 +83,67 @@ public class ModItems {
     public static final DeferredItem<Item> RAW_BOG_IRON = ITEMS.register("raw_bog_iron",
             () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> BOG_TOAD_SKIN = ITEMS.registerSimpleItem("bog_toad_skin");
+    public static final DeferredItem<Item> BOGHIDE = ITEMS.registerSimpleItem("boghide");
+    public static final DeferredItem<Item> BOG_TOAD_VENOM = ITEMS.registerSimpleItem("bog_toad_venom");
+    // Technically edible, in the same regrettable sense as a spider eye.
+    public static final DeferredItem<Item> TOAD_EYE = ITEMS.register("toad_eye", () -> new Item(
+            new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(2).saturationModifier(0.8F)
+                    .effect(() -> new MobEffectInstance(MobEffects.POISON, 5 * 20), 1.0F)
+                    .build())));
+    public static final DeferredItem<Item> BOGFANG = ITEMS.registerSimpleItem("bogfang");
+    public static final DeferredItem<Item> RAW_TOAD_LEG = ITEMS.register("raw_toad_leg", () -> new Item(
+            new Item.Properties().food(new FoodProperties.Builder().nutrition(4).saturationModifier(0.3F).build())));
+    public static final DeferredItem<Item> COOKED_TOAD_LEG = ITEMS.register("cooked_toad_leg", () -> new Item(
+            new Item.Properties().food(new FoodProperties.Builder().nutrition(9).saturationModifier(0.8F).build())));
+    public static final DeferredItem<ToadStewItem> TOAD_STEW = ITEMS.register("toad_stew", () -> new ToadStewItem(
+            new Item.Properties().stacksTo(1).food(new FoodProperties.Builder()
+                    .nutrition(10).saturationModifier(1.0F).alwaysEdible().build())));
+    public static final DeferredItem<Item> RAW_MUDSNOUT_HAUNCH = ITEMS.register("raw_mudsnout_haunch", () -> new Item(
+            new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(6).saturationModifier(0.4F).build())));
+    public static final DeferredItem<RoastedMudsnoutHaunchItem> ROASTED_MUDSNOUT_HAUNCH = ITEMS.register(
+            "roasted_mudsnout_haunch", () -> new RoastedMudsnoutHaunchItem(
+                    new Item.Properties().food(new FoodProperties.Builder()
+                            .nutrition(12).saturationModifier(0.8F).build())));
+    public static final DeferredItem<com.kingsandmonsters.item.HaunchPlatterServingItem> HAUNCH_PLATTER_SERVING =
+            ITEMS.register("haunch_platter_serving", () -> new com.kingsandmonsters.item.HaunchPlatterServingItem(
+                    new Item.Properties().stacksTo(1).food(new FoodProperties.Builder()
+                            .nutrition(10).saturationModifier(0.9F)
+                            .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
+                                    net.minecraft.world.effect.MobEffects.REGENERATION, 160), 1.0F)
+                            .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
+                                    net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
+                            .build())));
+    public static final DeferredItem<Item> MUDSNOUT_BONE = ITEMS.registerSimpleItem("mudsnout_bone");
+    public static final DeferredItem<Item> MUDSNOUT_TUSK = ITEMS.registerSimpleItem("mudsnout_tusk");
+    public static final DeferredItem<BoneBrothItem> BONE_BROTH = ITEMS.register("bone_broth",
+            () -> new BoneBrothItem(new Item.Properties().stacksTo(1)
+                    .food(new FoodProperties.Builder().nutrition(8).saturationModifier(0.8F).alwaysEdible().build())));
+    public static final DeferredItem<BoarCallingHornItem> BOAR_CALLING_HORN = ITEMS.register("boar_calling_horn",
+            () -> new BoarCallingHornItem(new Item.Properties().durability(64)));
+    public static final DeferredItem<SkinningKnifeItem> SKINNING_KNIFE = ITEMS.register("skinning_knife",
+            () -> new SkinningKnifeItem(Tiers.IRON, new Item.Properties().durability(250)
+                    .attributes(SwordItem.createAttributes(Tiers.IRON, 3.0F, -1.8F))));
+    // Placeable under oak leaves, where it grows into the acorns the Mudsnout Boars eat.
+    public static final DeferredItem<Item> ACORN = ITEMS.register("acorn",
+            () -> new net.minecraft.world.item.ItemNameBlockItem(ModBlocks.ACORN.get(), new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.1F).build())));
+    public static final DeferredItem<Item> BLACKHIDE_LEATHER = ITEMS.registerSimpleItem("blackhide_leather");
+
+    public static final Tier BONE_CLUB_TIER = new SimpleTier(
+            BlockTags.INCORRECT_FOR_IRON_TOOL, 384, 4.0F, 2.0F, 8,
+            () -> Ingredient.of(MUDSNOUT_BONE.get()));
+    public static final DeferredItem<SwordItem> BONE_CLUB = ITEMS.register("bone_club",
+            () -> new SwordItem(BONE_CLUB_TIER, new Item.Properties()
+                    .attributes(SwordItem.createAttributes(BONE_CLUB_TIER, 5.0F, -3.0F))));
+
     public static final DeferredItem<GoldenOgreToothItem> GOLDEN_OGRE_TOOTH = ITEMS.register("golden_ogre_tooth",
             () -> new GoldenOgreToothItem(new Item.Properties()));
+
+    public static final DeferredItem<com.kingsandmonsters.item.TributeCoinItem> GOLD_COIN = ITEMS.register("gold_coin",
+            () -> new com.kingsandmonsters.item.TributeCoinItem(new Item.Properties()));
 
     public static final DeferredItem<OgrebloodTotemItem> OGREBLOOD_TOTEM = ITEMS.register("ogreblood_totem",
             () -> new OgrebloodTotemItem(new Item.Properties().stacksTo(1)));
@@ -163,8 +238,7 @@ public class ModItems {
                                     2.0, AttributeModifier.Operation.ADD_VALUE)),
                     curioTooltip("Ring",
                             Component.literal("+2 Armor").withStyle(ChatFormatting.BLUE),
-                            Component.literal("20% chance to prevent incoming Poison").withStyle(ChatFormatting.BLUE),
-                            Component.literal("Stacks with Bog Iron armor").withStyle(ChatFormatting.DARK_GRAY)
+                            Component.literal("Poison and Bogrot deal 20% less damage").withStyle(ChatFormatting.BLUE)
                     )));
 
     public static final DeferredItem<Item> BOGFUME_CHARM = ITEMS.register("bogfume_charm",
@@ -179,6 +253,12 @@ public class ModItems {
                     Component.literal("Player-fired arrows deal +10% damage").withStyle(ChatFormatting.BLUE),
                     Component.literal("Does not affect thrown spears").withStyle(ChatFormatting.DARK_GRAY)
             )));
+
+    public static final DeferredItem<Item> PADDED_EARMUFFS = ITEMS.register("padded_earmuffs",
+            () -> new CurioItem(new Item.Properties().stacksTo(1), ImmutableMultimap.of(),
+                    curioTooltip("Head",
+                            Component.literal("Softens the Ogre King's roars").withStyle(ChatFormatting.BLUE),
+                            Component.literal("Reduces roar debuffs and knockback").withStyle(ChatFormatting.BLUE))));
 
     private static List<Component> curioTooltip(String slot, Component... effects) {
         List<Component> lines = new ArrayList<>();
@@ -209,10 +289,9 @@ public class ModItems {
     // -------------------------------------------------------------------------
 
     /**
-     * Bog Iron - a swamp-forged endgame material that sits between diamond
-     * and netherite. Vanilla diamond and netherite share armor point values,
-     * so bog iron matches that defense while landing between them on
-     * durability and toughness.
+     * Bog Iron: a swamp-forged material between diamond and netherite. Diamond and netherite share
+     * armor point values, so bog iron matches that defense and lands between them on durability and
+     * toughness.
      *
      * Defense:    Helmet 3 | Chestplate 8 | Leggings 6 | Boots 3
      * Durability: multiplier 35  (diamond uses 33, netherite uses 37)
@@ -230,7 +309,7 @@ public class ModItems {
             () -> Ingredient.of(BOG_IRON_INGOT.get()),
             List.of(new ArmorMaterial.Layer(
                     ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bog_iron"))),
-            2.5f,
+            2.0f,
             0.05f
     ));
 
@@ -251,6 +330,81 @@ public class ModItems {
             1.0f,
             0.0f
     ));
+
+    /**
+     * A step above iron: iron's 2/6/5/2 defense plus a touch of toughness (iron has none) and more
+     * durability. Bog Iron stays the stronger fighter; Boghide's edge is its set bonus.
+     */
+    public static final Holder<ArmorMaterial> BOGHIDE_ARMOR = Holder.direct(new ArmorMaterial(
+            Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
+                map.put(ArmorItem.Type.HELMET, 2);
+                map.put(ArmorItem.Type.CHESTPLATE, 6);
+                map.put(ArmorItem.Type.LEGGINGS, 5);
+                map.put(ArmorItem.Type.BOOTS, 2);
+                map.put(ArmorItem.Type.BODY, 6);
+            }),
+            15, SoundEvents.ARMOR_EQUIP_LEATHER, () -> Ingredient.of(BOGHIDE.get()),
+            List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "boghide"))),
+            0.5F, 0.0F));
+
+    /**
+     * Between iron (2/6/5/2, no toughness) and diamond (3/8/6/3, 2 toughness): a little more defense
+     * than iron and some toughness, with iron's weak durability lifted partway. Its edge is Charge.
+     */
+    public static final Holder<ArmorMaterial> BLACKHIDE_ARMOR = Holder.direct(new ArmorMaterial(
+            Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
+                map.put(ArmorItem.Type.HELMET, 3);
+                map.put(ArmorItem.Type.CHESTPLATE, 7);
+                map.put(ArmorItem.Type.LEGGINGS, 5);
+                map.put(ArmorItem.Type.BOOTS, 3);
+                map.put(ArmorItem.Type.BODY, 7);
+            }),
+            12, SoundEvents.ARMOR_EQUIP_LEATHER, () -> Ingredient.of(BLACKHIDE_LEATHER.get()),
+            List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "blackhide"))),
+            1.0F, 0.0F));
+
+    /** Bogsteel beats Netherite's raw helmet defense, but yields slightly more against heavy hits. */
+    public static final Holder<ArmorMaterial> BRUTES_HELM_MATERIAL = bogsteelGear("brutes_helm", 4,
+            SoundEvents.ARMOR_EQUIP_IRON);
+
+    /** Loincloth: scant cover that mostly leaves the muscle to speak. */
+    public static final Holder<ArmorMaterial> OGRE_LOINCLOTH_MATERIAL = ogreGear("ogre_loincloth", 1, 0.5f, 0.15f,
+            SoundEvents.ARMOR_EQUIP_LEATHER);
+
+    /** Bogsteel beats Netherite's raw chest defense, but has slightly less toughness. */
+    public static final Holder<ArmorMaterial> BOGSTEEL_CHESTPLATE_MATERIAL = bogsteelGear(
+            "bogsteel_chestplate", 10, SoundEvents.ARMOR_EQUIP_IRON);
+
+    /**
+     * Ogre-purified Bogsteel is unmistakably above player-forged Bog Iron: more defense and twice
+     * its knockback resistance. Its 3 toughness matches Netherite and clearly exceeds Bog Iron's
+     * 2 toughness. Item durability is assigned at registration.
+     */
+    private static Holder<ArmorMaterial> bogsteelGear(String name, int defense,
+                                                       Holder<net.minecraft.sounds.SoundEvent> sound) {
+        return Holder.direct(new ArmorMaterial(
+                Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
+                    for (ArmorItem.Type type : ArmorItem.Type.values()) {
+                        map.put(type, defense);
+                    }
+                }),
+                12, sound, () -> Ingredient.of(BOG_IRON_INGOT.get()),
+                List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, name))),
+                3.0f, 0.1f));
+    }
+
+    private static Holder<ArmorMaterial> ogreGear(String name, int defense, float toughness, float knockbackResistance,
+                                                  Holder<net.minecraft.sounds.SoundEvent> sound) {
+        return Holder.direct(new ArmorMaterial(
+                Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
+                    for (ArmorItem.Type type : ArmorItem.Type.values()) {
+                        map.put(type, defense);
+                    }
+                }),
+                10, sound, () -> Ingredient.of(net.minecraft.world.item.Items.LEATHER),
+                List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, name))),
+                toughness, knockbackResistance));
+    }
 
     // -------------------------------------------------------------------------
     // Tool Materials
@@ -315,7 +469,7 @@ public class ModItems {
 
     public static final DeferredItem<AxeItem> BOG_IRON_AXE = ITEMS.register("bog_iron_axe",
             () -> new AxeItem(BOG_IRON_TOOL,
-                    new Item.Properties().attributes(DiggerItem.createAttributes(BOG_IRON_TOOL, 6.0F, -3.1F))));
+                    new Item.Properties().attributes(DiggerItem.createAttributes(BOG_IRON_TOOL, 5.0F, -3.0F))));
 
     public static final DeferredItem<ShovelItem> BOG_IRON_SHOVEL = ITEMS.register("bog_iron_shovel",
             () -> new ShovelItem(BOG_IRON_TOOL,
@@ -323,7 +477,7 @@ public class ModItems {
 
     public static final DeferredItem<HoeItem> BOG_IRON_HOE = ITEMS.register("bog_iron_hoe",
             () -> new HoeItem(BOG_IRON_TOOL,
-                    new Item.Properties().attributes(DiggerItem.createAttributes(BOG_IRON_TOOL, -2.0F, -1.0F))));
+                    new Item.Properties().attributes(DiggerItem.createAttributes(BOG_IRON_TOOL, -3.25F, 0.0F))));
 
     // -------------------------------------------------------------------------
     // Bog Iron Armor
@@ -345,9 +499,100 @@ public class ModItems {
             () -> new BogIronArmorItem(BOG_IRON, ArmorItem.Type.BOOTS,
                     new Item.Properties().durability(ArmorItem.Type.BOOTS.getDurability(35))));
 
+    public static final DeferredItem<BoghideArmorItem> BOGHIDE_HELMET = ITEMS.register("boghide_helmet",
+            () -> new BoghideArmorItem(BOGHIDE_ARMOR, ArmorItem.Type.HELMET,
+                    new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(20))));
+
+    public static final DeferredItem<BoghideArmorItem> BOGHIDE_CHESTPLATE = ITEMS.register("boghide_chestplate",
+            () -> new BoghideArmorItem(BOGHIDE_ARMOR, ArmorItem.Type.CHESTPLATE,
+                    new Item.Properties().durability(ArmorItem.Type.CHESTPLATE.getDurability(20))));
+
+    public static final DeferredItem<BoghideArmorItem> BOGHIDE_LEGGINGS = ITEMS.register("boghide_leggings",
+            () -> new BoghideArmorItem(BOGHIDE_ARMOR, ArmorItem.Type.LEGGINGS,
+                    new Item.Properties().durability(ArmorItem.Type.LEGGINGS.getDurability(20))));
+
+    public static final DeferredItem<BoghideArmorItem> BOGHIDE_BOOTS = ITEMS.register("boghide_boots",
+            () -> new BoghideArmorItem(BOGHIDE_ARMOR, ArmorItem.Type.BOOTS,
+                    new Item.Properties().durability(ArmorItem.Type.BOOTS.getDurability(20))));
+
+    public static final DeferredItem<BlackhideArmorItem> BLACKHIDE_HELMET = ITEMS.register("blackhide_helmet",
+            () -> new BlackhideArmorItem(BLACKHIDE_ARMOR, ArmorItem.Type.HELMET,
+                    new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(24))));
+
+    public static final DeferredItem<BlackhideArmorItem> BLACKHIDE_CHESTPLATE = ITEMS.register("blackhide_chestplate",
+            () -> new BlackhideArmorItem(BLACKHIDE_ARMOR, ArmorItem.Type.CHESTPLATE,
+                    new Item.Properties().durability(ArmorItem.Type.CHESTPLATE.getDurability(24))));
+
+    public static final DeferredItem<BlackhideArmorItem> BLACKHIDE_LEGGINGS = ITEMS.register("blackhide_leggings",
+            () -> new BlackhideArmorItem(BLACKHIDE_ARMOR, ArmorItem.Type.LEGGINGS,
+                    new Item.Properties().durability(ArmorItem.Type.LEGGINGS.getDurability(24))));
+
+    public static final DeferredItem<BlackhideArmorItem> BLACKHIDE_BOOTS = ITEMS.register("blackhide_boots",
+            () -> new BlackhideArmorItem(BLACKHIDE_ARMOR, ArmorItem.Type.BOOTS,
+                    new Item.Properties().durability(ArmorItem.Type.BOOTS.getDurability(24))));
+
+    public static final DeferredItem<CandleHelmetItem> CANDLE_HELMET = ITEMS.register("candle_helmet",
+            () -> new CandleHelmetItem(net.minecraft.world.item.ArmorMaterials.IRON,
+                    new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(15))));
+
+    public static final Tier BOGFANG_TOOL = new SimpleTier(
+            BlockTags.INCORRECT_FOR_IRON_TOOL, 400, 6.0F, 3.0F, 15,
+            () -> Ingredient.of(BOGFANG.get()));
+
+    public static final DeferredItem<SwordItem> BOGFANG_BLADE = ITEMS.register("bogfang_blade",
+            () -> new SwordItem(BOGFANG_TOOL, new Item.Properties().durability(400)
+                    .attributes(SwordItem.createAttributes(BOGFANG_TOOL, 1.5F, -2.4F))));
+
     public static final DeferredItem<ArmorItem> OGRE_KINGS_CROWN = ITEMS.register("ogre_kings_crown",
             () -> new OgreKingsCrownItem(OGRE_KINGS_CROWN_MATERIAL,
                     new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(35))));
+
+    public static final DeferredItem<OgreHelmetItem> BRUTES_HELM = ITEMS.register("brutes_helm",
+            () -> new OgreHelmetItem(BRUTES_HELM_MATERIAL,
+                    new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(40))));
+
+    public static final DeferredItem<OgreLoinclothItem> OGRE_LOINCLOTH = ITEMS.register("ogre_loincloth",
+            () -> new OgreLoinclothItem(OGRE_LOINCLOTH_MATERIAL,
+                    new Item.Properties().durability(ArmorItem.Type.LEGGINGS.getDurability(18))));
+
+    public static final DeferredItem<BogsteelChestplateItem> BOGSTEEL_CHESTPLATE = ITEMS.register(
+            "bogsteel_chestplate", () -> new BogsteelChestplateItem(BOGSTEEL_CHESTPLATE_MATERIAL,
+                    new Item.Properties().durability(ArmorItem.Type.CHESTPLATE.getDurability(40))));
+
+    public static final DeferredItem<Item> BRUTE_GAUNTLETS = ITEMS.register("brute_gauntlets", () -> {
+        ImmutableMultimap.Builder<Holder<Attribute>, AttributeModifier> builder = ImmutableMultimap.builder();
+        builder.put(Attributes.ARMOR, modifier("brute_gauntlets_armor", 2.0, AttributeModifier.Operation.ADD_VALUE));
+        builder.put(Attributes.ARMOR_TOUGHNESS, modifier("brute_gauntlets_toughness", 1.0, AttributeModifier.Operation.ADD_VALUE));
+        builder.put(Attributes.ATTACK_DAMAGE, modifier("brute_gauntlets_damage", 2.0, AttributeModifier.Operation.ADD_VALUE));
+        builder.put(Attributes.ATTACK_KNOCKBACK, modifier("brute_gauntlets_knockback", 0.5, AttributeModifier.Operation.ADD_VALUE));
+        builder.put(Attributes.KNOCKBACK_RESISTANCE, modifier("brute_gauntlets_knockback_res", 0.15, AttributeModifier.Operation.ADD_VALUE));
+        builder.put(Attributes.ATTACK_SPEED, modifier("brute_gauntlets_speed", -0.05, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        return new BruteGauntletsItem(new Item.Properties().stacksTo(1), builder.build(), curioTooltip("Hands",
+                Component.literal("+2 Armor").withStyle(ChatFormatting.BLUE),
+                Component.literal("+1 Armor Toughness").withStyle(ChatFormatting.BLUE),
+                Component.literal("+2 Attack Damage").withStyle(ChatFormatting.BLUE),
+                Component.literal("+0.5 Attack Knockback").withStyle(ChatFormatting.BLUE),
+                Component.literal("+15% Knockback Resistance").withStyle(ChatFormatting.BLUE),
+                Component.literal("-5% Attack Speed").withStyle(ChatFormatting.RED)
+        ));
+    });
+
+    public static final DeferredItem<Item> OGRE_STOMACH = ITEMS.register("ogre_stomach",
+            () -> new CurioItem(new Item.Properties().stacksTo(1),
+                    ImmutableMultimap.of(Attributes.MAX_HEALTH,
+                            modifier("ogre_stomach_health", 4.0, AttributeModifier.Operation.ADD_VALUE)),
+                    curioTooltip("Charm",
+                            Component.literal("+4 Max Health").withStyle(ChatFormatting.BLUE),
+                            Component.literal("Food is eaten instantly").withStyle(ChatFormatting.BLUE),
+                            Component.literal("Absorption foods are eaten at normal speed").withStyle(ChatFormatting.GOLD),
+                            Component.literal("Can eat even while completely full").withStyle(ChatFormatting.BLUE),
+                            Component.literal("Saturated natural healing is 25% faster").withStyle(ChatFormatting.BLUE),
+                            Component.literal("Excess hunger and saturation are not stored").withStyle(ChatFormatting.DARK_GRAY)
+                    )));
+
+    private static AttributeModifier modifier(String name, double amount, AttributeModifier.Operation operation) {
+        return new AttributeModifier(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, name), amount, operation);
+    }
 
     public static final DeferredItem<OgreKingsClubItem> OGRE_KINGS_CLUB = ITEMS.register("ogre_kings_club",
             () -> new OgreKingsClubItem(new Item.Properties()
@@ -391,6 +636,19 @@ public class ModItems {
             () -> new DeferredSpawnEggItem(ModEntities.OGRE_BRUTE, 0x425a2b, 0xb3b7aa,
                     new Item.Properties()));
 
+    public static final DeferredItem<DeferredSpawnEggItem> OGRE_TRAPPER_SPAWN_EGG = ITEMS.register(
+            "ogre_trapper_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.OGRE_TRAPPER, 0x3f4a2a, 0x7a5b3a,
+                    new Item.Properties()));
+
+    public static final DeferredItem<BogjawTrapItem> BOGJAW_TRAP = ITEMS.register("bogjaw_trap",
+            () -> new BogjawTrapItem(new Item.Properties().stacksTo(16)));
+
+    // The knife the Trapper draws when hurt. No recipe, no tab: the only way to get one is from him, and it comes worn.
+    public static final DeferredItem<Item> TRAPPER_KNIFE = ITEMS.register("trapper_knife",
+            () -> new Item(new Item.Properties().durability(180)
+                    .attributes(SwordItem.createAttributes(Tiers.IRON, 3.0F, -1.8F))));
+
     public static final DeferredItem<DeferredSpawnEggItem> OGRE_ARCHER_SPAWN_EGG = ITEMS.register(
             "ogre_archer_spawn_egg",
             () -> new DeferredSpawnEggItem(ModEntities.OGRE_ARCHER, 0x4f642d, 0x2b2118,
@@ -409,6 +667,30 @@ public class ModItems {
     public static final DeferredItem<DeferredSpawnEggItem> OGRE_LORD_SPAWN_EGG = ITEMS.register(
             "ogre_lord_spawn_egg",
             () -> new DeferredSpawnEggItem(ModEntities.OGRE_LORD, 0x2b3a1e, 0xc9a227,
+                    new Item.Properties()));
+
+    public static final DeferredItem<DeferredSpawnEggItem> BOG_TOAD_SPAWN_EGG = ITEMS.register(
+            "bog_toad_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.BOG_TOAD, 0x52683A, 0xB88954,
+                    new Item.Properties()));
+
+    public static final DeferredItem<DeferredSpawnEggItem> PLAGUE_OGRE_SPAWN_EGG = ITEMS.register(
+            "plague_ogre_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.PLAGUE_OGRE, 0x33382E, 0xA6453D,
+                    new Item.Properties()));
+
+    public static final DeferredItem<DeferredSpawnEggItem> MUDSNOUT_BOAR_SPAWN_EGG = ITEMS.register(
+            "mudsnout_boar_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.MUDSNOUT_BOAR, 0x0E0E10, 0x3A3A3F,
+                    new Item.Properties()));
+
+    public static final DeferredItem<BoarJockeySpawnEggItem> BOAR_JOCKEY_SPAWN_EGG = ITEMS.register(
+            "boar_jockey_spawn_egg",
+            () -> new BoarJockeySpawnEggItem(0x0E0E10, 0x3d5a1e, new Item.Properties()));
+
+    public static final DeferredItem<DeferredSpawnEggItem> BOG_POLE_SPAWN_EGG = ITEMS.register(
+            "bog_pole_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.BOG_POLE, 0x52683A, 0x8FAF62,
                     new Item.Properties()));
 
     // The Ogre Lord's weapon — a two-handed greatsword, clearly the strongest weapon in the mod

@@ -1,6 +1,7 @@
 package com.kingsandmonsters.item;
 
 import com.kingsandmonsters.ModItems;
+import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.entity.OgreSpear;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -25,6 +26,7 @@ public final class ArtifactEvents {
     private static final int CHARM_POISON_DURATION_TICKS = 100;
     private static final String CHARM_POISON_DAMAGE_UNTIL_TAG =
             "KingsAndMonstersCharmPoisonDamageUntil";
+    private static final float BAND_ROT_DAMAGE_MULTIPLIER = 0.80F;
     private static final float BUCKLER_ARROW_BLOCK_CHANCE = 0.25F;
     private static final double BUCKLER_ARROW_DAMAGE_MULTIPLIER = 1.10;
 
@@ -80,6 +82,25 @@ public final class ArtifactEvents {
                 && victim.getPersistentData().getLong(CHARM_POISON_DAMAGE_UNTIL_TAG)
                 >= victim.level().getGameTime()) {
             event.setAmount(event.getAmount() * CHARM_POISON_DAMAGE_MULTIPLIER);
+        }
+
+        // Poison Resistance also cancels poison already ticking (e.g. applied by a command).
+        if (event.getSource().is(DamageTypes.MAGIC)
+                && event.getSource().getEntity() == null
+                && event.getSource().getDirectEntity() == null
+                && victim.hasEffect(MobEffects.POISON)
+                && victim.hasEffect(ModMobEffects.POISON_RESISTANCE)) {
+            event.setCanceled(true);
+            return;
+        }
+
+        // Bog Iron Band: Poison and Bogrot ticks (magic damage with no attacker) hurt 20% less.
+        if (event.getSource().is(DamageTypes.MAGIC)
+                && event.getSource().getEntity() == null
+                && event.getSource().getDirectEntity() == null
+                && (victim.hasEffect(MobEffects.POISON) || victim.hasEffect(ModMobEffects.BOGROT))
+                && hasCurio(victim, ModItems.BOG_IRON_BAND.get())) {
+            event.setAmount(event.getAmount() * BAND_ROT_DAMAGE_MULTIPLIER);
         }
 
         // Buckler: 25% chance to block incoming arrows

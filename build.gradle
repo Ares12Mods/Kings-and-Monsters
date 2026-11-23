@@ -75,6 +75,9 @@ neoForge {
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+
+            // Logs the one-shot animation sync as it happens (see AnimationDebug); never per frame.
+            systemProperty 'kingsandmonsters.animdebug', 'true'
         }
 
         server {
@@ -133,6 +136,7 @@ neoForge {
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
     runtimeClasspath.extendsFrom localRuntime
+    complementaryShader
 }
 
 dependencies {
@@ -161,7 +165,7 @@ dependencies {
     compileOnly "maven.modrinth:jade:${jade_version}"
     localRuntime "maven.modrinth:jade:${jade_version}"
 
-    // Patchouli - required in production; API-only compile classpath and full dev runtime.
+    // Patchouli - optional at runtime (guidebook only); compile-only here, full runtime for dev.
     compileOnly "vazkii.patchouli:Patchouli:${patchouli_version}"
     localRuntime "vazkii.patchouli:Patchouli:${patchouli_version}"
 
@@ -169,6 +173,19 @@ dependencies {
     // MaFgLib is its required client-side library. Neither is bundled or required by the mod.
     localRuntime "maven.modrinth:forgematica:${forgematica_version}"
     localRuntime "maven.modrinth:mafglib:${mafglib_version}"
+
+    // JourneyMap — development-only worldgen and structure-placement testing.
+    // Modrinth project/version IDs pin the 1.21.1 NeoForge 6.0.9 release.
+    localRuntime "maven.modrinth:lfHFW1mp:${journeymap_version}"
+
+    // spark — development-only profiler for finding lag (/spark profiler start).
+    // Modrinth project/version IDs pin the 1.10.124 NeoForge 1.21.1 release.
+    localRuntime "maven.modrinth:l6YH9Als:${spark_version}"
+
+    // Iris + Sodium — development-only shader support. The shader pack itself is copied below.
+    localRuntime "maven.modrinth:iris:${iris_version}"
+    localRuntime "maven.modrinth:sodium:${sodium_version}"
+    complementaryShader "maven.modrinth:HVnmMxH1:${complementary_shader_version}@zip"
 
 }
 
@@ -181,6 +198,41 @@ tasks.named('test', Test).configure {
 
 tasks.withType(ProcessResources).configureEach {
     includeEmptyDirs = false
+}
+
+// Make the checked-in vanilla structure templates available to Forgematica without maintaining
+// a second hand-copied set. Forgematica's Schematic Manager can import these .nbt files and save
+// editable .litematic working copies alongside them.
+def structureSourceDirectory = layout.projectDirectory.dir('src/main/resources/data/kingsandmonsters/structure')
+def structureSchematicDirectory = layout.projectDirectory.dir('run/schematics/kingsandmonsters')
+
+tasks.register('syncStructureSchematics', Sync) {
+    group = 'kings and monsters development'
+    description = 'Copies the current Ogre structure NBT files into the Forgematica schematics folder.'
+    from(structureSourceDirectory)
+    into(structureSchematicDirectory)
+    include('**/*.nbt')
+}
+
+tasks.register('importStructureSchematics', Copy) {
+    group = 'kings and monsters development'
+    description = 'Copies edited Ogre NBT templates from Forgematica back into mod resources.'
+    from(structureSchematicDirectory)
+    into(structureSourceDirectory)
+    include('**/*.nbt')
+}
+
+tasks.register('syncComplementaryShaders', Copy) {
+    group = 'kings and monsters development'
+    description = 'Installs the pinned Complementary Reimagined shader pack for runClient.'
+    from(configurations.complementaryShader)
+    into(layout.projectDirectory.dir('run/shaderpacks'))
+    rename { 'ComplementaryReimagined_r5.9.3.zip' }
+}
+
+tasks.matching { it.name == 'runClient' }.configureEach {
+    dependsOn(tasks.named('syncStructureSchematics'))
+    dependsOn(tasks.named('syncComplementaryShaders'))
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

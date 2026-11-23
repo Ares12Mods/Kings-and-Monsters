@@ -13,8 +13,8 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
  * Repairs old development-world Outpost chests whose loot table was unpacked before a usable Fort
  * target existed. Fresh worlds resolve their deterministic target before the chest can be opened.
  *
- * <p>If the chest never had a chance to unpack (nobody opened it yet), nothing needs to happen
-     * here — the normal loot-function path in {@code CachedFortMapFunction} handles it on first open.
+ * <p>If nobody has opened the chest yet there is nothing to do; the normal loot-function path in
+ * {@code CachedFortMapFunction} handles it on first open.</p>
  */
 public final class FortMapDeliveryService {
 

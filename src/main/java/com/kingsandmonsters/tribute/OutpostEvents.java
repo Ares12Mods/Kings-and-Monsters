@@ -2,13 +2,17 @@ package com.kingsandmonsters.tribute;
 
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.entity.OgreGrunt;
+import com.kingsandmonsters.entity.PlagueOgre;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
@@ -28,10 +32,9 @@ public final class OutpostEvents {
         BlockEntity be = level.getBlockEntity(pos);
         if (!(be instanceof RandomizableContainerBlockEntity)) return;
 
-        // Opportunistic: if this chest belongs to an Outpost whose loot table already unpacked
-        // (LootTable tag gone) before its Fort target resolved, the guaranteed map never got a
-        // chance to generate normally — deliver it now, right before the player opens the GUI.
-        // No-op unless every precondition is met (see FortMapDeliveryService).
+        // If this chest outpost already unpacked its loot table (LootTable tag gone) before its
+        // Fort target resolved, the guaranteed map never generated; deliver it now, just before the
+        // GUI opens. Does nothing unless every precondition holds (see FortMapDeliveryService).
         TributeManager.findOutpostCampOrigin(level, pos)
                 .ifPresent(campOrigin -> com.kingsandmonsters.world.FortMapDeliveryService.tryDeliver(level, campOrigin));
 
@@ -41,23 +44,68 @@ public final class OutpostEvents {
 
         int campRadius = Config.TRIBUTE_CAMP_KILL_RADIUS.get();
         TributeManager.findNearestCamp(level, pos, campRadius * 4)
-            .ifPresent(campOrigin -> {
-                boolean angerApplied = TributeManager.recordTributeChestLooted(player, pos, campOrigin,
-                    Config.TRIBUTE_CHEST_ANGER_DELTA.get());
+            .ifPresent(campOrigin -> punishTheft(level, player, pos, campOrigin));
+    }
 
-                // Anger itself is immediate. Retaliation is not — arm this player's one pending
-                // retaliation timer instead of spawning a patrol on the spot, so the tribe gets a
-                // believable amount of time to "learn what happened and organize" before a patrol
-                // actually shows up. A repeat provocation during that window simply refreshes it.
-                if (angerApplied && level.random.nextFloat() < Config.TRIBUTE_PATROL_CHANCE.get()) {
-                    long eligibleGameTime = level.getGameTime() + PatrolManager.PATROL_RETALIATION_DELAY_TICKS;
-                    TributeManager.armPatrolRetaliation(level, player.getUUID(), campOrigin, eligibleGameTime);
-                }
-            });
+    /**
+     * Taking what is on display in a camp is theft like looting a tribute chest: it angers the camp,
+     * costs favor and ends any peace or paid passage. Only the first grab of an episode counts, so
+     * clearing a hut of frames isn't a stack of penalties.
+     */
+    public static void onItemFrameTaken(AttackEntityEvent event) {
+        if (!(event.getTarget() instanceof ItemFrame frame) || frame.getItem().isEmpty()
+                || !(event.getEntity() instanceof ServerPlayer player)
+                || !(player.level() instanceof ServerLevel level)
+                || player.isCreative() || TributeManager.isProvoked(level, player.getUUID())) {
+            return;
+        }
+        TributeManager.findNearestCamp(level, frame.blockPosition(), Config.TRIBUTE_CAMP_KILL_RADIUS.get())
+                .ifPresent(campOrigin -> punishTheft(level, player, frame.blockPosition(), campOrigin));
+    }
+
+    private static void punishTheft(ServerLevel level, ServerPlayer player, BlockPos pos, BlockPos campOrigin) {
+        // Nobody is left in an abandoned camp to mind: taking from it costs no favor and angers no one.
+        if (TributeManager.isAbandonedCamp(level, campOrigin)) {
+            return;
+        }
+        boolean angerApplied = TributeManager.recordTributeChestLooted(player, pos, campOrigin,
+                Config.TRIBUTE_CHEST_ANGER_DELTA.get());
+
+        // Anger is immediate, but retaliation is not: arm the player single pending timer
+        // instead of spawning a patrol on the spot, so the tribe has time to learn what
+        // happened first. Provoking again during the wait just refreshes the timer.
+        if (angerApplied && level.random.nextFloat() < Config.TRIBUTE_PATROL_CHANCE.get()) {
+            long eligibleGameTime = level.getGameTime() + PatrolManager.PATROL_RETALIATION_DELAY_TICKS;
+            TributeManager.armPatrolRetaliation(level, player.getUUID(), campOrigin, eligibleGameTime);
+        }
+    }
+
+    private static final int OGRE_KILL_FAVOR_LOSS = 3;
+
+    /** Striking the tribe ends any peace the player had, for every ogre and not just the one hit. */
+    public static void onOgreHurt(LivingDamageEvent.Post event) {
+        if (event.getEntity() instanceof OgreGrunt ogre && !(ogre instanceof PlagueOgre)
+                && !ogre.isArmyAlly()
+                && !ogre.isRoyalTrialOgre()
+                && ogre.level() instanceof ServerLevel level
+                && event.getSource().getEntity() instanceof ServerPlayer attacker
+                && !isDueling(level, attacker)) {
+            TributeManager.provoke(level, attacker);
+        }
+    }
+
+    /**
+     * A duel is a fair fight, so nothing struck while it lasts breaks the peace: not the King, and not
+     * a bystander caught by a swing.
+     */
+    private static boolean isDueling(ServerLevel level, ServerPlayer player) {
+        return !level.getEntitiesOfClass(com.kingsandmonsters.entity.OgreLord.class,
+                player.getBoundingBox().inflate(64.0), king -> king.isDuelingWith(player)).isEmpty();
     }
 
     public static void onOgreKilled(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof OgreGrunt ogre)) return;
+        if (ogre.isArmyAlly()) return;
         if (ogre.level().isClientSide()) return;
         if (!(ogre.level() instanceof ServerLevel level)) return;
 
@@ -67,9 +115,27 @@ public final class OutpostEvents {
             TributeManager.markOutpostCaptainKilled(
                     level,
                     ogre.getOutpostHome(),
-                    level.getGameTime() + OutpostPopulationManager.CAPTAIN_RESPAWN_TICKS);
+                    level.getGameTime() + OutpostPopulationManager.captainRespawnTicks(level, ogre.getOutpostHome()));
         } else if (ogre.isOutpostResident() && ogre.getOutpostHome() != null) {
             OutpostPopulationManager.scheduleResidentReplacement(level, ogre.getOutpostHome());
+        }
+
+        // Plague Ogres are the tribe's lost, not its own; clearing them out never angers the faction.
+        if (ogre instanceof PlagueOgre) {
+            return;
+        }
+
+        // A king beaten in a duel was beaten fairly: no favor lost, and the tribe is not angered.
+        if (ogre instanceof com.kingsandmonsters.entity.OgreLord king && king.isDuel()) {
+            if (event.getSource().getEntity() instanceof ServerPlayer winner && king.isDuelist(winner)) {
+                com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
+            }
+            return;
+        }
+
+        if (!ogre.isRoyalTrialOgre() && event.getSource().getEntity() instanceof ServerPlayer killer
+                && !isDueling(level, killer)) {
+            TributeManager.addFavorQuietly(level, killer, -OGRE_KILL_FAVOR_LOSS);
         }
 
         if (data.contains("PatrolCampPos")) {

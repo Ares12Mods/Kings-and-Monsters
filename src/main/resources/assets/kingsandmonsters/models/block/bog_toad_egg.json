@@ -1,0 +1,17 @@
+{
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "egg": "kingsandmonsters:block/small_bog_toad_egg",
+    "particle": "kingsandmonsters:block/small_bog_toad_egg"
+  },
+  "elements": [
+    {
+      "from": [2, 0.01, 2],
+      "to": [14, 0.02, 14],
+      "faces": {
+        "down": { "uv": [0, 0, 16, 16], "texture": "#egg" },
+        "up":   { "uv": [0, 0, 16, 16], "texture": "#egg" }
+      }
+    }
+  ]
+}

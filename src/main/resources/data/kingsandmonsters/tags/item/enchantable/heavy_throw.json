@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "#kingsandmonsters:enchantable/hunters_spear",
+    "minecraft:trident"
+  ]
+}

@@ -1,6 +1,5 @@
 package com.kingsandmonsters.client;
 
-import com.kingsandmonsters.ModItems;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -17,11 +16,8 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.AABB;
@@ -30,21 +26,15 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 /**
- * Client-only visual feedback for a successful Bog Eye Charm use: a magical particle trail plus
- * an outline highlight on the found chest. Both persist for as long as the player keeps holding
- * the charm and the chest remains unopened, rather than for a short fixed window. The server has
- * already done all the real chest-search work by the time {@link #start(BlockPos)} runs — this
- * class only ever reads the known target position, never rescans or pathfinds.
+ * Client-only feedback for a successful Bog-Eye Charm use: a particle trail plus an outline on the
+ * found chest, both lasting six seconds even if the player changes held items. The server has
+ * already done the chest search by the time {@link #start(BlockPos)} runs; this class only reads
+ * the known target position and never rescans or pathfinds.
  */
 public final class BogEyeGuidance {
-    // Guidance now persists as long as the player keeps holding the Bog Eye Charm and the chest
-    // stays unopened — not for a short fixed window. SAFETY_CAP_TICKS is just a generous fallback
-    // in case something else fails to clear it; in normal play, holding the charm or opening the
-    // chest is what actually ends the effect.
-    private static final int SAFETY_CAP_TICKS = 20 * 60 * 20; // 20 minutes
-    private static final int TRAIL_PARTICLE_INTERVAL_TICKS = 6;
-    private static final int MAX_TRAIL_STEPS = 9;
-    private static final int VALIDITY_CHECK_INTERVAL_TICKS = 10;
+    private static final int GUIDANCE_DURATION_TICKS = 6 * 20;
+    private static final int TRAIL_PARTICLE_INTERVAL_TICKS = 10;
+    private static final int MAX_TRAIL_STEPS = 5;
     private static final int HORIZONTAL_RANGE = 24;
     private static final int VERTICAL_RANGE = 12;
 
@@ -79,7 +69,6 @@ public final class BogEyeGuidance {
     private static BlockPos target;
     private static ResourceKey<Level> targetDimension;
     private static int guidanceTicksRemaining;
-    private static int validityCheckCooldown;
     private static double trailSeed;
 
     private BogEyeGuidance() {
@@ -89,8 +78,7 @@ public final class BogEyeGuidance {
         Minecraft minecraft = Minecraft.getInstance();
         target = targetPos;
         targetDimension = minecraft.level == null ? null : minecraft.level.dimension();
-        guidanceTicksRemaining = SAFETY_CAP_TICKS;
-        validityCheckCooldown = VALIDITY_CHECK_INTERVAL_TICKS;
+        guidanceTicksRemaining = GUIDANCE_DURATION_TICKS;
         trailSeed = RANDOM.nextDouble() * 1000.0;
     }
 
@@ -106,17 +94,6 @@ public final class BogEyeGuidance {
             return;
         }
 
-        if (!isHoldingBogEye(minecraft.player)) {
-            clear();
-            return;
-        }
-
-        if (!level.isLoaded(target)) {
-            // Never force-load target data or retain a ghost marker for an unloaded chunk.
-            clear();
-            return;
-        }
-
         BlockPos playerPos = minecraft.player.blockPosition();
         int dx = target.getX() - playerPos.getX();
         int dy = target.getY() - playerPos.getY();
@@ -124,14 +101,6 @@ public final class BogEyeGuidance {
         if (Math.abs(dy) > VERTICAL_RANGE || dx * dx + dz * dz > HORIZONTAL_RANGE * HORIZONTAL_RANGE) {
             clear();
             return;
-        }
-
-        if (--validityCheckCooldown <= 0) {
-            validityCheckCooldown = VALIDITY_CHECK_INTERVAL_TICKS;
-            if (!isStillValid(level)) {
-                clear();
-                return;
-            }
         }
 
         if (guidanceTicksRemaining > 0) {
@@ -142,11 +111,6 @@ public final class BogEyeGuidance {
         } else {
             clear();
         }
-    }
-
-    private static boolean isHoldingBogEye(Player player) {
-        return player.getMainHandItem().is(ModItems.BOG_EYE_CHARM.get())
-                || player.getOffhandItem().is(ModItems.BOG_EYE_CHARM.get());
     }
 
     public static void render(RenderLevelStageEvent event) {
@@ -201,12 +165,6 @@ public final class BogEyeGuidance {
     private static Vec3 perpendicular(Vec3 direction) {
         Vec3 helper = Math.abs(direction.y) > 0.9 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
         return direction.cross(helper).normalize();
-    }
-
-    private static boolean isStillValid(ClientLevel level) {
-        BlockEntity blockEntity = level.getBlockEntity(target);
-        return blockEntity instanceof RandomizableContainerBlockEntity container
-                && container.getLootTable() != null;
     }
 
     private static AABB highlightBounds(ClientLevel level, BlockPos pos) {

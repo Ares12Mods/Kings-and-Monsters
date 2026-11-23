@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:boars/swine_friend",
+  "display": {
+    "icon": { "id": "minecraft:saddle" },
+    "title": { "translate": "advancement.kingsandmonsters.hog_wild.title" },
+    "description": { "translate": "advancement.kingsandmonsters.hog_wild.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 15
+  }
+}

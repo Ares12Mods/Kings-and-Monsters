@@ -16,6 +16,7 @@ public class OgreMageRenderer extends GeoEntityRenderer<OgreMage> {
         super(context, new OgreMageModel());
         this.shadowRadius = 0.65f;
         addRenderLayer(new MagePotionLayer(this));
+        addRenderLayer(new MageStoneGlowLayer(this));
     }
 
     private static class MagePotionLayer extends BlockAndItemGeoLayer<OgreMage> {
@@ -41,4 +42,5 @@ public class OgreMageRenderer extends GeoEntityRenderer<OgreMage> {
             super.renderStackForBone(poseStack, bone, stack, mage, bufferSource, partialTick, packedLight, packedOverlay);
         }
     }
+
 }

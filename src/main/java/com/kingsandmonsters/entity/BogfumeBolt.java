@@ -26,7 +26,7 @@ import java.util.UUID;
 public class BogfumeBolt extends Entity {
     private static final int MAX_LIFETIME_TICKS = 60;
     // Calibrated to match the archer's arrow (~1.5 hearts vs full diamond, ~2.4 vs full iron).
-    private static final float DAMAGE = 11.0F;
+    private static final float DAMAGE = OgreDamage.raw(OgreDamage.Tier.MAGE, OgreDamage.Blow.STANDARD);
     private static final float OGRE_ALLY_DAMAGE_MULTIPLIER = 0.5F;
     private static final double HIT_RADIUS = 0.45;
     private static final double HOMING_STRENGTH = 0.08;

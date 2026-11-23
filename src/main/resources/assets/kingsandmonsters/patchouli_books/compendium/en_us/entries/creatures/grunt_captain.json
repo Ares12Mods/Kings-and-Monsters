@@ -4,6 +4,8 @@
   "icon": "kingsandmonsters:grunt_captain_banner",
   "pages": [
     { "type": "patchouli:text", "text": "A Grunt Captain is a veteran loud enough to turn nearby ogres into a coordinated problem. It fights as a tougher Grunt and calls the Tribe to attention.$(br2)Captains carry normal Grunt spoils and retain their prized Golden Ogre Tooth—the mark that makes Merchants suddenly more respectful." },
-    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_grunt_captain", "scale": 0.73, "offset": 0.0, "rotate": true, "text": "Its salute is not for you. It is for everyone about to surround you." }
+    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_grunt_captain", "scale": 0.73, "offset": 0.0, "rotate": true, "text": "Its salute is not for you. It is for everyone about to surround you." },
+    { "type": "patchouli:text", "title": "Hunters", "text": "Captains never lose their nerve. They go straight at Plague Ogres and Bog Toads, and lesser Ogres that see the fight come to help.$(br2)A lone Grunt will still run from a Bog Toad. A Grunt with company will not." },
+    { "type": "patchouli:text", "title": "Armored Hide", "text": "Now and then a blow glances off a Captain's armor and does no damage at all, with a spark and a ring of steel. It cannot happen twice in a few seconds, so keep swinging." }
   ]
 }

@@ -3,10 +3,12 @@ package com.kingsandmonsters.entity;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
+import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.enchantment.ModEnchantmentEffects;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
+import com.kingsandmonsters.network.ScreenShakePayload;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -17,12 +19,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,15 +41,13 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.animation.AnimationState;
@@ -58,6 +58,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 public class OgreGuard extends OgreGrunt {
+    private static final int IDLE_SOUND_INTERVAL_TICKS = 20 * 60;
     private static final String ROYAL_THRONE_GUARD_TAG_PREFIX =
             "KingsAndMonstersFortResident_throne_guard_";
     private static final EntityDataAccessor<Long> DATA_GUARD_SHOT_START_TICK =
@@ -66,41 +67,80 @@ public class OgreGuard extends OgreGrunt {
             SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Boolean> DATA_GUARD_AIMING =
             SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
+    // True from the moment the thrown spear entity spawns until the throw animation ends, so the
+    // held copy is not rendered alongside the projectile.
+    private static final EntityDataAccessor<Boolean> DATA_GUARD_SPEAR_THROWN =
+            SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
+    // True while his target is within reach of the spear: the held spear is then drawn pointing forward for a stab.
+    private static final EntityDataAccessor<Boolean> DATA_GUARD_SPEAR_STAB =
+            SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DATA_GUARD_SWING_ID =
+            SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_GUARD_RETREATING =
+            SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_GUARD_COMBAT_MOVING =
             SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
-    // Mob#getTarget() is server-only and never synced to the client, so animateMovement() (which
-    // runs client-side for rendering) can't use it directly to tell whether he's aggro'd — it
-    // always reads null there, which was silently forcing the WALK fallback (and skipping
-    // COMBAT_WALK entirely) any time he moved while chasing a target, no matter what.
+    // getTarget() is server-only, so animateMovement() (client-side) always reads null and used
+    // to fall back to WALK while chasing. DATA_GUARD_HAS_TARGET is the synced stand-in.
     private static final EntityDataAccessor<Boolean> DATA_GUARD_HAS_TARGET =
             SynchedEntityData.defineId(OgreGuard.class, EntityDataSerializers.BOOLEAN);
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
-    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("run");
+    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("Combat walk");
+    // The full run is kept for his retreat once he is hurt.
+    private static final RawAnimation RUN = RawAnimation.begin().thenLoop("run");
     private static final RawAnimation SHOOT = RawAnimation.begin().thenPlay("throw");
-    private static final RawAnimation PUNCH = RawAnimation.begin().thenPlay("Punch");
+    // Both melee clips are thrown over the combat walk, like the other ogres' swings.
+    private static final RawAnimation STAB = RawAnimation.begin().thenPlay("spear_stab");
+    private static final RawAnimation SLAM = RawAnimation.begin().thenPlay("slam");
+    private static final RawAnimation BITE = RawAnimation.begin().thenPlay("Bite");
+    public static final float ATTACK_OVERLAY_FADE_OUT_TICKS = 8.0F;
+    private static final int STAB_ID = 1;
+    private static final int SLAM_ID = 2;
+    private static final int BITE_ID = 3;
+    // Tick marks of the foot landings in each walk clip, so steps sound with the visible foot.
+    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+            "walk", new double[]{0.0, 26.67},
+            "Combat walk", new double[]{0.0, 13.33});
     private static final int SHOOT_ANIMATION_TICKS = 45;
     private static final int BOW_DRAW_START_TICKS = 1;
-    // Requested release is 1.42s (tick 28 server-side), but the client's visible arm-swing
-    // animation only starts once it receives the synced DATA_GUARD_SHOT_START_TICK update
-    // (updateSyncedShootAnimation), which lags at least a tick behind this server-side counter
-    // (which starts the instant beginBowShot() runs). That gap made the projectile spawn before
-    // the visible animation caught up to the release pose. Nudged later to compensate, then a
-    // couple more ticks on top per in-game feedback — this is still an estimate, not a
-    // measurement, so it may need further tuning.
+    // Release is at the 1.42s keyframe (tick 28), but the client only starts the animation once
+    // it receives the synced DATA_GUARD_SHOT_START_TICK, a tick or more after the server counter
+    // starts. Nudged later to compensate, and again after in-game feedback. Still an estimate.
     private static final int ARROW_RELEASE_TICKS = 34;
-    private static final int PUNCH_ANIMATION_TICKS = 25;
-    // Raw target is 0.75s into the animation (tick 15), where the arm holds at full extension —
-    // but same client-side animation sync lag as the throw (see ARROW_RELEASE_TICKS): the
-    // punchAnimationTicks countdown driving the visible swing only starts once the client
-    // receives the synced DATA_GUARD_PUNCH_START_TICK update, lagging behind this server-side
-    // counter (which starts the instant beginPunch() runs). The full +6 tick compensation that
-    // worked for the throw landed slightly late for the punch, so this splits the difference.
-    private static final int PUNCH_IMPACT_TICKS = 18;
+    // Both clips run 1.5s, but they end at rest pose while the walk has the arms swinging. The overlay lets go
+    // at 1.35s, partway through the return, and the model eases the rest of the way into the walk.
+    private static final int SWING_ANIMATION_TICKS = 27;
+    // Contact must follow the rendered weapon/hand, including the delayed client overlay start.
+    // The previous +3 estimate still made both attacks damage before visible contact in game.
+    private static final int STAB_IMPACT_TICKS = 19;
+    private static final int SLAM_IMPACT_TICKS = 23;
+    // The authored bite closes at 0.79s; nearest server tick is 16 (0.80s).
+    private static final int BITE_IMPACT_TICKS = 16;
+    private static final int BITE_REGENERATION_TICKS = 100;
+    /** Regeneration III (amplifier 2) after a landed bite, matching the Brute and Trapper. */
+    private static final int BITE_REGENERATION_AMPLIFIER = 2;
+    private static final float STAB_SPEAR_TILT_DEGREES = 18.0F;
+    private static final float STAB_SPEAR_TILT_START_TICK = 0.58F * 20.0F;
+    private static final float STAB_SPEAR_TILT_PEAK_TICK = 0.71F * 20.0F;
+    private static final float STAB_SPEAR_TILT_HOLD_END_TICK = 17.0F;
+    private static final float STAB_SPEAR_TILT_END_TICK = 25.0F;
+    private static final int STAB_SWOOSH_LEAD_TICKS = 5;
+    private static final float SLAM_CHANCE = 0.35F;
+    // The slam only comes out at close quarters; further out he reaches with the spear.
+    private static final double SLAM_START_RANGE = 2.35;
+    private static final double STAB_START_RANGE = 4.0;
+    private static final double STAB_HIT_RANGE = 5.0;
+    private static final double SLAM_CENTER_REACH = 1.7;
+    private static final double SLAM_RADIUS = 2.1;
+    private static final float SLAM_DAMAGE = OgreDamage.raw(OgreDamage.Tier.GUARD, OgreDamage.Blow.LIGHT);
+    private static final double SLAM_KNOCKBACK_STRENGTH = 0.9;
+    // The punch holds full extension at tick 15, but the client animation starts a tick or more
+    // after the server counter (it waits on the synced start tick). The +6 that fixed the throw
+    // was slightly late here, so this splits the difference.
     // Tiny per-tick step toward the target while the swing is winding up, so he visibly closes
     // the last bit of distance as part of the animation itself instead of standing still — a
     // single upfront velocity kick read as a slide happening before the punch, not part of it.
-    private static final double PUNCH_CREEP_SPEED = 0.006;
     // Brief "just noticed you" pause before he can throw his first attack against a freshly
     // (re)acquired target, so a player who respawns already within his reach doesn't get an
     // instant, zero-warning punch the very tick he re-targets them.
@@ -111,41 +151,40 @@ public class OgreGuard extends OgreGrunt {
     private static final int SHOT_COOLDOWN_RANDOM_TICKS = 12;
     // Well under OgreArcher's 22.0 — the guard is a brute with a spear-throw option, not a
     // dedicated ranged specialist, so he should close in rather than engaging from way out.
-    private static final double SHOOT_RANGE = 8.0;
+    private static final double SHOOT_RANGE = 12.0;
     private static final double PUNCH_RANGE = 2.35;
-    private static final double PUNCH_HIT_RANGE = 3.5;
-    private static final double MELEE_ENGAGE_RANGE = 3.5;
-    private static final float PUNCH_DAMAGE = 6.5F;
+    private static final double MELEE_MODE_ENTER_RANGE = 5.0;
+    private static final double MELEE_MODE_EXIT_RANGE = SHOOT_RANGE;
+    private static final double MELEE_ENGAGE_RANGE = 5.0;
+    private static final float PUNCH_DAMAGE = OgreDamage.raw(OgreDamage.Tier.GUARD, OgreDamage.Blow.MINOR);
     private static final double PUNCH_KNOCKBACK_STRENGTH = 0.75;
     private static final float PUNCH_SOUND_VOLUME = 0.75F;
     private static final float PUNCH_SOUND_PITCH = 0.8F;
-    // Health fraction (of max health) below which the guard breaks off melee to put distance
-    // between himself and his target, instead of the old "retreat the instant the player gets
-    // close" behavior — he's meant to be more aggressive than the archer and fight through
-    // normal damage, only backing off when actually in danger.
+    // Health fraction below which the guard backs off to put distance between himself and his
+    // target. Above it he stands and fights; he's meant to be more aggressive than the archer.
     private static final double LOW_HEALTH_RETREAT_HEALTH_FRACTION = 0.5;
     // He stops as soon as he reaches the outer portion of spear range. The timer is only a
     // pathfinding failsafe so blocked terrain cannot leave him in the retreat state forever.
     private static final int LOW_HEALTH_RETREAT_TICKS = 100;
     private static final double LOW_HEALTH_RETREAT_DISTANCE = 4.0;
     private static final double LOW_HEALTH_RETREAT_STOP_RANGE = SHOOT_RANGE - 0.5;
+    // The original pace, kept for the new run clip.
     private static final double LOW_HEALTH_RETREAT_SPEED = 1.08;
+    // About 0.254 against his 0.275 attribute: roughly 3.7 blocks a second, a touch faster than the
+    // Archer's 3.45, for the new combat walk. Raise or lower this to taste.
+    private static final double GUARD_COMBAT_SPEED = 0.925;
     // Matches TridentItem.SHOOT_POWER so the thrown spear flies at the same speed as a player-thrown trident.
     private static final float ARROW_PROJECTILE_SPEED = 2.5F;
     private static final float ARROW_INACCURACY = 4.5F;
     private static final double ARROW_LOB_COMPENSATION = 0.14;
-    // These offsets approximate where the right hand actually is at the release pose (both arms
-    // thrust forward, per the "throw" animation's ~1.42s keyframe) rather than a neutral standing
-    // pose — the old, smaller values were tuned against an earlier (too-early) release point and
-    // no longer line up now that release happens later in the swing. This is a reasoned estimate,
-    // not a measurement off the actual animated bone position, so it will likely need further
-    // tuning once seen in-game.
+    // Approximate right-hand position at the release pose (both arms forward, ~1.42s keyframe).
+    // An estimate, not a measured bone position, so expect tuning once seen in-game.
     private static final double ARROW_SPAWN_FORWARD_OFFSET = 0.85;
     private static final double ARROW_SPAWN_SIDE_OFFSET = 0.35;
     private static final double ARROW_SPAWN_VERTICAL_OFFSET = 0.55;
     // Calibrated against full diamond armor (~1.5 hearts effective per hit) to match the grunt/brute
     // melee tuning pass — arrows hit noticeably harder on lighter armor (~2.4 hearts vs full iron).
-    private static final double OGRE_ARROW_BASE_DAMAGE = 10.0;
+    private static final double OGRE_ARROW_BASE_DAMAGE = OgreDamage.raw(OgreDamage.Tier.GUARD, OgreDamage.Blow.STANDARD);
     private static final int POISON_ARROW_ROLL = 15;
     private static final int SLOWNESS_ARROW_ROLL = 28;
     private static final int POISON_ARROW_DURATION_TICKS = 100;
@@ -165,8 +204,15 @@ public class OgreGuard extends OgreGrunt {
     private int punchImpactTicks;
     private int punchCooldownTicks;
     private int combatMovementAnimationTicks;
+    private int retreatAnimationTicks;
+    private boolean meleeModeActive;
+    private boolean stabSwooshPlayed;
+    private int activeSwingId;
+    private boolean swingOverlayVisible;
+    private final CanonicalOneShotState visualSwingOneShot = new CanonicalOneShotState();
     private int lastAnimationTick = -1;
-    private int movementAnimationGraceTicks;
+    private long lastMovingAnimationTick = Long.MIN_VALUE / 2;
+    private static final int MOVEMENT_ANIMATION_GRACE_TICKS = 4;
     private boolean arrowReleasedThisShot;
     private boolean bowDrawStartedThisShot;
     private boolean punchHitThisPunch;
@@ -186,15 +232,14 @@ public class OgreGuard extends OgreGrunt {
     }
 
     public void rollEliteSpearEnchantment() {
-        if (level().isClientSide || !getRandom().nextBoolean()) {
+        // Retain the old 25% chance that a guard carries the remaining signature spear
+        // enchantment rather than doubling Heavy Throw's occurrence.
+        if (level().isClientSide || getRandom().nextInt(4) != 0) {
             return;
         }
 
         ItemStack spear = new ItemStack(ModItems.HUNTERS_SPEAR.get());
-        switch (getRandom().nextInt(2)) {
-            case 0 -> enchantSpear(spear, ModEnchantments.BARBED, 1 + getRandom().nextInt(3));
-            default -> enchantSpear(spear, ModEnchantments.HEAVY_THROW, 1 + getRandom().nextInt(3));
-        }
+        enchantSpear(spear, ModEnchantments.HEAVY_THROW, 1 + getRandom().nextInt(3));
         setItemSlot(EquipmentSlot.MAINHAND, spear);
     }
 
@@ -237,7 +282,7 @@ public class OgreGuard extends OgreGrunt {
                 .add(Attributes.ATTACK_DAMAGE, 7.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.275)
                 .add(Attributes.FOLLOW_RANGE, 34.0)
-                .add(Attributes.ARMOR, 11.0)
+                .add(Attributes.ARMOR, 15.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.65)
                 .add(Attributes.ATTACK_KNOCKBACK, 0.35)
                 .add(Attributes.STEP_HEIGHT, 1.0)
@@ -246,7 +291,8 @@ public class OgreGuard extends OgreGrunt {
 
     @Override
     protected double getWanderSpeedModifier() {
-        return 0.14 / 0.275;
+        // The wander clip is a third slower now (2.67s a stride, was 2s), so the pace drops with it.
+        return 0.121 / 0.275;
     }
 
     @Override
@@ -265,8 +311,23 @@ public class OgreGuard extends OgreGrunt {
     }
 
     @Override
+    protected SoundEvent getAmbientSound() {
+        return ModSoundEvents.OGRE_GUARD_IDLE.get();
+    }
+
+    @Override
+    public int getAmbientSoundInterval() {
+        return IDLE_SOUND_INTERVAL_TICKS;
+    }
+
+    @Override
     protected SoundEvent getHurtSound(DamageSource damageSource) {
-        return ModSoundEvents.OGRE_ARCHER_HURT.get();
+        return ModSoundEvents.OGRE_GUARD_HURT.get();
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return ModSoundEvents.OGRE_GUARD_DEATH.get();
     }
 
     @Override
@@ -275,6 +336,10 @@ public class OgreGuard extends OgreGrunt {
         builder.define(DATA_GUARD_SHOT_START_TICK, 0L);
         builder.define(DATA_GUARD_PUNCH_START_TICK, 0L);
         builder.define(DATA_GUARD_AIMING, false);
+        builder.define(DATA_GUARD_SPEAR_THROWN, false);
+        builder.define(DATA_GUARD_SPEAR_STAB, false);
+        builder.define(DATA_GUARD_SWING_ID, 0);
+        builder.define(DATA_GUARD_RETREATING, false);
         builder.define(DATA_GUARD_COMBAT_MOVING, false);
         builder.define(DATA_GUARD_HAS_TARGET, false);
     }
@@ -286,15 +351,27 @@ public class OgreGuard extends OgreGrunt {
             if (combatMovementAnimationTicks > 0 && --combatMovementAnimationTicks <= 0) {
                 setCombatMoving(false);
             }
+            if (retreatAnimationTicks > 0 && --retreatAnimationTicks <= 0) {
+                entityData.set(DATA_GUARD_RETREATING, false);
+            }
 
             entityData.set(DATA_GUARD_HAS_TARGET, getTarget() != null);
+            // Melee mode: once the target is within 5 blocks the spear stays pointed forward, until it is
+            // 8 blocks off (or he has backed away that far). It drops back to the throwing grip for a throw.
+            LivingEntity stabTarget = getTarget();
+            boolean meleeMode = meleeModeActive;
+            double meleeRange = meleeMode ? MELEE_MODE_EXIT_RANGE : MELEE_MODE_ENTER_RANGE;
+            boolean inMeleeMode = stabTarget != null && distanceToSqr(stabTarget) <= meleeRange * meleeRange;
+            meleeModeActive = inMeleeMode;
+            entityData.set(DATA_GUARD_SPEAR_STAB, inMeleeMode && !isPreparingBowShot());
         }
     }
 
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
-        goalSelector.addGoal(1, new OgreGuardShootGoal(this, 1.0));
+        registerBogToadWarinessGoal();
+        goalSelector.addGoal(1, new OgreGuardShootGoal(this, GUARD_COMBAT_SPEED));
         goalSelector.addGoal(4, new GuardSuperiorGoal(this));
         goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, getWanderSpeedModifier()));
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0f));
@@ -303,6 +380,7 @@ public class OgreGuard extends OgreGrunt {
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
         registerTerritorialTargetGoal();
+        registerArmyGoals();
     }
 
     @Override
@@ -336,6 +414,11 @@ public class OgreGuard extends OgreGrunt {
             startUsingItem(InteractionHand.MAIN_HAND);
         }
 
+        // Hide the handheld copy one tick before projectile creation so both spears never render
+        // together while the spawn packet reaches the client.
+        if (!arrowReleasedThisShot && arrowReleaseTicks <= 1 && !level().isClientSide) {
+            entityData.set(DATA_GUARD_SPEAR_THROWN, true);
+        }
         if (!arrowReleasedThisShot && --arrowReleaseTicks <= 0) {
             shootPendingArrow();
         }
@@ -387,6 +470,7 @@ public class OgreGuard extends OgreGrunt {
                 projectileDamage,
                 OgreSpear.Pickup.DISALLOWED);
         level().addFreshEntity(spear);
+        entityData.set(DATA_GUARD_SPEAR_THROWN, true);
         level().playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW,
                 SoundSource.HOSTILE, 2.0F, 0.82F + getRandom().nextFloat() * 0.10F);
     }
@@ -443,14 +527,13 @@ public class OgreGuard extends OgreGrunt {
         if (isUsingItem()) {
             stopUsingItem();
         }
-        // Without this, DATA_GUARD_SHOT_START_TICK stays set to this shot's start tick forever.
-        // Harmless while the client keeps a continuous view of this entity (its own
-        // lastSyncedShotStartTick already matches), but if the client's tracking of this entity
-        // is ever refreshed (e.g. it drops out of range and comes back — plausible right after a
-        // death/respawn), that stale nonzero value reads as a brand new trigger and replays the
-        // animation purely visually, with no real attack behind it.
+        // Clear the synced start tick. A stale value looks like a new trigger if the client's
+        // tracking refreshes (out of range and back, respawn) and replays the animation with no
+        // attack behind it.
         if (!level().isClientSide) {
             entityData.set(DATA_GUARD_SHOT_START_TICK, 0L);
+            // The throw animation is over (or interrupted): show the held spear again.
+            entityData.set(DATA_GUARD_SPEAR_THROWN, false);
         }
     }
 
@@ -466,38 +549,59 @@ public class OgreGuard extends OgreGrunt {
         return pendingShotTarget != null;
     }
 
+    /** True when the held spear is drawn for a melee stab, not for a throw. */
+    public boolean isSpearStabPose() {
+        return entityData.get(DATA_GUARD_SPEAR_STAB);
+    }
+
     public boolean shouldRenderHeldSpear() {
-        // Always visible, matching vanilla Drowned: their trident stays in-hand the whole time
-        // they're winding up and throwing, even though a separate thrown entity also exists.
-        return true;
+        // Visible through the wind-up; hidden from the moment the projectile spawns until the
+        // throw animation finishes.
+        return !entityData.get(DATA_GUARD_SPEAR_THROWN);
+    }
+
+    /** Render-only downward correction for the spear during the stab follow-through. */
+    public float getStabSpearTiltDegrees(float partialTick) {
+        long startTick = entityData.get(DATA_GUARD_PUNCH_START_TICK);
+        if (startTick <= 0L || entityData.get(DATA_GUARD_SWING_ID) != STAB_ID) {
+            return 0.0F;
+        }
+
+        float elapsed = (float) (level().getGameTime() - startTick) + partialTick;
+        float weight;
+        if (elapsed < STAB_SPEAR_TILT_START_TICK || elapsed >= STAB_SPEAR_TILT_END_TICK) {
+            weight = 0.0F;
+        } else if (elapsed < STAB_SPEAR_TILT_PEAK_TICK) {
+            weight = (elapsed - STAB_SPEAR_TILT_START_TICK)
+                    / (STAB_SPEAR_TILT_PEAK_TICK - STAB_SPEAR_TILT_START_TICK);
+        } else if (elapsed <= STAB_SPEAR_TILT_HOLD_END_TICK) {
+            weight = 1.0F;
+        } else {
+            weight = 1.0F - (elapsed - STAB_SPEAR_TILT_HOLD_END_TICK)
+                    / (STAB_SPEAR_TILT_END_TICK - STAB_SPEAR_TILT_HOLD_END_TICK);
+        }
+        return STAB_SPEAR_TILT_DEGREES * Mth.clamp(weight, 0.0F, 1.0F);
     }
 
     private void beginPunch(LivingEntity target) {
         cancelBowShot();
-        plantForMelee();
         pendingPunchTarget = target;
-        activePunchTicks = PUNCH_ANIMATION_TICKS;
-        punchImpactTicks = PUNCH_IMPACT_TICKS;
+        // Close in he may slam; further out he can only reach with the spear.
+        boolean close = distanceToSqr(target) <= SLAM_START_RANGE * SLAM_START_RANGE;
+        if (close) {
+            float roll = getRandom().nextFloat();
+            activeSwingId = roll < SLAM_CHANCE ? SLAM_ID : roll < (SLAM_CHANCE + 0.325F) ? BITE_ID : STAB_ID;
+        } else {
+            activeSwingId = STAB_ID;
+        }
+        activePunchTicks = SWING_ANIMATION_TICKS;
+        punchImpactTicks = activeSwingId == SLAM_ID ? SLAM_IMPACT_TICKS
+                : activeSwingId == BITE_ID ? BITE_IMPACT_TICKS : STAB_IMPACT_TICKS;
         punchHitThisPunch = false;
+        stabSwooshPlayed = false;
         punchImpactSoundPlayed = false;
         punchCooldownTicks = PUNCH_COOLDOWN_TICKS;
         playPunchAnimation();
-    }
-
-    private void plantForMelee() {
-        getNavigation().stop();
-        Vec3 movement = getDeltaMovement();
-        setDeltaMovement(0.0, movement.y, 0.0);
-        setSpeed(0.0F);
-    }
-
-    private void creepTowardMeleeTarget(LivingEntity target) {
-        Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0, target.getZ() - getZ());
-        if (toTarget.lengthSqr() < 1.0E-4) {
-            return;
-        }
-
-        move(MoverType.SELF, toTarget.normalize().scale(PUNCH_CREEP_SPEED));
     }
 
     private void tickPendingPunch() {
@@ -505,12 +609,17 @@ public class OgreGuard extends OgreGrunt {
             return;
         }
 
-        plantForMelee();
-        if (!punchHitThisPunch) {
-            creepTowardMeleeTarget(pendingPunchTarget);
-        }
+        // He keeps walking through the swing: nothing here plants him.
         activePunchTicks--;
         punchImpactTicks--;
+        // The spear whips forward from about 0.58s, a few ticks before it lands.
+        if (activeSwingId == STAB_ID && !stabSwooshPlayed && punchImpactTicks <= STAB_SWOOSH_LEAD_TICKS) {
+            stabSwooshPlayed = true;
+            if (!level().isClientSide) {
+                level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE,
+                        0.7F, 1.35F + getRandom().nextFloat() * 0.1F);
+            }
+        }
         if (!punchImpactSoundPlayed && punchImpactTicks <= PUNCH_SOUND_LEAD_TICKS) {
             playPunchImpactSound();
         }
@@ -525,40 +634,98 @@ public class OgreGuard extends OgreGrunt {
 
     private void applyPunchImpact() {
         punchHitThisPunch = true;
-        if (level().isClientSide || pendingPunchTarget == null || !pendingPunchTarget.isAlive()) {
+        if (!(level() instanceof ServerLevel serverLevel)) {
             return;
         }
 
-        if (distanceToSqr(pendingPunchTarget) > PUNCH_HIT_RANGE * PUNCH_HIT_RANGE
-                || !getSensing().hasLineOfSight(pendingPunchTarget)) {
+        if (activeSwingId == SLAM_ID) {
+            applySlam(serverLevel);
+            return;
+        }
+
+        LivingEntity target = pendingPunchTarget;
+        if (target == null || !target.isAlive() || !stabVolumeIntersects(target)
+                || !getSensing().hasLineOfSight(target)) {
             return;
         }
 
         if (!punchImpactSoundPlayed) {
             playPunchImpactSound();
         }
-        pendingPunchTarget.hurt(damageSources().mobAttack(this), (float) getAttributeValue(Attributes.ATTACK_DAMAGE));
-        pendingPunchTarget.knockback(PUNCH_KNOCKBACK_STRENGTH, getX() - pendingPunchTarget.getX(), getZ() - pendingPunchTarget.getZ());
+        boolean hitLanded = target.hurt(damageSources().mobAttack(this), PUNCH_DAMAGE);
+        target.knockback(PUNCH_KNOCKBACK_STRENGTH, getX() - target.getX(), getZ() - target.getZ());
+        if (hitLanded && activeSwingId == BITE_ID) {
+            CombatEffects.applyCrippled(target, Config.CRIPPLED_BITE_DURATION_TICKS.get(), this);
+            addEffect(new MobEffectInstance(MobEffects.REGENERATION, BITE_REGENERATION_TICKS,
+                    BITE_REGENERATION_AMPLIFIER), this);
+        }
+    }
+
+    /** Tests the whole forward spear sweep against the target hitbox instead of only entity centres. */
+    private boolean stabVolumeIntersects(LivingEntity target) {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 start = position().add(0.0, getBbHeight() * 0.48, 0.0);
+        Vec3 end = start.add(forward.scale(STAB_HIT_RANGE));
+        AABB spearSweep = new AABB(start, end).inflate(0.8, 1.15, 0.8);
+        return spearSweep.intersects(target.getBoundingBox());
+    }
+
+    /** A short overhead blow into the ground: a small area around the spot he hits, lighter than a Grunt's. */
+    private void applySlam(ServerLevel serverLevel) {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 impact = position().add(forward.scale(SLAM_CENTER_REACH));
+        List<LivingEntity> candidates = level().getEntitiesOfClass(
+                LivingEntity.class, getBoundingBox().inflate(SLAM_CENTER_REACH + SLAM_RADIUS + 1.0, 2.0,
+                        SLAM_CENTER_REACH + SLAM_RADIUS + 1.0),
+                target -> target != this && target.isAlive() && canAttackOgreTarget(target));
+        for (LivingEntity target : candidates) {
+            double dx = target.getX() - impact.x;
+            double dz = target.getZ() - impact.z;
+            double reach = SLAM_RADIUS + target.getBbWidth() * 0.5;
+            if (dx * dx + dz * dz > reach * reach
+                    || target.getBoundingBox().maxY < getY() - 1.0 || target.getBoundingBox().minY > getY() + 2.5) {
+                continue;
+            }
+            float falloff = areaFalloff(Math.sqrt(dx * dx + dz * dz), reach, OgreDamage.BLAST_EDGE_SHARE);
+            if (target.hurt(damageSources().mobAttack(this), SLAM_DAMAGE * falloff)) {
+                target.knockback(SLAM_KNOCKBACK_STRENGTH * falloff, getX() - target.getX(), getZ() - target.getZ());
+            }
+        }
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE,
+                0.8F, 0.8F);
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.5F, 0.7F);
+        spawnSmackGroundImpact(serverLevel, impact);
+        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 20.0,
+                new ScreenShakePayload(impact.x, impact.y, impact.z, 0.4F));
+        punchImpactSoundPlayed = true;
     }
 
     private void playPunchImpactSound() {
-        if (level().isClientSide || pendingPunchTarget == null || !pendingPunchTarget.isAlive()) {
+        // The slam makes its own thump when it lands.
+        if (level().isClientSide || activeSwingId == SLAM_ID || pendingPunchTarget == null || !pendingPunchTarget.isAlive()) {
             return;
         }
 
-        if (distanceToSqr(pendingPunchTarget) > PUNCH_HIT_RANGE * PUNCH_HIT_RANGE
-                || !getSensing().hasLineOfSight(pendingPunchTarget)) {
+        if (!stabVolumeIntersects(pendingPunchTarget) || !getSensing().hasLineOfSight(pendingPunchTarget)) {
             return;
         }
 
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE,
-                PUNCH_SOUND_VOLUME, PUNCH_SOUND_PITCH);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.35F, 0.75F);
+        if (activeSwingId == BITE_ID) {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.FOX_BITE,
+                    SoundSource.HOSTILE, 0.65F, 0.9F);
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EAT,
+                    SoundSource.HOSTILE, 0.25F, 0.85F);
+        } else {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE,
+                    PUNCH_SOUND_VOLUME, PUNCH_SOUND_PITCH);
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.35F, 0.75F);
+        }
         punchImpactSoundPlayed = true;
     }
 
     private void cancelPunch() {
         pendingPunchTarget = null;
+        activeSwingId = 0;
         activePunchTicks = 0;
         punchImpactTicks = 0;
         punchHitThisPunch = false;
@@ -568,16 +735,15 @@ public class OgreGuard extends OgreGrunt {
         // client's tracking of this entity ever gets refreshed after this punch is long over.
         if (!level().isClientSide) {
             entityData.set(DATA_GUARD_PUNCH_START_TICK, 0L);
+            entityData.set(DATA_GUARD_SWING_ID, 0);
         }
     }
 
     @Override
     protected void resetTransientCombatState() {
         super.resetTransientCombatState();
-        // cancelBowShot()/cancelPunch() clear the server-side AI counters, but not the
-        // client-visual animation timers or the synced start-tick data those animations key off
-        // of — without this, a mob (re)loaded mid-swing would render mid-swing forever, since
-        // nothing would ever drive those counters back down to 0 on their own.
+        // cancelBowShot()/cancelPunch() reset the server AI counters but not the synced start ticks
+        // the client animations key off; a mob reloaded mid-swing would otherwise swing forever.
         cancelBowShot();
         cancelPunch();
         setBowAiming(false);
@@ -594,7 +760,7 @@ public class OgreGuard extends OgreGrunt {
     private boolean canPunch(LivingEntity target) {
         return punchCooldownTicks <= 0
                 && target.isAlive()
-                && distanceToSqr(target) <= PUNCH_RANGE * PUNCH_RANGE
+                && distanceToSqr(target) <= STAB_START_RANGE * STAB_START_RANGE
                 && getSensing().hasLineOfSight(target);
     }
 
@@ -644,25 +810,117 @@ public class OgreGuard extends OgreGrunt {
 
     private void playPunchAnimation() {
         if (!level().isClientSide) {
+            entityData.set(DATA_GUARD_SWING_ID, activeSwingId);
             entityData.set(DATA_GUARD_PUNCH_START_TICK, level().getGameTime());
         }
     }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new SynchronizedAnimationController<>(this, "Guard Movement", 5, this::animateMovement));
+        controllers.add(new SynchronizedAnimationController<>(this, "Guard Movement", 5, this::animateMovement)
+                .withFootfalls(FOOT_CONTACTS, this::playGuardFootfall));
+        // Registered second so the stab and slam blend in over whatever the walk is doing; the model
+        // eases them back out (see OgreGuardModel).
+        controllers.add(new SynchronizedAnimationController<>(this, "Guard Swing Overlay", 5,
+                this::animateSwingOverlay));
+    }
+
+    @Override
+    protected boolean usesAnimatedFootsteps() {
+        return true;
+    }
+
+    @Override
+    public boolean isAttackOverlayVisible() {
+        return swingOverlayVisible;
+    }
+
+    /** Client-side: a light step each time a foot lands, matching the visible foot. */
+    private void playGuardFootfall() {
+        if (!onGround() || isInWater() || isSilent()) {
+            return;
+        }
+        float variation = getRandom().nextFloat() * 0.08F;
+        net.minecraft.core.BlockPos ground = getOnPos();
+        net.minecraft.world.level.block.SoundType surface =
+                level().getBlockState(ground).getSoundType(level(), ground, this);
+        level().playLocalSound(getX(), getY(), getZ(), surface.getStepSound(), SoundSource.HOSTILE,
+                0.18F, 1.0F + variation, false);
+    }
+
+    /** Client-side: true while the stab (not the slam) is playing, for the held spear's pose. */
+    public boolean isStabSwingVisible() {
+        return swingOverlayVisible && visualSwingId == STAB_ID;
+    }
+
+    private int visualSwingId;
+    private boolean stabSpearWasVisible;
+    private float stabSpearPeak;
+    private float stabSpearFadeStart = -1.0F;
+
+    /**
+     * Client-side: how much the held spear is turned down for the stab. Rises with the arm, is held at its
+     * peak while the stab plays, then eases out over the same ticks the swing layer fades its pose.
+     * Only the stab ever drives it; the slam, throw and walk leave it at zero.
+     */
+    public float stabSpearWeight(float lead, float now) {
+        if (isStabSwingVisible()) {
+            if (!stabSpearWasVisible) {
+                stabSpearWasVisible = true;
+                stabSpearPeak = 0.0F;
+            }
+            stabSpearFadeStart = -1.0F;
+            stabSpearPeak = Math.max(stabSpearPeak, lead);
+            return stabSpearPeak;
+        }
+        if (stabSpearWasVisible) {
+            stabSpearWasVisible = false;
+            stabSpearFadeStart = now;
+        }
+        if (stabSpearFadeStart < 0.0F) {
+            return 0.0F;
+        }
+        float progress = (now - stabSpearFadeStart) / ATTACK_OVERLAY_FADE_OUT_TICKS;
+        if (progress >= 1.0F) {
+            stabSpearFadeStart = -1.0F;
+            stabSpearPeak = 0.0F;
+            return 0.0F;
+        }
+        float eased = progress * progress * (3.0F - 2.0F * progress);
+        return stabSpearPeak * (1.0F - eased);
+    }
+
+    private PlayState animateSwingOverlay(AnimationState<OgreGuard> state) {
+        state.setControllerSpeed(1.0F);
+        if (isDeadOrDying()) {
+            visualSwingOneShot.clear();
+            swingOverlayVisible = false;
+            visualSwingId = 0;
+            return PlayState.STOP;
+        }
+        int swingId = entityData.get(DATA_GUARD_SWING_ID);
+        long start = entityData.get(DATA_GUARD_PUNCH_START_TICK);
+        visualSwingId = visualSwingOneShot.update(state.getController(), swingId,
+                swingId > 0 ? start : 0L, id -> SWING_ANIMATION_TICKS, level().getGameTime());
+        swingOverlayVisible = visualSwingId > 0;
+        if (!swingOverlayVisible) {
+            return PlayState.STOP;
+        }
+        return state.setAndContinue(visualSwingId == SLAM_ID ? SLAM
+                : visualSwingId == BITE_ID ? BITE : STAB);
     }
 
     private PlayState animateMovement(AnimationState<OgreGuard> state) {
+        if (isDeadOrDying()) {
+            // A throw in progress is cancelled the moment he dies.
+            visualOneShot.clear();
+            return state.setAndContinue(IDLE);
+        }
         long shotStart = entityData.get(DATA_GUARD_SHOT_START_TICK);
-        long punchStart = entityData.get(DATA_GUARD_PUNCH_START_TICK);
-        int observedType = punchStart > shotStart ? 2 : shotStart > 0L ? 1 : 0;
-        long observedStart = observedType == 2 ? punchStart : shotStart;
-        int visualType = visualOneShot.update(state.getController(), observedType, observedStart,
-                id -> id == 2 ? PUNCH_ANIMATION_TICKS : SHOOT_ANIMATION_TICKS,
-                level().getGameTime());
+        int visualType = visualOneShot.update(state.getController(), shotStart > 0L ? 1 : 0, shotStart,
+                id -> SHOOT_ANIMATION_TICKS, level().getGameTime());
         if (visualType > 0) {
-            return state.setAndContinue(visualType == 2 ? PUNCH : SHOOT);
+            return state.setAndContinue(SHOOT);
         }
 
         // getTarget() is server-only and always null when this runs client-side for rendering —
@@ -672,7 +930,7 @@ public class OgreGuard extends OgreGrunt {
             rareIdleTicks = 0;
             lastAnimationTick = tickCount;
             if (isMovingForAnimation(state) || isCombatMoving()) {
-                return state.setAndContinue(COMBAT_WALK);
+                return state.setAndContinue(entityData.get(DATA_GUARD_RETREATING) ? RUN : COMBAT_WALK);
             }
             return state.setAndContinue(IDLE);
         }
@@ -718,15 +976,14 @@ public class OgreGuard extends OgreGrunt {
 
     private boolean isMovingForAnimation(AnimationState<OgreGuard> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
+        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
+        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        long now = level().getGameTime();
         if (moving) {
-            movementAnimationGraceTicks = 4;
+            lastMovingAnimationTick = now;
             return true;
         }
-        if (movementAnimationGraceTicks > 0) {
-            movementAnimationGraceTicks--;
-            return true;
-        }
-        return false;
+        return now - lastMovingAnimationTick <= MOVEMENT_ANIMATION_GRACE_TICKS;
     }
 
     private boolean hasActiveCombatTarget() {
@@ -737,6 +994,11 @@ public class OgreGuard extends OgreGrunt {
     private void markCombatMovementForAnimation() {
         combatMovementAnimationTicks = 12;
         setCombatMoving(true);
+    }
+
+    private void markRetreatingForAnimation() {
+        retreatAnimationTicks = 12;
+        entityData.set(DATA_GUARD_RETREATING, true);
     }
 
     private void setCombatMoving(boolean combatMoving) {
@@ -819,10 +1081,8 @@ public class OgreGuard extends OgreGrunt {
                 return;
             }
 
-            // Tracked by identity rather than relying on Goal#start(), which won't fire again if
-            // this goal never actually stopped between engagements (e.g. it was still finishing
-            // a punch's follow-through against the old target when a new one was acquired) — a
-            // freshly (re)acquired target always gets the reaction pause, however it happened.
+            // Compared by identity: Goal#start() won't fire again if the goal never stopped
+            // between engagements, and a newly acquired target should always get the pause.
             if (target != engagedTarget) {
                 engagedTarget = target;
                 engagementReactionTicks = adjustedTickDelay(ENGAGEMENT_REACTION_TICKS);
@@ -837,8 +1097,18 @@ public class OgreGuard extends OgreGrunt {
             if (guard.isPreparingPunch()) {
                 guard.setBowAiming(false);
                 guard.turnBodyToward(target);
-                guard.getNavigation().stop();
                 guard.tickPendingPunch();
+                // He keeps walking in while he swings, and stops once he is close enough.
+                ticksUntilNextMeleeApproachPath = Math.max(ticksUntilNextMeleeApproachPath - 1, 0);
+                if (distanceToTargetSqr <= PUNCH_RANGE * PUNCH_RANGE) {
+                    guard.getNavigation().stop();
+                } else if (ticksUntilNextMeleeApproachPath <= 0) {
+                    boolean pathing = guard.getNavigation().moveTo(target, speedModifier);
+                    if (pathing) {
+                        guard.markCombatMovementForAnimation();
+                    }
+                    ticksUntilNextMeleeApproachPath = adjustedTickDelay(pathing ? 4 : 20);
+                }
                 return;
             }
 
@@ -886,14 +1156,17 @@ public class OgreGuard extends OgreGrunt {
                 retreatTargetPos = null;
                 ticksUntilNextMeleeApproachPath = Math.max(ticksUntilNextMeleeApproachPath - 1, 0);
                 if (engagementReactionTicks <= 0 && guard.canPunch(target)) {
-                    guard.getNavigation().stop();
                     guard.beginPunch(target);
                 } else if (distanceToTargetSqr <= PUNCH_RANGE * PUNCH_RANGE) {
                     guard.getNavigation().stop();
-                } else if (ticksUntilNextMeleeApproachPath <= 0 || guard.getNavigation().isDone()) {
-                    guard.getNavigation().moveTo(target, speedModifier);
-                    guard.markCombatMovementForAnimation();
-                    ticksUntilNextMeleeApproachPath = adjustedTickDelay(4);
+                } else if (ticksUntilNextMeleeApproachPath <= 0) {
+                    // Waiting on the timer alone, not on an empty path: a target he can't reach leaves
+                    // the path empty every tick, which used to cost him a full A* search each time.
+                    boolean pathing = guard.getNavigation().moveTo(target, speedModifier);
+                    if (pathing) {
+                        guard.markCombatMovementForAnimation();
+                    }
+                    ticksUntilNextMeleeApproachPath = adjustedTickDelay(pathing ? 4 : 20);
                 }
 
                 ticksUntilNextShot = Math.max(ticksUntilNextShot, adjustedTickDelay(12));
@@ -906,10 +1179,9 @@ public class OgreGuard extends OgreGrunt {
             if (!hasLineOfSight || !inShootRange) {
                 guard.setBowAiming(false);
                 ticksUntilNextPathRecalculation = Math.max(ticksUntilNextPathRecalculation - 1, 0);
-                // Only tear up a still-valid path once the target has actually moved (or the old
-                // path ran out) — repathing straight at their exact live position every time the
-                // timer ticks over, even when they've barely shifted, is what reads as zigzagging,
-                // and also burns a full A* search for no reason when they're standing still.
+                // Only drop a valid path once the target has moved or the path ran out. Repathing
+                // on every timer tick causes zigzagging and wastes an A* search on a target that
+                // is standing still.
                 Vec3 targetPos = target.position();
                 boolean targetMoved = lastPursuitTargetPos == null
                         || lastPursuitTargetPos.distanceToSqr(targetPos) > 1.0;
@@ -928,10 +1200,9 @@ public class OgreGuard extends OgreGrunt {
                 lastPursuitTargetPos = null;
             }
 
-            // Vanilla ground navigation must own body yaw while still closing distance — forcing
-            // it toward the target here fights the path steering every tick (see the identical
-            // fix already applied to OgreArcherShootGoal). Only take over facing once actually in
-            // shoot range and about to aim/fire.
+            // Let vanilla navigation own body yaw while closing in; forcing it toward the target
+            // fights the path steering (same fix as OgreArcherShootGoal). Take over facing only
+            // once in shoot range.
             boolean facingTarget = hasLineOfSight && inShootRange && guard.turnBodyToward(target);
             ticksUntilNextShot = Math.max(ticksUntilNextShot - 1, 0);
             if (ticksUntilNextShot <= 0
@@ -972,6 +1243,7 @@ public class OgreGuard extends OgreGrunt {
 
             guard.getNavigation().moveTo(retreatTargetPos.x, retreatTargetPos.y, retreatTargetPos.z, LOW_HEALTH_RETREAT_SPEED);
             guard.markCombatMovementForAnimation();
+            guard.markRetreatingForAnimation();
         }
     }
 }

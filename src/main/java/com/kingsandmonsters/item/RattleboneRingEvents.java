@@ -28,11 +28,9 @@ public final class RattleboneRingEvents {
     private static final double RADIUS = 5.5;
     private static final float DAMAGE = 4.0F;
 
-    // AOE telegraph ring: a sparse ring of particle points that rapidly expands from the wearer
-    // out to the actual Death Rattle radius, using the same lightweight "points around a circle"
-    // technique AND the same white ParticleTypes.CLOUD particle as the Ogre King's roar shockwave
-    // (OgreLord#tickRoarShockwave) — only the radius/duration are Rattlebone-specific; the King's
-    // own effect is untouched.
+    // AOE telegraph: a sparse ring of points that expands quickly from the wearer out to the Death
+    // Rattle radius. Uses the same technique and white CLOUD particle as the Ogre King roar
+    // shockwave (OgreLord#tickRoarShockwave); only the radius and duration differ.
     private static final int RING_EXPANSION_TICKS = 4;
     private static final float RING_START_RADIUS = 0.4F;
     private static final List<ActiveRing> ACTIVE_RINGS = new ArrayList<>();
@@ -65,6 +63,9 @@ public final class RattleboneRingEvents {
                 target -> target != slain
                         && target.isAlive()
                         && target instanceof Enemy
+                        // Ogres at peace with the wearer are not caught in it; hitting one would break
+                        // that peace and cost favor over a Zombie dying nearby.
+                        && !(target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(player))
                         && target.distanceToSqr(slain) <= RADIUS * RADIUS)) {
             target.hurt(level.damageSources().playerAttack(player), DAMAGE);
             if (!target.getType().is(Tags.EntityTypes.BOSSES)) {
@@ -129,5 +130,10 @@ public final class RattleboneRingEvents {
             age++;
             return true;
         }
+    }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        ACTIVE_RINGS.clear();
     }
 }

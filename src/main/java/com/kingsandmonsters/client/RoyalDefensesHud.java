@@ -9,7 +9,7 @@ import net.minecraft.util.Mth;
 import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
 
 /**
- * Existing rendering for the Royal Defence world-event boss bar.
+ * Existing rendering for the Royal Trials world-event boss bar.
  *
  * Texture geometry (actual pixels):
  * - Both textures: 192 x 44
@@ -18,23 +18,38 @@ import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
  * - Event text: centered 10 pixels above the texture
  */
 public final class RoyalDefensesHud {
-    private static final String ROYAL_DEFENCE_TITLE = "Royal Defence";
+    private static final String ROYAL_DEFENCE_TITLE = "Royal Trials";
+    private static final String OGRE_KING_TITLE = "Ogre King";
     private static final ResourceLocation BACKGROUND = ResourceLocation.fromNamespaceAndPath(
             KingsAndMonsters.MODID, "textures/gui/royal_defenses_background.png");
     private static final ResourceLocation PROGRESS = ResourceLocation.fromNamespaceAndPath(
             KingsAndMonsters.MODID, "textures/gui/royal_defenses_progress.png");
+    private static final ResourceLocation OGRE_KING_EMPTY = ResourceLocation.fromNamespaceAndPath(
+            KingsAndMonsters.MODID, "textures/gui/ogre_king_boss_bar_empty.png");
+    private static final ResourceLocation OGRE_KING_FULL = ResourceLocation.fromNamespaceAndPath(
+            KingsAndMonsters.MODID, "textures/gui/ogre_king_boss_bar_full.png");
     private static final int TEXTURE_WIDTH = 192;
     private static final int TEXTURE_HEIGHT = 44;
     private static final int FILL_X = 30;
     private static final int FILL_Y = 31;
     private static final int FILL_WIDTH = 132;
     private static final int FILL_HEIGHT = 5;
+    private static final int KING_BAR_WIDTH = 196;
+    private static final int KING_BAR_HEIGHT = 19;
+    private static final int KING_EMPTY_TEXTURE_HEIGHT = 32;
+    private static final int KING_FULL_TEXTURE_HEIGHT = 26;
+    private static final int KING_EMPTY_V = 13;
+    private static final int KING_FULL_V = 7;
 
     private RoyalDefensesHud() {
     }
 
     public static void onBossBarRender(CustomizeGuiOverlayEvent.BossEventProgress event) {
         Component name = event.getBossEvent().getName();
+        if (name.getString().startsWith(OGRE_KING_TITLE)) {
+            renderOgreKingBar(event, name);
+            return;
+        }
         if (!name.getString().startsWith(ROYAL_DEFENCE_TITLE)) {
             return;
         }
@@ -57,6 +72,27 @@ public final class RoyalDefensesHud {
             graphics.blit(PROGRESS, textureX + FILL_X, textureY + FILL_Y,
                     FILL_X, FILL_Y, filledWidth, FILL_HEIGHT,
                     TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        }
+    }
+
+    private static void renderOgreKingBar(CustomizeGuiOverlayEvent.BossEventProgress event, Component name) {
+        event.setCanceled(true);
+        event.setIncrement(KING_BAR_HEIGHT + 13);
+
+        GuiGraphics graphics = event.getGuiGraphics();
+        Minecraft minecraft = Minecraft.getInstance();
+        int textureX = (event.getWindow().getGuiScaledWidth() - KING_BAR_WIDTH) / 2;
+        int textureY = event.getY();
+        int textX = (event.getWindow().getGuiScaledWidth() - minecraft.font.width(name)) / 2;
+        graphics.drawString(minecraft.font, name, textX, textureY - 10, 0xFFFFFFFF);
+        graphics.blit(OGRE_KING_EMPTY, textureX, textureY, 0, KING_EMPTY_V,
+                KING_BAR_WIDTH, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_EMPTY_TEXTURE_HEIGHT);
+
+        int filledWidth = Mth.clamp(
+                Math.round(event.getBossEvent().getProgress() * KING_BAR_WIDTH), 0, KING_BAR_WIDTH);
+        if (filledWidth > 0) {
+            graphics.blit(OGRE_KING_FULL, textureX, textureY, 0, KING_FULL_V,
+                    filledWidth, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_FULL_TEXTURE_HEIGHT);
         }
     }
 }

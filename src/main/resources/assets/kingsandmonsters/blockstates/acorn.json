@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "age=0": { "model": "kingsandmonsters:block/acorn_small" },
+    "age=1": { "model": "kingsandmonsters:block/acorn_medium" },
+    "age=2": { "model": "kingsandmonsters:block/acorn" }
+  }
+}

@@ -100,9 +100,7 @@ public final class HunterSpearItem extends Item {
         return enchantment.is(Enchantments.UNBREAKING)
                 || enchantment.is(Enchantments.MENDING)
                 || enchantment.is(Enchantments.LOYALTY)
-                || enchantment.is(ModEnchantments.BARBED)
                 || enchantment.is(ModEnchantments.HEAVY_THROW);
     }
 
 }
-

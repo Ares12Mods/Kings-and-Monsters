@@ -1,0 +1,16 @@
+{
+  "name": "Bog-Eye Charm",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:bog_eye_charm",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The $(item)Bog-Eye Charm$() is a swamp-witch's trick: an eye that remembers where ogres hide their goods. It cannot be crafted. It turns up in swamp tribute chests and in the royal Fort's hoard.$(br2)Use it and it fixes on the nearest unopened loot container within 24 blocks, and 12 blocks up or down. The distance is shown above your hotbar."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Using the Charm",
+      "text": "A successful search uses up 1 of its 64 durability and needs 5 seconds to settle. A search that finds nothing costs no durability, and the charm is ready again after 2 seconds.$(br2)It only sees containers still holding their original loot. Once a chest has been opened, the charm loses interest."
+    }
+  ]
+}

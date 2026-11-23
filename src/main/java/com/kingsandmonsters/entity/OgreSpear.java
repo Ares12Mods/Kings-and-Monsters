@@ -31,13 +31,11 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Thrown ogre guard spear. Built on {@link AbstractArrow} (the same base as vanilla's
- * {@code ThrownTrident}) instead of a simple throwable so it gets real arrow physics for
- * free: it sticks into whatever it hits and falls under gravity like a trident, and it reads
- * any Loyalty enchantment off its pickup item to fly back to its owner exactly like a trident
- * does. It just carries this mod's spear art instead of the vanilla trident model/item.
- * Implements {@link ItemSupplier} so it can render through {@code ThrownItemRenderer} as its
- * flat 2D item icon (like a snowball/egg) rather than vanilla's full 3D trident model.
+ * Thrown ogre guard spear. Built on {@link AbstractArrow} (like vanilla's {@code ThrownTrident}) so
+ * it gets real arrow physics: it sticks into what it hits, falls under gravity, and reads any
+ * Loyalty enchantment from its pickup item to fly back to its owner. It just carries this mod's
+ * spear art. Implements {@link ItemSupplier} so it renders through {@code ThrownItemRenderer} as a
+ * flat 2D icon instead of vanilla's 3D trident model.
  */
 public class OgreSpear extends AbstractArrow implements ItemSupplier {
     private static final EntityDataAccessor<Byte> ID_LOYALTY = SynchedEntityData.defineId(OgreSpear.class, EntityDataSerializers.BYTE);
@@ -203,7 +201,7 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
                             owner instanceof LivingEntity livingOwner ? livingOwner : livingTarget);
                 }
                 LivingEntity effectSource = owner instanceof LivingEntity livingOwner ? livingOwner : livingTarget;
-                HunterSpearEvents.tryApplyBarbed(level(), getWeaponItem(), livingTarget, effectSource);
+                HunterSpearEvents.applyHunterSpearBleeding(livingTarget, effectSource, getWeaponItem());
                 doPostHurtEffects(livingTarget);
             }
         }
@@ -231,6 +229,11 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
         super.addAdditionalSaveData(tag);
         tag.putFloat("Damage", damage);
         tag.putBoolean("DealtDamage", dealtDamage);
+        if (this.entityData.get(ID_STABLE_POST_HIT_ROTATION)) {
+            tag.putBoolean("StablePostHitRotation", true);
+            tag.putFloat("PostHitYaw", this.entityData.get(ID_POST_HIT_YAW));
+            tag.putFloat("PostHitPitch", this.entityData.get(ID_POST_HIT_PITCH));
+        }
     }
 
     @Override
@@ -240,6 +243,11 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
             damage = tag.getFloat("Damage");
         }
         dealtDamage = tag.getBoolean("DealtDamage");
+        if (tag.getBoolean("StablePostHitRotation")) {
+            this.entityData.set(ID_STABLE_POST_HIT_ROTATION, true);
+            this.entityData.set(ID_POST_HIT_YAW, tag.getFloat("PostHitYaw"));
+            this.entityData.set(ID_POST_HIT_PITCH, tag.getFloat("PostHitPitch"));
+        }
         this.entityData.set(ID_LOYALTY, getLoyaltyFromItem(getPickupItemStackOrigin()));
     }
 }

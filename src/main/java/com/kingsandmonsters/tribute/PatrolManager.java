@@ -3,11 +3,12 @@ package com.kingsandmonsters.tribute;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.api.patrol.PatrolTier;
-import com.kingsandmonsters.entity.OgreArcher;
+import com.kingsandmonsters.entity.MudsnoutBoar;
 import com.kingsandmonsters.entity.OgreBrute;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.entity.OgreGruntCaptain;
 import com.kingsandmonsters.entity.OgreMage;
+import com.kingsandmonsters.entity.OgreTrapper;
 import com.kingsandmonsters.network.OgreOverlayPayload;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.core.BlockPos;
@@ -48,11 +49,6 @@ public final class PatrolManager {
     private static final String PATROL_COHESION_ANCHOR_TAG = "PatrolCohesionAnchor";
     private static final String PATROL_ENGAGEMENT_POS_TAG = "PatrolEngagementPos";
     private static final String PATROL_REENGAGE_TIME_TAG = "PatrolReengageTime";
-    private static final String REGULAR_PATROL_TITLE = "OGRE PATROL";
-    private static final String REGULAR_PATROL_SUBTITLE = "The King's hunters have found your trail.";
-    private static final String RETALIATION_PATROL_TITLE = "OUTPOST REINFORCEMENTS";
-    private static final String RETALIATION_PATROL_SUBTITLE =
-            "War drums answer the stolen tribute. Reinforcements are on your trail.";
     // Delay between a meaningful faction-anger provocation (e.g. looting a tribute chest) and the
     // earliest a retaliation patrol targeting that player becomes eligible to actually spawn — the
     // tribe "learning what happened and organizing a patrol" instead of an instant response.
@@ -90,9 +86,8 @@ public final class PatrolManager {
 
     /**
      * Delivers pending per-player retaliations once their delay has elapsed. Runs at the same
-     * throttled cadence as the normal patrol check — a due retaliation whose player isn't currently
-     * online in this level is left pending and simply re-checked next time, so it survives
-     * logout/login instead of being dropped.
+     * throttled cadence as the patrol check. A due retaliation whose player isn't online in this
+     * level stays pending and is re-checked later, so it survives logout/login.
      */
     private static void tickPatrolRetaliations(MinecraftServer server) {
         for (ServerLevel level : server.getAllLevels()) {
@@ -100,6 +95,10 @@ public final class PatrolManager {
             for (TributeSavedData.DuePatrolRetaliation due : TributeManager.peekDuePatrolRetaliations(level, gameTime)) {
                 ServerPlayer player = server.getPlayerList().getPlayer(due.playerId());
                 if (player == null || player.level() != level || player.isSpectator() || player.isCreative()) {
+                    continue;
+                }
+                if (TributeManager.isAppeased(level, due.playerId())) {
+                    TributeManager.clearPatrolRetaliation(level, due.playerId());
                     continue;
                 }
 
@@ -153,6 +152,7 @@ public final class PatrolManager {
         List<ServerPlayer> candidates = level.getPlayers(player ->
                 !player.isSpectator()
                         && !player.isCreative()
+                        && !TributeManager.isAppeased(level, player.getUUID())
                         && !level.isCloseToVillage(player.blockPosition(), 2)
                         && player.distanceToSqr(campOrigin.getX() + 0.5, campOrigin.getY() + 0.5, campOrigin.getZ() + 0.5) <= searchRadiusSqr);
 
@@ -230,14 +230,96 @@ public final class PatrolManager {
             }
         }
 
+        // Out on the plains some patrols bring a boar rider, more often the bigger the patrol.
+        if (spawned > 0 && StructureJockeyPopulationManager.boarCountry(level, baseSpawnPos)) {
+            for (int rider = 0; rider < boarRiderCount(tier, level.random); rider++) {
+                spawned += spawnBoarRider(level, campOrigin, target, targetPos, baseSpawnPos, groupId,
+                        composition.size() + rider);
+            }
+        }
+
         if (spawned > 0 && target != null) {
-            String title = tributeRetaliation ? RETALIATION_PATROL_TITLE : REGULAR_PATROL_TITLE;
-            String subtitle = tributeRetaliation ? RETALIATION_PATROL_SUBTITLE : REGULAR_PATROL_SUBTITLE;
+            String title = patrolTitle(tier, tributeRetaliation);
+            String subtitle = patrolSubtitle(tier, tributeRetaliation);
             PacketDistributor.sendToPlayer(target, OgreOverlayPayload.location(
                     title, subtitle, false));
         }
 
         return spawned;
+    }
+
+    /** Bigger patrols bring more boar riders: small ones usually one or none, large ones often two. */
+    private static int boarRiderCount(PatrolTier tier, RandomSource random) {
+        float chance = switch (tier) {
+            case SMALL -> 0.35F;
+            case MEDIUM -> 0.6F;
+            case LARGE -> 0.85F;
+        };
+        int riders = random.nextFloat() < chance ? 1 : 0;
+        if (tier != PatrolTier.SMALL && riders > 0 && random.nextFloat() < (tier == PatrolTier.LARGE ? 0.5F : 0.25F)) {
+            riders++;
+        }
+        return riders;
+    }
+
+    /** Adds one mounted archer to a patrol, tagged like the rest so it fights and is counted with them. */
+    private static int spawnBoarRider(ServerLevel level, BlockPos campOrigin, ServerPlayer target,
+                                      BlockPos targetPos, BlockPos baseSpawnPos, UUID groupId, int index) {
+        Optional<BlockPos> spot = findNearbySpawnPos(level, baseSpawnPos, targetPos, ModEntities.OGRE_ARCHER.get(), index);
+        if (spot.isEmpty()) {
+            return 0;
+        }
+        MudsnoutBoar boar = ModEntities.MUDSNOUT_BOAR.get().spawn(level, spot.get(), MobSpawnType.PATROL);
+        if (boar == null) {
+            return 0;
+        }
+        boar.setPersistenceRequired();
+        boar.addJockey(level, level.getCurrentDifficultyAt(spot.get()));
+        if (!(boar.getFirstPassenger() instanceof OgreGrunt rider)) {
+            boar.discard();
+            return 0;
+        }
+        if (target != null) {
+            rider.setTarget(target);
+            boar.setTarget(target);
+        }
+        rider.getPersistentData().putLong("PatrolCampPos", campOrigin.asLong());
+        rider.getPersistentData().putInt("PatrolAngerReduction", patrolAngerReduction(rider));
+        rider.getPersistentData().putUUID(PATROL_GROUP_ID_TAG, groupId);
+        rider.getPersistentData().putBoolean(PATROL_COHESION_ANCHOR_TAG, false);
+        rider.getPersistentData().putLong(PATROL_ENGAGEMENT_POS_TAG, targetPos.asLong());
+        return 1;
+    }
+
+    // What the warning says grows with the patrol: scouts, a war party, then the King's own hunters.
+    private static String patrolTitle(PatrolTier tier, boolean retaliation) {
+        if (retaliation) {
+            return switch (tier) {
+                case SMALL -> "OUTPOST REINFORCEMENTS";
+                case MEDIUM -> "OUTPOST WAR PARTY";
+                case LARGE -> "OUTPOST WARBAND";
+            };
+        }
+        return switch (tier) {
+            case SMALL -> "OGRE SCOUTS";
+            case MEDIUM -> "OGRE PATROL";
+            case LARGE -> "OGRE WAR PARTY";
+        };
+    }
+
+    private static String patrolSubtitle(PatrolTier tier, boolean retaliation) {
+        if (retaliation) {
+            return switch (tier) {
+                case SMALL -> "A few ogres were sent to answer the stolen tribute.";
+                case MEDIUM -> "War drums answer the stolen tribute. Reinforcements are on your trail.";
+                case LARGE -> "The tribe's fury is up. A great warband comes for what you took.";
+            };
+        }
+        return switch (tier) {
+            case SMALL -> "A few ogres have picked up your trail.";
+            case MEDIUM -> "The King's hunters have found your trail.";
+            case LARGE -> "The tribe has sent its strongest to end you.";
+        };
     }
 
     private static void tickActivePatrolGroups(MinecraftServer server) {
@@ -342,12 +424,14 @@ public final class PatrolManager {
             }
             case MEDIUM -> {
                 composition.add(ModEntities.OGRE_MAGE.get());
-                addGrunts(composition, 2);
+                addGrunts(composition, 1);
+                composition.add(ModEntities.OGRE_TRAPPER.get());
                 composition.add(ModEntities.OGRE_ARCHER.get());
             }
             case LARGE -> {
                 composition.add(ModEntities.OGRE_BRUTE.get());
-                addGrunts(composition, 2);
+                addGrunts(composition, 1);
+                composition.add(ModEntities.OGRE_TRAPPER.get());
                 composition.add(ModEntities.OGRE_ARCHER.get());
                 composition.add(ModEntities.OGRE_MAGE.get());
             }
@@ -359,7 +443,7 @@ public final class PatrolManager {
     private static int patrolAngerReduction(OgreGrunt ogre) {
         if (ogre instanceof OgreBrute) return 3;
         if (ogre instanceof com.kingsandmonsters.entity.OgreGuard) return 2;
-        if (ogre instanceof OgreMage || ogre instanceof OgreGruntCaptain) return 2;
+        if (ogre instanceof OgreMage || ogre instanceof OgreGruntCaptain || ogre instanceof OgreTrapper) return 2;
         return 1; // grunt or archer
     }
 
@@ -368,7 +452,6 @@ public final class PatrolManager {
             composition.add(ModEntities.OGRE_GRUNT.get());
         }
     }
-
 
     private static Optional<BlockPos> findSpawnPos(
             ServerLevel level,

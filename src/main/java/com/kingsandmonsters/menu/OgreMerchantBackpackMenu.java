@@ -7,6 +7,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -17,6 +18,8 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
     private static final int ROWS = 6;
     private final ItemStack backpack;
     private final int lockedInventorySlot;
+    private final ItemStackHandler contents;
+    private final Inventory inventory;
 
     public OgreMerchantBackpackMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         this(containerId, inventory, ItemStack.EMPTY, buffer.readVarInt());
@@ -26,7 +29,8 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
         super(ModMenus.OGRE_MERCHANT_BACKPACK.get(), containerId);
         this.backpack = backpack;
         this.lockedInventorySlot = lockedInventorySlot;
-        ItemStackHandler contents = backpack.isEmpty()
+        this.inventory = inventory;
+        this.contents = backpack.isEmpty()
                 ? new ItemStackHandler(OgreMerchantBackpackItem.SLOT_COUNT)
                 : OgreMerchantBackpackItem.loadInventory(backpack, inventory.player.registryAccess());
 
@@ -77,6 +81,25 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
         if (original.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
         else slot.setChanged();
         return copy;
+    }
+
+    private void saveContents() {
+        // Client-side menus are built with an empty backpack stack; only the server copy persists.
+        if (!backpack.isEmpty()) {
+            OgreMerchantBackpackItem.saveInventory(backpack, contents, inventory.player.registryAccess());
+        }
+    }
+
+    @Override
+    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        super.clicked(slotId, button, clickType, player);
+        saveContents();
+    }
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        saveContents();
     }
 
     @Override

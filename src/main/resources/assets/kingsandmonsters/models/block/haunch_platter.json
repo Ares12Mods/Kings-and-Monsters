@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": { "particle": "kingsandmonsters:block/haunch_platter_1" }
+}

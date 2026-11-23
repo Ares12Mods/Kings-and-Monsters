@@ -82,13 +82,13 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
         super.appendHoverText(stack, context, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
-        tooltip.add(Component.literal("Royal Ground Slam").withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.literal("Right-click:").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Deals 15 damage in a 4.5-block area")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_club.ability").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.right_click").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_club.damage")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.literal("Launches targets upward")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_club.launch")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.literal("15s cooldown").withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_club.cooldown").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override

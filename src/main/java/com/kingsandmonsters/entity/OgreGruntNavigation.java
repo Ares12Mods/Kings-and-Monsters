@@ -2,17 +2,24 @@ package com.kingsandmonsters.entity;
 
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.level.pathfinder.PathFinder;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.phys.Vec3;
 
 final class OgreGruntNavigation extends GroundPathNavigation {
-    private static final double NODE_LOOK_AHEAD_DISTANCE_SQR = 1.0;
-    private static final double BRUTE_NODE_LOOK_AHEAD_DISTANCE_SQR = 1.25 * 1.25;
-    private static final double KING_NODE_LOOK_AHEAD_DISTANCE_SQR = 1.75 * 1.75;
+    private static final double NODE_LOOK_AHEAD_DISTANCE_SQR = 1.35 * 1.35;
+    private static final double BRUTE_NODE_LOOK_AHEAD_DISTANCE_SQR = 1.65 * 1.65;
+    private static final double KING_NODE_LOOK_AHEAD_DISTANCE_SQR = 2.1 * 2.1;
 
     OgreGruntNavigation(OgreGrunt grunt, Level level) {
         super(grunt, level);
+    }
+
+    @Override
+    protected PathFinder createPathFinder(int maxVisitedNodes) {
+        nodeEvaluator = new NoGoWalkNodeEvaluator();
+        nodeEvaluator.setCanPassDoors(true);
+        return new PathFinder(nodeEvaluator, maxVisitedNodes);
     }
 
     @Override

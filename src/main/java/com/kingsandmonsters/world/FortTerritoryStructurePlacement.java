@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
@@ -16,22 +17,14 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Random-spread placement whose own candidates are additionally gated by a
- * purely arithmetic "is this within an Ogre King Fort's broader territory"
- * test, so bonus outposts can feel associated with a nearby fort without any
- * of the costly or cyclical machinery that would come from actually locating
- * one.
+ * Random-spread placement gated by a purely arithmetic "is this within an Ogre King Fort's
+ * territory" test, so bonus outposts can feel tied to a nearby fort without actually locating one.
  *
- * The fort's grid (fort_spacing/fort_separation/fort_salt) is duplicated
- * here as plain numbers, NOT as a reference to the fort's real StructureSet.
- * That is the whole point: this class never calls into the fort's actual
- * StructurePlacement/isStructureChunk, so it can never form a recursive
- * exclusion cycle, never depends on whether a fort candidate has actually
- * passed its own biome/terrain checks (or even whether that chunk has ever
- * been generated), and costs nothing more than a bounded loop of plain
- * WorldgenRandom hashing - no chunk loading, no biome sampling, no terrain
- * query. Keep fort_spacing/fort_separation/fort_salt here in sync by hand
- * with ogre_kings_fort.json's placement block if that ever changes.
+ * The fort's grid (fort_spacing/fort_separation/fort_salt) is duplicated here as plain numbers, not
+ * a reference to the fort's StructureSet. That way this class never calls into the fort's real
+ * placement, so there is no recursive exclusion cycle, no dependence on whether a fort candidate
+ * passed its biome/terrain checks, and no chunk loading, biome sampling or terrain queries. Keep the
+ * three values in sync by hand with ogre_kings_fort.json's placement block.
  */
 @SuppressWarnings("deprecation")
 public final class FortTerritoryStructurePlacement extends RandomSpreadStructurePlacement {
@@ -154,6 +147,9 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
         if (!super.applyInteractionsWithOtherStructures(structureState, chunkX, chunkZ)) {
             return false;
         }
+        if (!WildscapesStructureCompat.isClear(structureState, chunkX, chunkZ)) {
+            return false;
+        }
         for (ExclusionZone zone : exclusionZones) {
             if (structureState.hasStructureChunkInRange(
                     zone.otherSet(), chunkX, chunkZ, zone.chunkCount())) {
@@ -164,10 +160,9 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
     }
 
     /**
-     * Pure arithmetic, no world access: duplicates RandomSpreadStructurePlacement's
-     * own candidate-chunk formula for the fort's grid and scans the fort-grid
-     * regions whose possible candidate interval intersects max_distance_chunks.
-     * This exact bound replaces the old oversized square scan and remains stateless.
+     * Pure arithmetic, no world access: repeats RandomSpreadStructurePlacement's candidate formula
+     * for the fort grid and scans the regions whose candidate interval can reach max_distance_chunks.
+     * Replaces the old oversized square scan and stays stateless.
      */
     private boolean isWithinFortTerritory(int chunkX, int chunkZ, long levelSeed) {
         int candidateOffsetMax = fortSpacing - fortSeparation - 1;
@@ -197,11 +192,9 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
     }
 
     /**
-     * Deterministic per-region candidate chunk for the fort's grid — the exact same formula real
-     * fort structure_set placement uses to pick that region's candidate. Pure arithmetic, no world
-     * access. Shared by every caller that needs a specific region's candidate (this class's own
-     * territory gating, {@link #nearestFortCandidate}, and {@code FortTargetAuthority}) so there is
-     * only ever one implementation of this formula to keep in sync.
+     * Deterministic candidate chunk for one region of the fort's grid, using the same formula as
+     * real fort placement. Pure arithmetic, no world access. Shared by this class's territory gating,
+     * {@link #nearestFortCandidate} and {@code FortTargetAuthority}, so there is one copy to keep in sync.
      */
     public static ChunkPos fortCandidateChunkAt(long levelSeed, int regionX, int regionZ,
                                                 int fortSpacing, int fortSeparation, int fortSalt) {

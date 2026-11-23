@@ -1,6 +1,5 @@
 package com.kingsandmonsters.entity;
 
-import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
@@ -18,6 +17,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.*;
@@ -110,13 +111,22 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     @Override protected void updateTrades() {
         List<Supplier<MerchantOffer>> cheap = List.of(
-                () -> singleCost(Items.GOLD_INGOT, TradePrices.STEW_GOLD,
-                        ModItems.IRONBELLY_STEW.get().getDefaultInstance(), 6));
+                () -> goldCost(TradePrices.STEW_NUGGETS_MIN, TradePrices.STEW_NUGGETS_MAX,
+                        ModItems.IRONBELLY_STEW.get().getDefaultInstance(), 6),
+                () -> singleCost(Items.GOLD_NUGGET, TradePrices.BROTH_NUGGETS,
+                        ModItems.BONE_BROTH.get().getDefaultInstance(), 6));
 
+        // Gold-priced and coin-priced variants of the same item share a result, so addRandomOffers
+        // picks at most one of them per Merchant. Coin prices stay under 10 and are not offered for
+        // the King's Tribute Bundle, which would let coins be laundered back into favor.
         List<Supplier<MerchantOffer>> medium = List.of(
-                () -> singleCost(Items.GOLD_INGOT, TradePrices.HOOKBLADE_GOLD, ModItems.OGRE_HOOKBLADE.get().getDefaultInstance(), 1),
-                () -> singleCost(Items.GOLD_INGOT, TradePrices.BOG_EYE_GOLD, ModItems.BOG_EYE_CHARM.get().getDefaultInstance(), 1),
-                () -> singleCost(Items.GOLD_INGOT, TradePrices.TRIBUTE_GOLD, ModItems.KINGS_TRIBUTE_BUNDLE.get().getDefaultInstance(), 1));
+                () -> goldCost(TradePrices.HOOKBLADE_NUGGETS_MIN, TradePrices.HOOKBLADE_NUGGETS_MAX, ModItems.OGRE_HOOKBLADE.get().getDefaultInstance(), 1),
+                () -> doubleCost(Items.DIAMOND, TradePrices.HOOKBLADE_DIAMONDS, ModItems.GOLD_COIN.get(), TradePrices.HOOKBLADE_COINS,
+                        ModItems.OGRE_HOOKBLADE.get().getDefaultInstance()),
+                () -> goldCost(TradePrices.BOG_EYE_NUGGETS_MIN, TradePrices.BOG_EYE_NUGGETS_MAX, ModItems.BOG_EYE_CHARM.get().getDefaultInstance(), 1),
+                () -> doubleCost(Items.DIAMOND, TradePrices.BOG_EYE_DIAMONDS, ModItems.GOLD_COIN.get(), TradePrices.BOG_EYE_COINS,
+                        ModItems.BOG_EYE_CHARM.get().getDefaultInstance()),
+                () -> goldCost(TradePrices.TRIBUTE_NUGGETS_MIN, TradePrices.TRIBUTE_NUGGETS_MAX, ModItems.KINGS_TRIBUTE_BUNDLE.get().getDefaultInstance(), 1));
         List<Supplier<MerchantOffer>> premium = List.of(
                 () -> doubleCost(Items.DIAMOND, 5, Items.GOLD_INGOT, 24, ModItems.RATTLEBONE_RING.get().getDefaultInstance()),
                 () -> doubleCost(Items.DIAMOND, 5, Items.GOLD_INGOT, 28, ModItems.WARCALLER_BELL.get().getDefaultInstance()));
@@ -148,11 +158,10 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     }
 
     /**
-     * The Fort Map is a dedicated, guaranteed utility trade — never a member of the random
-     * cheap/medium/premium/rare pools, so it can never lose out to shuffle/dedup logic or a pool
-     * sized smaller than expected. Safe to call repeatedly (initial {@link #updateTrades()} and
-     * every retry tick): it always scans the live offer list first, so it can never append a
-     * second Fort Map trade no matter how many times it is invoked.
+     * The Fort Map is a dedicated, guaranteed trade, never part of the random cheap/medium/premium/
+     * rare pools, so shuffle/dedup logic or a small pool can't drop it. Safe to call repeatedly
+     * (initial {@link #updateTrades()} and every retry tick): it scans the live offers first and
+     * never adds a second Fort Map trade.
      */
     private void ensureFortMapOffer() {
         int existingCount = countFortMapOffers();
@@ -173,14 +182,13 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
         var target = FortTargetAuthority.findNearestGuaranteedFort(serverLevel, blockPosition());
         return target
                 .map(t -> FortMapFactory.createFortMap(serverLevel, t))
-                .map(map -> singleCost(Items.GOLD_INGOT, TradePrices.FORT_MAP_GOLD, map, 1))
+                .map(map -> goldCost(TradePrices.FORT_MAP_NUGGETS_MIN, TradePrices.FORT_MAP_NUGGETS_MAX, map, 1))
                 .orElse(null);
     }
 
     /**
-     * Item-identity duplicate scan, per the design requirement that duplicate protection must not
-     * {@code Items.FILLED_MAP} is unique to the Fort Map among every offer this Merchant can ever
-     * generate, so a plain item-type check is precise here.
+     * Item-identity duplicate scan. {@code Items.FILLED_MAP} is unique to the Fort Map among every
+     * offer this Merchant can generate, so a plain item-type check is precise here.
      */
     private int countFortMapOffers() {
         int count = 0;
@@ -206,6 +214,12 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
         return new MerchantOffer(new ItemCost(cost.asItem(), amount), result, uses, 1, 0.05F);
     }
 
+    /** Gold price as a random nugget count in [minNuggets, maxNuggets], rolled per offer (max 64 = one stack). */
+    private MerchantOffer goldCost(int minNuggets, int maxNuggets, ItemStack result, int uses) {
+        int nuggets = minNuggets + random.nextInt(maxNuggets - minNuggets + 1);
+        return singleCost(Items.GOLD_NUGGET, nuggets, result, uses);
+    }
+
     private static MerchantOffer doubleCost(net.minecraft.world.level.ItemLike first, int firstAmount,
             net.minecraft.world.level.ItemLike second, int secondAmount, ItemStack result) {
         return new MerchantOffer(new ItemCost(first.asItem(), firstAmount),
@@ -220,12 +234,22 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     @Override public SoundEvent getNotifyTradeSound() { return SoundEvents.EMPTY; }
 
-    @Override protected SoundEvent getTradeUpdatedSound(boolean isYesSound) { return SoundEvents.EMPTY; }
+    @Override protected SoundEvent getTradeUpdatedSound(boolean isYesSound) {
+        return isYesSound ? SoundEvents.EMPTY : ModSoundEvents.OGRE_MERCHANT_DISAPPROVE.get();
+    }
 
     @Override public void playCelebrateSound() { }
 
+    @Override protected SoundEvent getAmbientSound() {
+        return ModSoundEvents.OGRE_MERCHANT_IDLE.get();
+    }
+
     @Override protected SoundEvent getHurtSound(DamageSource source) {
         return ModSoundEvents.OGRE_MERCHANT_HURT.get();
+    }
+
+    @Override protected SoundEvent getDeathSound() {
+        return ModSoundEvents.OGRE_MERCHANT_DEATH.get();
     }
 
     @Nullable @Override public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob partner) { return null; }
@@ -239,6 +263,14 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
             return getTradingPlayer() == player ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
         }
         if (level().isClientSide) return InteractionResult.SUCCESS;
+        ItemStack held = player.getItemInHand(hand);
+        if (held.is(ModItems.GOLD_COIN.get()) && player instanceof ServerPlayer giver) {
+            // Coins are handed over, not traded for: the whole stack goes toward the tribe's favor.
+            TributeManager.offerCoins(giver, held);
+            playSound(ModSoundEvents.OGRE_MERCHANT_TRADE.get(), 1.0F, 1.0F);
+            entityData.set(DATA_TRADE_UNTIL, level().getGameTime() + 25L);
+            return InteractionResult.SUCCESS;
+        }
         if (getOffers().isEmpty()) return InteractionResult.PASS;
         setTradingPlayer(player);
         openTradingScreen(player, getDisplayName(), 1);
@@ -254,25 +286,62 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
             playSound(ModSoundEvents.OGRE_MERCHANT_TRADE.get(), 1.0F, pitch);
         }
         entityData.set(DATA_TRADE_UNTIL, level().getGameTime() + 25L);
+        if (getTradingPlayer() instanceof ServerPlayer customer) {
+            boolean truce = offer.getResult().is(Items.WRITABLE_BOOK)
+                    && offer.getResult().getHoverName().getString().equals(BRIBE_RECEIPT_NAME);
+            // The truce only eases the tribe's anger; favor comes from tribute coins and ordinary trade.
+            int favor = truce ? 0
+                    : offer.getCostA().is(ModItems.GOLDEN_OGRE_TOOTH.get()) ? TradePrices.TOOTH_TRADE_FAVOR
+                    : TradePrices.TRADE_FAVOR;
+            if (favor > 0) {
+                TributeManager.addFavor(customer.serverLevel(), customer, favor);
+            }
+        }
         if (offer.getResult().is(Items.WRITABLE_BOOK)
                 && offer.getResult().getHoverName().getString().equals(BRIBE_RECEIPT_NAME)
                 && getTradingPlayer() instanceof ServerPlayer player) {
             int before = TributeManager.getFactionAngerLevel(player.serverLevel());
             TributeManager.decayFactionAnger(player.serverLevel(), TradePrices.TOOTH_BRIBE_ANGER_REDUCTION);
             int reduced = before - TributeManager.getFactionAngerLevel(player.serverLevel());
+            if (reduced > 0) {
+                com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/parley");
+            }
+            if (reduced <= 0) {
+                // Nothing left to ease, so the tooth goes back to the player.
+                player.getInventory().placeItemBackInInventory(new ItemStack(ModItems.GOLDEN_OGRE_TOOTH.get()));
+            }
             player.displayClientMessage(Component.literal(reduced > 0
-                    ? "Ogre anger eased by " + reduced + "." : "The Ogre Tribe bears you no anger."), false);
+                    ? "Ogre anger eased by " + reduced + "."
+                    : "The tribe is already as calm as coin can make it. Your tooth is returned."), false);
         }
     }
 
     private static final class TradePrices {
-        private static final int STEW_GOLD = 8;
-        private static final int FORT_MAP_GOLD = 12;
-        private static final int HOOKBLADE_GOLD = 28;
-        private static final int BOG_EYE_GOLD = 32;
-        private static final int TRIBUTE_GOLD = 40;
+        // Gold prices are a single random nugget count (kept under one stack, 64), rolled per Merchant
+        // between each trade's MIN and MAX below.
+        private static final int STEW_NUGGETS_MIN = 36;
+        private static final int STEW_NUGGETS_MAX = 48;
+        private static final int FORT_MAP_NUGGETS_MIN = 44;
+        private static final int FORT_MAP_NUGGETS_MAX = 54;
+        private static final int HOOKBLADE_NUGGETS_MIN = 50;
+        private static final int HOOKBLADE_NUGGETS_MAX = 58;
+        private static final int BOG_EYE_NUGGETS_MIN = 54;
+        private static final int BOG_EYE_NUGGETS_MAX = 62;
+        private static final int TRIBUTE_NUGGETS_MIN = 58;
+        private static final int TRIBUTE_NUGGETS_MAX = 63;
+        private static final int BROTH_NUGGETS = 27;
+        private static final int BOG_EYE_DIAMONDS = 3;
+        private static final int BOG_EYE_COINS = 3;
+        private static final int HOOKBLADE_DIAMONDS = 5;
+        private static final int HOOKBLADE_COINS = 4;
         private static final int TOOTH_BRIBE_ANGER_REDUCTION = 10;
+        // Favor the tribe grants for a completed trade; the truce receipt is a bribe and weighs most.
+        private static final int TRADE_FAVOR = 2;
+        private static final int TOOTH_TRADE_FAVOR = 4;
+        private static final int MERCHANT_KILL_FAVOR_LOSS = 15;
     }
+
+    private static final int NIGHT_INVISIBILITY_DURATION_TICKS = 60 * 20;
 
     @Override public boolean hurt(DamageSource source, float amount) {
         boolean result = super.hurt(source, amount);
@@ -291,6 +360,13 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     @Override public void aiStep() {
         super.aiStep();
         if (!level().isClientSide) {
+            // Evaluate the current sky state instead of waiting for a sunset transition, so
+            // /time set night and merchants loaded during the night are handled immediately.
+            if (tickCount % 20 == 0 && !level().isDay() && !hasEffect(MobEffects.INVISIBILITY)) {
+                playSound(SoundEvents.GENERIC_DRINK, 1.0F, 0.9F + getRandom().nextFloat() * 0.1F);
+                addEffect(new MobEffectInstance(MobEffects.INVISIBILITY,
+                        NIGHT_INVISIBILITY_DURATION_TICKS, 0, false, false));
+            }
             long tradeUntil = entityData.get(DATA_TRADE_UNTIL);
             if (tradeUntil > 0L && level().getGameTime() >= tradeUntil) {
                 entityData.set(DATA_TRADE_UNTIL, 0L);
@@ -392,14 +468,37 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     public boolean isNaturalEncounter() { return naturalEncounter; }
 
     private void removeNaturalEncounter() {
+        despawnAssociatedGuards();
+        discard();
+    }
+
+    /** Only discards guards tied to this exact merchant (via assignMerchantGuard), never other Ogres. */
+    private void despawnAssociatedGuards() {
         if (level() instanceof ServerLevel server) {
-            java.util.List<OgreGrunt> guards = new java.util.ArrayList<>();
+            List<OgreGrunt> guards = new ArrayList<>();
             for (Entity entity : server.getAllEntities()) {
                 if (entity instanceof OgreGrunt guard && guard.isMerchantGuardFor(getUUID())) guards.add(guard);
             }
             guards.forEach(Entity::discard);
         }
-        discard();
+    }
+
+    @Override
+    public void die(DamageSource source) {
+        super.die(source);
+        // Guards otherwise keep wandering forever once their merchant is dead — FollowAssignedMerchantGoal
+        // just quietly stops firing since the lookup returns null, but the guard itself never leaves.
+        if (!level().isClientSide) {
+            despawnAssociatedGuards();
+        }
+        if (source.getEntity() instanceof ServerPlayer killer) {
+            TributeManager.addFavorQuietly(killer.serverLevel(), killer, -TradePrices.MERCHANT_KILL_FAVOR_LOSS);
+        }
+    }
+
+    @Override public double getBoneResetTime() {
+        // Bones a clip stops keying ease back to rest over a few ticks instead of snapping there.
+        return 6.0;
     }
 
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {

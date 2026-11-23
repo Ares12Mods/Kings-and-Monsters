@@ -1,0 +1,21 @@
+{
+  "type": "neoforge:add_table",
+  "conditions": [
+    {
+      "condition": "minecraft:entity_properties",
+      "entity": "this",
+      "predicate": {
+        "type": [
+          "kingsandmonsters:ogre_grunt",
+          "kingsandmonsters:ogre_grunt_captain",
+          "kingsandmonsters:ogre_archer",
+          "kingsandmonsters:ogre_guard",
+          "kingsandmonsters:ogre_mage",
+          "kingsandmonsters:ogre_brute",
+          "kingsandmonsters:ogre_trapper"
+        ]
+      }
+    }
+  ],
+  "table": "kingsandmonsters:gameplay/ogre_gold"
+}

@@ -43,3 +43,7 @@ repo/
 ### Scratch/tooling (not mod source) ###
 logs/
 neoforge-installer.jar.log
+
+### Local tooling and working files (not mod source) ###
+output/
+sound_artist_export*

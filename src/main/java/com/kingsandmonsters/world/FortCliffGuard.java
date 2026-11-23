@@ -24,6 +24,9 @@ public final class FortCliffGuard {
     private static final int MAX_BLEND_DISTANCE = 5;
     private static final int MAX_CUT_PER_COLUMN = 12;
     private static final int MAX_FILL_PER_COLUMN = 6;
+    private static final int MAX_WATER_FILL = 24;
+    private static final int TERRACE_BLEND_DISTANCE = 12;
+    private static final int TERRACE_MAX_FILL = 14;
     private static final int CUT_THRESHOLD = 2;
     private static final int WALL_CLEARANCE = 1;
     private static final int OUTWARD_PROBE_DISTANCE = 5;
@@ -33,9 +36,31 @@ public final class FortCliffGuard {
     }
 
     public static void guard(WorldGenLevel level, BoundingBox chunkBox, Map<Long, int[]> columnExtents) {
+        guard(level, chunkBox, columnExtents, false, false);
+    }
+
+    public static void guard(
+            WorldGenLevel level, BoundingBox chunkBox, Map<Long, int[]> columnExtents, boolean fillThroughFluid) {
+        guard(level, chunkBox, columnExtents, fillThroughFluid, false);
+    }
+
+    /**
+     * {@code fillThroughFluid} builds a bank that stands in water up from the bed, instead of
+     * stacking it on the water surface where it would hover over the water.
+     * {@code terraced} lets a foundation on a steep slope or biome edge step down in wide landings
+     * over a longer reach, so the hill doesn't drop away from under the walls.
+     */
+    public static void guard(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            Map<Long, int[]> columnExtents,
+            boolean fillThroughFluid,
+            boolean terraced) {
         if (columnExtents.isEmpty()) {
             return;
         }
+        int blendDistance = terraced ? TERRACE_BLEND_DISTANCE : MAX_BLEND_DISTANCE;
+        int maxFill = terraced ? TERRACE_MAX_FILL : MAX_FILL_PER_COLUMN;
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         ImprovedNoise taperNoise = new ImprovedNoise(
@@ -48,7 +73,7 @@ public final class FortCliffGuard {
                 }
 
                 NearestPerimeter nearest = nearestPerimeterFoundation(
-                        x, z, columnExtents, MAX_BLEND_DISTANCE);
+                        x, z, columnExtents, blendDistance);
                 if (nearest == null || !opensAwayFromFootprint(x, z, nearest, columnExtents)) {
                     continue;
                 }
@@ -73,13 +98,38 @@ public final class FortCliffGuard {
                 // On the low side, descend one block per ring. Only short gaps
                 // are filled, continuing the local terrain instead of exposing
                 // an artificial stone retaining wall around the fort.
-                int minimumSupportedTop = nearest.foundationY() - nearest.distance();
+                int drop = terraced
+                        ? terraceDrop(nearest.distance())
+                        : supportDrop(taperNoise, x, z, nearest.distance(), fillThroughFluid);
+                int minimumSupportedTop = nearest.foundationY() - drop;
                 if (minimumSupportedTop > surfaceY) {
-                    int fillTo = Math.min(minimumSupportedTop, surfaceY + MAX_FILL_PER_COLUMN);
-                    fillRetainingColumn(level, pos, x, z, surfaceY, fillTo);
+                    int fillTo = Math.min(minimumSupportedTop, surfaceY + maxFill);
+                    fillRetainingColumn(level, pos, x, z, surfaceY, fillTo, fillThroughFluid);
                 }
             }
         }
+    }
+
+    /**
+     * How far the bank has dropped this many rings out. The Fort keeps a strict one block per ring;
+     * the quarry's bank varies, so the shore doesn't read as the same staircase all the way round:
+     * broad noise swings the slope from gentle to steep and fine noise adds the odd extra notch.
+     */
+    private static int supportDrop(ImprovedNoise noise, int x, int z, int distance, boolean varied) {
+        if (!varied) {
+            return distance;
+        }
+        double slope = 1.15 + noise.noise(x * 0.07, 7.0, z * 0.07) * 0.5;
+        int drop = (int) Math.round(distance * slope);
+        if (noise.noise(x * 0.45, 3.0, z * 0.45) > 0.35) {
+            drop++;
+        }
+        return Math.max(drop, 0);
+    }
+
+    /** Flat landings three blocks wide, each one two blocks lower than the last. */
+    private static int terraceDrop(int distance) {
+        return 2 * ((distance + 2) / 3);
     }
 
     private static void carveNaturalColumn(
@@ -117,10 +167,31 @@ public final class FortCliffGuard {
             int x,
             int z,
             int surfaceY,
-            int fillTo) {
+            int fillTo,
+            boolean fillThroughFluid) {
         pos.set(x, surfaceY, z);
         BlockState originalSurface = level.getBlockState(pos);
-        BlockState subsurface = naturalSubsurface(originalSurface);
+        int bedY = surfaceY;
+        BlockState bed = originalSurface;
+        if (fillThroughFluid && !originalSurface.getFluidState().isEmpty()) {
+            // Standing in water: find the bed and build the bank up from it.
+            int lowest = Math.max(level.getMinBuildHeight(), surfaceY - MAX_WATER_FILL);
+            boolean found = false;
+            for (int y = surfaceY - 1; y >= lowest; y--) {
+                pos.set(x, y, z);
+                BlockState below = level.getBlockState(pos);
+                if (!below.isAir() && below.getFluidState().isEmpty()) {
+                    bedY = y;
+                    bed = below;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return;
+            }
+        }
+        BlockState subsurface = naturalSubsurface(bed);
         for (int y = surfaceY + 1; y <= fillTo; y++) {
             pos.set(x, y, z);
             BlockState state = level.getBlockState(pos);
@@ -130,7 +201,7 @@ public final class FortCliffGuard {
             }
         }
 
-        for (int y = surfaceY + 1; y <= fillTo; y++) {
+        for (int y = bedY + 1; y <= fillTo; y++) {
             pos.set(x, y, z);
             boolean top = y == fillTo;
             BlockState fill = top ? naturalSurface(originalSurface) : subsurface;

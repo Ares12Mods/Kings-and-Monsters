@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:boars/mast_year",
+  "display": {
+    "icon": { "id": "kingsandmonsters:mudsnout_boar_spawn_egg" },
+    "title": { "translate": "advancement.kingsandmonsters.swine_friend.title" },
+    "description": { "translate": "advancement.kingsandmonsters.swine_friend.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 15
+  }
+}

@@ -43,22 +43,23 @@ public final class BogIronProgression extends SavedData {
     }
 
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof OgreLord)
-                || !(event.getSource().getEntity() instanceof ServerPlayer player)) {
-            return;
+        if (event.getEntity() instanceof OgreLord
+                && event.getSource().getEntity() instanceof ServerPlayer player) {
+            unlock(player.server, "The Ogre King has fallen. Its buried iron now answers to your kind.");
         }
+    }
 
-        BogIronProgression data = get(player.server);
+    /** The bog iron opens to everyone, whether the King fell or yielded. Does nothing once it already has. */
+    public static void unlock(MinecraftServer server, String subtitle) {
+        BogIronProgression data = get(server);
         if (data.unlocked) {
             return;
         }
 
         data.unlocked = true;
         data.setDirty();
-        for (ServerPlayer recipient : player.server.getPlayerList().getPlayers()) {
-            PacketDistributor.sendToPlayer(recipient, OgreOverlayPayload.major(
-                    "THE BOG YIELDS",
-                    "The Ogre King has fallen. Its buried iron now answers to your kind."));
+        for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {
+            PacketDistributor.sendToPlayer(recipient, OgreOverlayPayload.major("THE BOG YIELDS", subtitle));
         }
     }
 
@@ -80,7 +81,7 @@ public final class BogIronProgression extends SavedData {
             LAST_DENIAL_MESSAGE.put(player.getUUID(), now);
             PacketDistributor.sendToPlayer(player, OgreOverlayPayload.major(
                     "The bog iron rejects your claim.",
-                    "Only the fall of an Ogre King can break the mire's ancient oath."));
+                    "Only the Ogre King can break the mire's ancient oath."));
         }
     }
 
@@ -98,5 +99,10 @@ public final class BogIronProgression extends SavedData {
                 BogIronProgression::new,
                 BogIronProgression::load);
         return overworld.getDataStorage().computeIfAbsent(factory, FILE_ID);
+    }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        LAST_DENIAL_MESSAGE.clear();
     }
 }

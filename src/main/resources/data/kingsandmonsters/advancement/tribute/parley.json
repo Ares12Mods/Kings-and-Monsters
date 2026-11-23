@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:tribute/first_tribute",
+  "display": {
+    "icon": { "id": "minecraft:writable_book" },
+    "title": { "translate": "advancement.kingsandmonsters.parley.title" },
+    "description": { "translate": "advancement.kingsandmonsters.parley.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 15
+  }
+}

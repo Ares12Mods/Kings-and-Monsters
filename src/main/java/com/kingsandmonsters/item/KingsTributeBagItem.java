@@ -118,6 +118,8 @@ public class KingsTributeBagItem extends BundleItem {
                     .withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
             tooltip.add(Component.translatable("tooltip.kingsandmonsters.tribute_bag.open")
                     .withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.translatable("tooltip.kingsandmonsters.tribute_bag.king")
+                    .withStyle(ChatFormatting.GOLD));
         }
     }
 }

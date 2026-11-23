@@ -1,0 +1,33 @@
+{
+  "name": "Favor & Quests",
+  "category": "kingsandmonsters:tribe",
+  "icon": "kingsandmonsters:gold_coin",
+  "priority": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Anger is the whole Tribe's mood. $(bold)Favor$() is yours alone: how well the Tribe thinks of you.$(br2)Hurting ogres costs it. Tribute and honest work earn it. Enough, and the Tribe is $(bold)appeased$(): its ogres stand aside, and the King will trade."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:gold_coin",
+      "title": "Gold Coins",
+      "text": "Stamped with the King's mark. Find them in old dungeons and in ogre tribute chests, or earn them on quests. No lesser ogre carries them; the King does. While the Tribe's anger is Low, hold one out to an ogre to pass unharmed for ten minutes. Or give them to the King or a Captain: each is worth 5 favor."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Asking for Work",
+      "text": "Speak to a $(bold)Captain$() with empty hands, or ask the King for a $(bold)Quest$(). They set out three to choose from.$(br2)Hover each one to see its goal and its pay before you pick, then accept. You carry one quest at a time, and a tracker on screen follows your progress.$(br2)Giving up is allowed, but nobody offers more for three minutes."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What They Pay",
+      "text": "Captains set the smaller jobs: thinning zombies, spiders and creepers, or feeding the camp. The King wants more: raiders, witches, Piglin Brutes, the Plague, and his own feasts.$(br2)Every quest pays favor and experience, usually a coin, and the harder ones pay $(item)Golden Ogre Teeth$()."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "If You Are Bold",
+      "text": "Beside the King's three, one of his great quests may be offered: Ravagers, the Wither or the Warden. They pay the most.$(br2)A quest you have finished is not offered to you again for half an hour, or an hour for the King's, so the work keeps changing. After any finished quest, wait five minutes for the next."
+    }
+  ]
+}

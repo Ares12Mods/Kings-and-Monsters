@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:tribute/friend_of_the_tribe",
+  "display": {
+    "icon": { "id": "kingsandmonsters:hunters_spear" },
+    "title": { "translate": "advancement.kingsandmonsters.royal_patronage.title" },
+    "description": { "translate": "advancement.kingsandmonsters.royal_patronage.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 40
+  }
+}

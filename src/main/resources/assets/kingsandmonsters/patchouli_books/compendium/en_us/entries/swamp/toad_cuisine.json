@@ -1,0 +1,28 @@
+{
+  "name": "Toad Cuisine",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:cooked_toad_leg",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Nothing about a Bog Toad is wasted. The legs are meat, and meat can be cooked.$(br2)$(item)Raw Toad Legs$() restore little. Cooked in a furnace, smoker or over a campfire they become $(item)Cooked Toad Legs$(), a meal more filling than steak."
+    },
+    {
+      "type": "patchouli:smelting",
+      "recipe": "kingsandmonsters:cooked_toad_leg_from_smelting",
+      "title": "Cooked Toad Leg",
+      "text": "A smoker or a campfire does the same job."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:toad_stew",
+      "title": "Toad Stew",
+      "text": "A heavy stew, and only one bowl per stack."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Stew's Blessings",
+      "text": "Toad Stew is always edible, even on a full stomach. It grants:$(br2)$(li)Regeneration for 15 seconds$(li)Resistance for 1 minute$(li)$(thing)Ogre's Bane$() for 5 minutes$(br2)Ogre's Bane makes your blows land 15% harder against ogres of every kind."
+    }
+  ]
+}

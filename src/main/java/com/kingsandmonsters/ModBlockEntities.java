@@ -15,6 +15,16 @@ public final class ModBlockEntities {
                     BlockEntityType.Builder.of(OgreKingsCrownBlockEntity::new, ModBlocks.OGRE_KINGS_CROWN_DISPLAY.get())
                             .build(null));
 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.kingsandmonsters.block.entity.CandleHelmetBlockEntity>> CANDLE_HELMET =
+            BLOCK_ENTITY_TYPES.register("candle_helmet", () ->
+                    BlockEntityType.Builder.of(com.kingsandmonsters.block.entity.CandleHelmetBlockEntity::new,
+                            ModBlocks.CANDLE_HELMET_BLOCK.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity>> HAUNCH_PLATTER =
+            BLOCK_ENTITY_TYPES.register("haunch_platter", () ->
+                    BlockEntityType.Builder.of(com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity::new,
+                            ModBlocks.HAUNCH_PLATTER.get()).build(null));
+
     private ModBlockEntities() {
     }
 }

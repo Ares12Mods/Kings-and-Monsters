@@ -1,0 +1,36 @@
+{
+  "parent": "kingsandmonsters:swamp/root",
+  "display": {
+    "icon": { "id": "kingsandmonsters:boghide_chestplate" },
+    "title": { "translate": "advancement.kingsandmonsters.toadskin.title" },
+    "description": { "translate": "advancement.kingsandmonsters.toadskin.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "full_set": {
+      "trigger": "minecraft:tick",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "head": { "items": "#kingsandmonsters:boghide_armor" },
+                "chest": { "items": "#kingsandmonsters:boghide_armor" },
+                "legs": { "items": "#kingsandmonsters:boghide_armor" },
+                "feet": { "items": "#kingsandmonsters:boghide_armor" }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "experience": 30
+  }
+}

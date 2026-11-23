@@ -1,20 +1,90 @@
 {
+    "entity.mudsnout.ambient": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.ambient",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_idle_1",
+            "kingsandmonsters:entity/mudsnout_idle_2"
+        ]
+    },
+    "entity.mudsnout.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_hurt_1",
+            "kingsandmonsters:entity/mudsnout_hurt_2"
+        ]
+    },
+    "entity.mudsnout.death": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.death",
+        "sounds": [
+            {
+                "name": "kingsandmonsters:entity/mudsnout_death_1",
+                "pitch": 0.94
+            },
+            {
+                "name": "kingsandmonsters:entity/mudsnout_death_1",
+                "pitch": 1.0
+            },
+            {
+                "name": "kingsandmonsters:entity/mudsnout_death_1",
+                "pitch": 1.06
+            }
+        ]
+    },
+    "entity.mudsnout.baby.ambient": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.ambient",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_baby_idle_1",
+            "kingsandmonsters:entity/mudsnout_baby_idle_2",
+            "kingsandmonsters:entity/mudsnout_baby_idle_3"
+        ]
+    },
+    "entity.mudsnout.baby.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_baby_hurt_1",
+            "kingsandmonsters:entity/mudsnout_baby_hurt_2",
+            "kingsandmonsters:entity/mudsnout_baby_hurt_3"
+        ]
+    },
+    "entity.mudsnout.baby.death": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.death",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_baby_death_1",
+            "kingsandmonsters:entity/mudsnout_baby_death_2",
+            "kingsandmonsters:entity/mudsnout_baby_death_3"
+        ]
+    },
+    "entity.mudsnout.charge_snort_first": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.charge_snort",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_idle_1"
+        ]
+    },
+    "entity.mudsnout.charge_snort_second": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.charge_snort",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_idle_2"
+        ]
+    },
+    "entity.mudsnout.charge_launch": {
+        "subtitle": "subtitles.kingsandmonsters.mudsnout.charge_snort",
+        "sounds": [
+            "kingsandmonsters:entity/mudsnout_charge_hoglin_burst"
+        ]
+    },
     "entity.ogre.brute.tantrum_whine":  {
                                             "subtitle":  "subtitles.kingsandmonsters.ogre_brute.tantrum_whine",
                                             "sounds":  [
-                                                           "kingsandmonsters:entity/ogre/brute_tantrum_whine"
+                                                           "kingsandmonsters:entity/ogre/ogre_brute_temper_tantrum_1",
+                                                           "kingsandmonsters:entity/ogre/ogre_brute_temper_tantrum_2"
                                                        ]
                                         },
-    "entity.ogre.brute.belly_slam_impact":  {
-                                                "subtitle":  "subtitles.kingsandmonsters.ogre_brute.impact",
-                                                "sounds":  [
-                                                               "kingsandmonsters:entity/ogre/brute_belly_slam_impact"
-                                                           ]
-                                            },
     "entity.ogre.brute.belly_slam_grunt":  {
                                                "subtitle":  "subtitles.kingsandmonsters.ogre_brute.grunt",
                                                "sounds":  [
-                                                              "kingsandmonsters:entity/ogre/brute_belly_slam_grunt"
+                                                              "kingsandmonsters:entity/ogre/ogre_brute_jump_1",
+                                                              "kingsandmonsters:entity/ogre/ogre_brute_jump_2",
+                                                              "kingsandmonsters:entity/ogre/ogre_brute_jump_3"
                                                           ]
                                            },
     "entity.ogre.brute.upswing_whoosh":  {
@@ -26,138 +96,416 @@
     "entity.ogre.brute.hurt":  {
                                    "subtitle":  "subtitles.kingsandmonsters.ogre_brute.hurt",
                                    "sounds":  [
-                                                  "kingsandmonsters:entity/ogre/ogre_hurt_1"
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_hurt_1",
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_hurt_2",
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_hurt_3"
                                               ]
                                },
+    "entity.ogre.brute.idle":  {
+                                   "subtitle":  "subtitles.kingsandmonsters.ogre.huff",
+                                   "sounds":  [
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_idle_1",
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_idle_2",
+                                                  "kingsandmonsters:entity/ogre/ogre_brute_idle_3"
+                                              ]
+                               },
+    "entity.ogre.brute.death":  {
+                                    "subtitle":  "subtitles.kingsandmonsters.ogre_brute.death",
+                                    "sounds":  [
+                                                   "kingsandmonsters:entity/ogre/ogre_brute_death_1",
+                                                   "kingsandmonsters:entity/ogre/ogre_brute_death_2",
+                                                   "kingsandmonsters:entity/ogre/ogre_brute_death_3"
+                                               ]
+                                },
     "entity.ogre.grunt.hurt":  {
                                    "subtitle":  "subtitles.kingsandmonsters.ogre.hurt",
                                    "sounds":  [
-                                                  {
-                                                     "name":  "kingsandmonsters:entity/ogre/ogre_grunt_hurt_1",
-                                                     "pitch":  1.0
-                                                  }
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_hurt_1",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_hurt_2",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_hurt_3"
                                               ]
                                },
     "entity.ogre.archer.hurt":  {
-                                    "subtitle":  "subtitles.kingsandmonsters.ogre.hurt",
+                                    "subtitle":  "subtitles.kingsandmonsters.ogre_archer.hurt",
                                     "sounds":  [
-                                                   {
-                                                      "name":  "kingsandmonsters:entity/ogre/ogre_archer_hurt_1",
-                                                      "pitch":  1.0
-                                                   }
+                                                   "kingsandmonsters:entity/ogre/ogre_archer_hurt_1",
+                                                   "kingsandmonsters:entity/ogre/ogre_archer_hurt_2",
+                                                   "kingsandmonsters:entity/ogre/ogre_archer_hurt_3"
                                                ]
                                 },
+    "entity.ogre.archer.idle":  {
+                                    "subtitle":  "subtitles.kingsandmonsters.ogre_archer.idle",
+                                    "sounds":  [
+                                                   "kingsandmonsters:entity/ogre/ogre_archer_idle_1",
+                                                   "kingsandmonsters:entity/ogre/ogre_archer_idle_3"
+                                               ]
+                                },
+    "entity.ogre.archer.death":  {
+                                     "subtitle":  "subtitles.kingsandmonsters.ogre_archer.death",
+                                     "sounds":  [
+                                                    "kingsandmonsters:entity/ogre/ogre_archer_death_1",
+                                                    "kingsandmonsters:entity/ogre/ogre_archer_death_2",
+                                                    "kingsandmonsters:entity/ogre/ogre_archer_death_3"
+                                                ]
+                                 },
     "entity.ogre.mage.hurt":  {
                                   "subtitle":  "subtitles.kingsandmonsters.ogre.hurt",
                                   "sounds":  [
                                                  {
                                                     "name":  "kingsandmonsters:entity/ogre/ogre_mage_hurt_1",
-                                                    "pitch":  0.95
-                                                 }
-                                             ]
-                              },
-    "entity.ogre_lord.hurt":  {
-                                  "subtitle":  "subtitles.kingsandmonsters.ogre_lord.hurt",
-                                  "sounds":  [
+                                                    "pitch":  0.97,
+                                                    "weight":  1
+                                                 },
                                                  {
-                                                    "name":  "kingsandmonsters:entity/ogre/ogre_lord_hurt_1",
-                                                    "pitch":  1.0
+                                                    "name":  "kingsandmonsters:entity/ogre/ogre_mage_hurt_1",
+                                                    "pitch":  1.03,
+                                                    "weight":  1
+                                                 },
+                                                 {
+                                                    "name":  "kingsandmonsters:entity/ogre/ogre_mage_hurt_2",
+                                                    "pitch":  0.97,
+                                                    "weight":  4
+                                                 },
+                                                 {
+                                                    "name":  "kingsandmonsters:entity/ogre/ogre_mage_hurt_2",
+                                                    "pitch":  1.03,
+                                                    "weight":  4
                                                  }
                                              ]
                               },
+    "entity.ogre.mage.death":  {
+                                   "subtitle":  "subtitles.kingsandmonsters.ogre.death",
+                                   "sounds":  [
+                                                  {
+                                                     "name":  "kingsandmonsters:entity/ogre/ogre_mage_death_1",
+                                                     "weight":  4
+                                                  },
+                                                  {
+                                                     "name":  "kingsandmonsters:entity/ogre/ogre_mage_death_2",
+                                                     "weight":  1
+                                                  }
+                                              ]
+                               },
+    "entity.ogre.mage.cast_prepare": {
+                                         "subtitle": "subtitles.kingsandmonsters.ogre.mage.cast_prepare",
+                                         "sounds": [
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_prepare_1",
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_prepare_2",
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_prepare_3"
+                                         ]
+                                     },
+    "entity.ogre.mage.cast_release": {
+                                         "subtitle": "subtitles.kingsandmonsters.ogre.mage.cast_release",
+                                         "sounds": [
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_release_1",
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_release_2",
+                                             "kingsandmonsters:entity/ogre/ogre_mage_cast_release_3"
+                                         ]
+                                     },
+    "entity.ogre_lord.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_lord.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_lord_hurt_1",
+            "kingsandmonsters:entity/ogre/ogre_lord_hurt_2",
+            "kingsandmonsters:entity/ogre/ogre_lord_hurt_3"
+        ]
+    },
+    "entity.ogre_lord.death": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_lord.death",
+        "sounds": ["kingsandmonsters:entity/ogre/ogre_lord_death_1"]
+    },
     "entity.ogre_lord.roar":  {
                                   "subtitle":  "subtitles.kingsandmonsters.ogre_lord.roar",
                                   "sounds":  [
-                                                 {
-                                                    "name":  "kingsandmonsters:entity/ogre/ogre_lord_roar_4",
-                                                    "pitch":  1.0
-                                                 }
+                                                 "kingsandmonsters:entity/ogre/ogre_lord_roar_1",
+                                                 "kingsandmonsters:entity/ogre/ogre_lord_roar_2"
                                              ]
                               },
     "entity.ogre_lord.overhead_grunt":  {
                                              "subtitle":  "subtitles.kingsandmonsters.ogre_lord.roar",
                                              "sounds":  [
-                                                            "kingsandmonsters:entity/ogre/ogre_lord_overhead_grunt"
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_1",
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_2",
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_3",
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_4",
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_5",
+                                                            "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_6"
                                                         ]
                                          },
+    "entity.ogre_lord.double_arm_upswing_grunt":  {
+                                                       "subtitle":  "subtitles.kingsandmonsters.ogre_lord.roar",
+                                                       "sounds":  [
+                                                                      "kingsandmonsters:entity/ogre/ogre_lord_double_arm_upswing_grunt_1",
+                                                                      "kingsandmonsters:entity/ogre/ogre_lord_double_arm_upswing_grunt_2"
+                                                                  ]
+                                                   },
+    "entity.ogre_lord.close_warning_snort":  {
+                                                  "subtitle":  "subtitles.kingsandmonsters.ogre_lord.huff",
+                                                  "sounds":  [
+                                                                 {
+                                                                    "name":  "kingsandmonsters:entity/ogre/ogre_lord_close_warning_snort",
+                                                                    "pitch":  0.9,
+                                                                    "volume":  1.1
+                                                                 }
+                                                             ]
+                                              },
+    "entity.ogre_lord.belly_bump_roar":  {
+                                               "subtitle":  "subtitles.kingsandmonsters.ogre_lord.roar",
+                                               "sounds":  [
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_1",
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_2",
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_3",
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_4",
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_5",
+                                                              "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_6"
+                                                          ]
+                                           },
     "entity.ogre_lord.summon_grunt":  {
                                           "subtitle":  "subtitles.kingsandmonsters.ogre_lord.summon_grunt",
                                           "sounds":  [
-                                                         {
-                                                            "name":  "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt",
-                                                            "pitch":  1.0
-                                                         }
+                                                         "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_1",
+                                                         "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_2",
+                                                         "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_3"
+                                                     ]
+                                      },
+    "entity.ogre_lord.arrow_storm_grunt":  {
+                                          "subtitle":  "subtitles.kingsandmonsters.ogre_lord.arrow_storm_grunt",
+                                          "sounds":  [
+                                                         {"name": "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_1", "pitch": 0.85},
+                                                         {"name": "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_2", "pitch": 0.85},
+                                                         {"name": "kingsandmonsters:entity/ogre/ogre_lord_summon_grunt_3", "pitch": 0.85}
                                                      ]
                                       },
     "entity.ogre_lord.huff":  {
                                   "subtitle":  "subtitles.kingsandmonsters.ogre_lord.huff",
                                   "sounds":  [
-                                                 {
-                                                    "name":  "kingsandmonsters:entity/ogre/ogre_lord_huff_1",
-                                                    "pitch":  1.0
-                                                 }
+                                                 "kingsandmonsters:entity/ogre/ogre_lord_huff_1",
+                                                 "kingsandmonsters:entity/ogre/ogre_lord_huff_2"
                                              ]
                               },
-    "entity.ogre.grunt.huff":  {
+    "entity.ogre_trapper.idle": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_trapper.idle",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_trapper_idle_1",
+            "kingsandmonsters:entity/ogre/ogre_trapper_idle_2",
+            "kingsandmonsters:entity/ogre/ogre_trapper_idle_3"
+        ]
+    },
+    "entity.ogre_trapper.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_trapper.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_trapper_hurt_1",
+            "kingsandmonsters:entity/ogre/ogre_trapper_hurt_2",
+            "kingsandmonsters:entity/ogre/ogre_trapper_hurt_3"
+        ]
+    },
+    "entity.ogre_trapper.death": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_trapper.death",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_trapper_death_1",
+            "kingsandmonsters:entity/ogre/ogre_trapper_death_2",
+            "kingsandmonsters:entity/ogre/ogre_trapper_death_3"
+        ]
+    },
+    "entity.plague_ogre.idle": {
+        "subtitle": "subtitles.kingsandmonsters.plague_ogre.idle",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/plague_ogre_idle_1",
+            "kingsandmonsters:entity/ogre/plague_ogre_idle_2",
+            "kingsandmonsters:entity/ogre/plague_ogre_idle_3"
+        ]
+    },
+    "entity.plague_ogre.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.plague_ogre.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/plague_ogre_hurt_1",
+            "kingsandmonsters:entity/ogre/plague_ogre_hurt_2",
+            "kingsandmonsters:entity/ogre/plague_ogre_hurt_3"
+        ]
+    },
+    "entity.plague_ogre.death": {
+        "subtitle": "subtitles.kingsandmonsters.plague_ogre.death",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/plague_ogre_death_1",
+            "kingsandmonsters:entity/ogre/plague_ogre_death_2",
+            "kingsandmonsters:entity/ogre/plague_ogre_death_3"
+        ]
+    },
+    "entity.ogre.grunt.idle":  {
                                    "subtitle":  "subtitles.kingsandmonsters.ogre.huff",
                                    "sounds":  [
-                                                  "kingsandmonsters:entity/ogre/grunt_huff_1",
-                                                  "kingsandmonsters:entity/ogre/grunt_huff_2",
-                                                  "kingsandmonsters:entity/ogre/grunt_huff_3"
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_idle_1",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_idle_2",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_idle_3"
+                                              ]
+                               },
+    "entity.ogre.grunt.death":  {
+                                   "subtitle":  "subtitles.kingsandmonsters.ogre.death",
+                                   "sounds":  [
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_death_1",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_death_2",
+                                                  "kingsandmonsters:entity/ogre/ogre_grunt_death_3"
                                               ]
                                },
     "entity.ogre.mage.huff":  {
                                   "subtitle":  "subtitles.kingsandmonsters.ogre.huff",
                                   "sounds":  [
-                                                 "kingsandmonsters:entity/ogre/mage_huff_1"
+                                                 {
+                                                    "name":  "kingsandmonsters:entity/ogre/ogre_mage_idle_2",
+                                                    "pitch":  1.0,
+                                                    "weight":  4
+                                                 },
+                                                 {
+                                                    "name":  "kingsandmonsters:entity/ogre/ogre_mage_idle_3",
+                                                    "pitch":  1.0,
+                                                    "weight":  1
+                                                 }
                                               ]
                               },
     "item.ogreblood_totem.activate":  {
                                            "subtitle":  "subtitles.kingsandmonsters.ogreblood_totem.activate",
                                            "sounds":  [
-                                                          "kingsandmonsters:entity/ogre/ogreblood_totem_activate"
+                                                          "kingsandmonsters:entity/ogre/ogre_lord_preattack_grunt_1"
                                                       ]
                                        },
+    "entity.ogre_guard.idle":  {
+                                    "subtitle":  "subtitles.kingsandmonsters.ogre_guard.idle",
+                                    "sounds":  [
+                                                   "kingsandmonsters:entity/ogre/ogre_guard_idle_1",
+                                                   "kingsandmonsters:entity/ogre/ogre_guard_idle_2"
+                                               ]
+                                },
+    "entity.ogre_guard.hurt":  {
+                                    "subtitle":  "subtitles.kingsandmonsters.ogre_guard.hurt",
+                                    "sounds":  [
+                                                   "kingsandmonsters:entity/ogre/ogre_guard_hurt_1",
+                                                   "kingsandmonsters:entity/ogre/ogre_guard_hurt_2",
+                                                   "kingsandmonsters:entity/ogre/ogre_guard_hurt_3"
+                                               ]
+                                },
+    "entity.ogre_guard.death":  {
+                                     "subtitle":  "subtitles.kingsandmonsters.ogre_guard.death",
+                                     "sounds":  [
+                                                    "kingsandmonsters:entity/ogre/ogre_guard_death_1",
+                                                    "kingsandmonsters:entity/ogre/ogre_guard_death_2",
+                                                    "kingsandmonsters:entity/ogre/ogre_guard_death_3"
+                                                ]
+                                 },
+    "entity.ogre_merchant.idle":  {
+                                       "subtitle":  "subtitles.kingsandmonsters.ogre_merchant.idle",
+                                       "sounds":  [
+                                                      "kingsandmonsters:entity/ogre/ogre_merchant_idle_1",
+                                                      "kingsandmonsters:entity/ogre/ogre_merchant_idle_2"
+                                                  ]
+                                   },
     "entity.ogre_merchant.hurt":  {
                                        "subtitle":  "subtitles.kingsandmonsters.ogre_merchant.hurt",
                                        "sounds":  [
-                                                      "kingsandmonsters:entity/ogre/ogre_merchant_hurt"
+                                                      "kingsandmonsters:entity/ogre/ogre_merchant_hurt_1",
+                                                      "kingsandmonsters:entity/ogre/ogre_merchant_hurt_2",
+                                                      "kingsandmonsters:entity/ogre/ogre_merchant_hurt_3"
                                                   ]
                                    },
+    "entity.ogre_merchant.death":  {
+                                        "subtitle":  "subtitles.kingsandmonsters.ogre_merchant.death",
+                                        "sounds":  [
+                                                       "kingsandmonsters:entity/ogre/ogre_merchant_death_1",
+                                                       "kingsandmonsters:entity/ogre/ogre_merchant_death_2",
+                                                       "kingsandmonsters:entity/ogre/ogre_merchant_death_3"
+                                                   ]
+                                    },
+    "entity.ogre_merchant.disapprove":  {
+                                             "subtitle":  "subtitles.kingsandmonsters.ogre_merchant.disapprove",
+                                             "sounds":  [
+                                                            "kingsandmonsters:entity/ogre/ogre_merchant_death_4"
+                                                        ]
+                                         },
     "entity.ogre_merchant.trade":  {
                                         "subtitle":  "subtitles.kingsandmonsters.ogre_merchant.trade",
                                         "sounds":  [
-                                                       "kingsandmonsters:entity/ogre/ogre_merchant_trade"
+                                                       "kingsandmonsters:entity/ogre/ogre_merchant_approve_1"
                                                    ]
                                     },
-    "music.ogre_king_boss_intro": {
+    "music.ogre_king_intro": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_intro", "stream": true }] },
+    "music.ogre_king_phase_01_01": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_01_01", "stream": true }] },
+    "music.ogre_king_phase_01_02": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_01_02", "stream": true }] },
+    "music.ogre_king_phase_01_03": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_01_03", "stream": true }] },
+    "music.ogre_king_transition": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_transition", "stream": true }] },
+    "music.ogre_king_phase_02_01": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_02_01", "stream": true }] },
+    "music.ogre_king_phase_02_02": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_02_02", "stream": true }] },
+    "music.ogre_king_phase_02_03": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_phase_02_03", "stream": true }] },
+    "music.ogre_king_end": { "sounds": [{ "name": "kingsandmonsters:music/ogre_king_end", "stream": true }] },
+    "entity.bog_toad.idle_deep_a": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.idle",
         "sounds": [
-            {
-                "name": "kingsandmonsters:music/ogre_king_boss_intro",
-                "stream": true
-            }
+            { "name": "minecraft:mob/frog/idle1", "pitch": 0.55 },
+            { "name": "minecraft:mob/frog/idle4", "pitch": 0.55 }
         ]
     },
-    "music.ogre_king_boss_combat": {
+    "entity.bog_toad.idle_deep_b": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.idle",
         "sounds": [
-            {
-                "name": "kingsandmonsters:music/ogre_king_boss_combat_loop",
-                "stream": true
-            }
+            { "name": "minecraft:mob/frog/idle2", "pitch": 0.65 },
+            { "name": "minecraft:mob/frog/idle6", "pitch": 0.65 }
         ]
     },
-    "music.ogre_king_boss_death": {
+    "entity.bog_toad.idle_deep_c": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.idle",
         "sounds": [
-            {
-                "name": "kingsandmonsters:music/ogre_king_boss_death",
-                "stream": true
-            }
+            { "name": "minecraft:mob/frog/idle3", "pitch": 0.75 },
+            { "name": "minecraft:mob/frog/idle8", "pitch": 0.75 }
         ]
     },
-    "entity.ogre.grunt_captain.salute":  {
-                                              "subtitle":  "subtitles.kingsandmonsters.ogre_grunt_captain.salute",
-                                              "sounds":  [
-                                                             "kingsandmonsters:entity/ogre/grunt_captain_salute"
-                                                         ]
-                                          }
+    "entity.bog_toad.hurt_deep_a": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.hurt",
+        "sounds": [
+            { "name": "minecraft:mob/frog/hurt1", "pitch": 0.55 },
+            { "name": "minecraft:mob/frog/hurt4", "pitch": 0.55 }
+        ]
+    },
+    "entity.bog_toad.hurt_deep_b": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.hurt",
+        "sounds": [
+            { "name": "minecraft:mob/frog/hurt2", "pitch": 0.65 },
+            { "name": "minecraft:mob/frog/hurt5", "pitch": 0.65 }
+        ]
+    },
+    "entity.bog_toad.hurt_deep_c": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.hurt",
+        "sounds": [
+            { "name": "minecraft:mob/frog/hurt3", "pitch": 0.75 },
+            { "name": "minecraft:mob/frog/hurt4", "pitch": 0.75 }
+        ]
+    },
+    "entity.ogre.grunt_captain.idle": {
+        "subtitle": "subtitles.kingsandmonsters.ogre.huff",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_idle_1",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_idle_2",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_idle_3"
+        ]
+    },
+    "entity.ogre.grunt_captain.hurt": {
+        "subtitle": "subtitles.kingsandmonsters.ogre.hurt",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_hurt_1",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_hurt_2",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_hurt_3"
+        ]
+    },
+    "entity.ogre.grunt_captain.death": {
+        "subtitle": "subtitles.kingsandmonsters.ogre.death",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_death_1",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_death_2",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_death_3"
+        ]
+    },
+    "entity.ogre.grunt_captain.salute": {
+        "subtitle": "subtitles.kingsandmonsters.ogre_grunt_captain.salute",
+        "sounds": [
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_salute_1",
+            "kingsandmonsters:entity/ogre/ogre_grunt_captain_salute_2"
+        ]
+    }
 }

@@ -13,11 +13,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Event-driven ally-defense/rally system: when an Ogre (or the Merchant, via his escort) is hurt
- * by a valid non-allied living attacker, nearby Ogres are encouraged to target that attacker.
- * This is intentionally the only hook — no per-tick scanning, no persistent rally state, no
- * pathfinding of its own. Once a target is assigned, ordinary Ogre AI (goals, animation,
- * pathfinding) takes over exactly as it already does for any other target.
+ * Event-driven ally defense: when an Ogre (or the Merchant, via his escort) is hurt by a valid
+ * non-allied living attacker, nearby Ogres are encouraged to target that attacker. This is the only
+ * hook: no per-tick scanning, no persistent rally state, no pathfinding. Once a target is assigned,
+ * ordinary Ogre AI takes over as for any other target.
  */
 public final class OgreRallyEvents {
     private static final double OGRE_RALLY_RADIUS = 24.0;
@@ -128,6 +127,15 @@ public final class OgreRallyEvents {
             return true;
         }
         LAST_RALLY_GAME_TIME.put(victim.getUUID(), now);
+        // Entries only matter for one cooldown window; drop stale ones so the map can't grow forever.
+        if (LAST_RALLY_GAME_TIME.size() > 256) {
+            LAST_RALLY_GAME_TIME.values().removeIf(time -> now - time >= OGRE_RALLY_COOLDOWN_TICKS);
+        }
         return false;
+    }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        LAST_RALLY_GAME_TIME.clear();
     }
 }

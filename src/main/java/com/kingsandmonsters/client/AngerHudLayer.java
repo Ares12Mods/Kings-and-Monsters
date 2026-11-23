@@ -1,16 +1,27 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
-import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 public final class AngerHudLayer implements LayeredDraw.Layer {
-    private static final int BAR_WIDTH = 120;
-    private static final int BAR_HEIGHT = 7;
     private static final int LEFT_OFFSET = 10;
-    private static final int TOP_OFFSET = 11;
+    private static final int TOP_OFFSET = 10;
+    private static final int HUD_WIDTH = 39;
+    private static final int HUD_HEIGHT = 38;
+    private static final int ATLAS_HEIGHT = HUD_HEIGHT * 31;
+    private static final int FACE_WIDTH = 22;
+    private static final int FACE_HEIGHT = 19;
+    private static final int FACE_X = LEFT_OFFSET + 5;
+    private static final int FACE_Y = TOP_OFFSET + 6;
+    private static final ResourceLocation ANGER_ATLAS = texture("anger_atlas_0_to_30");
+    private static final ResourceLocation GRUNT_HAPPY = texture("grunt_happy");
+    private static final ResourceLocation GRUNT_CAPTAIN = texture("grunt_captain");
+    private static final ResourceLocation MAGE = texture("mage");
+    private static final ResourceLocation BRUTE = texture("brute");
 
     @Override
     public void render(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
@@ -30,42 +41,35 @@ public final class AngerHudLayer implements LayeredDraw.Layer {
 
         int anger = AngerHudState.getAngerLevel();
         int max = AngerHudState.getMaxAngerLevel();
-        float ratio = Math.min(1.0F, Math.max(0.0F, anger / (float) max));
+        int frame = Math.clamp(Math.round(anger * 30.0F / max), 0, 30);
+        ResourceLocation face = faceForAnger(anger);
+        int faceY = FACE_Y - ((face.equals(GRUNT_CAPTAIN) || face.equals(BRUTE)) ? 2 : 0);
 
-        int barX = LEFT_OFFSET;
-        int barY = TOP_OFFSET + 20;
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, opacity);
+        guiGraphics.blit(ANGER_ATLAS, LEFT_OFFSET, TOP_OFFSET,
+                0, frame * HUD_HEIGHT, HUD_WIDTH, HUD_HEIGHT, HUD_WIDTH, ATLAS_HEIGHT);
+        guiGraphics.blit(face, FACE_X, faceY, 0, 0, FACE_WIDTH, FACE_HEIGHT, FACE_WIDTH, FACE_HEIGHT);
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
 
-        int fillColor = withAlpha(angerColor(anger), opacity);
-
-        guiGraphics.fill(barX - 2, barY - 2, barX + BAR_WIDTH + 2, barY + BAR_HEIGHT + 2,
-                withAlpha(0xD0000000, opacity));
-        guiGraphics.fill(barX, barY, barX + BAR_WIDTH, barY + BAR_HEIGHT,
-                withAlpha(0xFF2B2B2B, opacity));
-        int filledWidth = (int) (BAR_WIDTH * ratio);
-        if (filledWidth > 0) {
-            guiGraphics.fill(barX, barY, barX + filledWidth, barY + BAR_HEIGHT, fillColor);
-        }
-
-        Component title = Component.translatable("hud.kingsandmonsters.ogre_faction");
-        Component level = Component.translatable(
-                "hud.kingsandmonsters.ogre_anger_level",
-                Component.translatable(AngerHudState.getAngerTierTranslationKey()),
-                anger,
-                max);
+        String amount = anger + " / " + max;
         int textColor = withAlpha(0xFFFFFFFF, opacity);
-        guiGraphics.drawString(minecraft.font, title, LEFT_OFFSET, TOP_OFFSET, textColor);
-        guiGraphics.drawString(minecraft.font, level, LEFT_OFFSET, TOP_OFFSET + 10, textColor);
+        guiGraphics.drawString(minecraft.font, amount,
+                LEFT_OFFSET + (HUD_WIDTH - minecraft.font.width(amount)) / 2,
+                TOP_OFFSET + HUD_HEIGHT, textColor, true);
     }
 
-    private static int angerColor(int anger) {
-        if (anger <= 0) {
-            return 0xFF46B34A;
-        }
+    private static ResourceLocation faceForAnger(int anger) {
+        if (anger <= 0) return GRUNT_HAPPY;
         return switch (com.kingsandmonsters.api.patrol.PatrolTier.fromAnger(anger)) {
-            case SMALL -> 0xFFD1B83F;
-            case MEDIUM -> 0xFFF08A24;
-            case LARGE -> 0xFFD83A32;
+            case SMALL -> GRUNT_CAPTAIN;
+            case MEDIUM -> MAGE;
+            case LARGE -> BRUTE;
         };
+    }
+
+    private static ResourceLocation texture(String name) {
+        return ResourceLocation.fromNamespaceAndPath(
+                KingsAndMonsters.MODID, "textures/gui/anger_hud/" + name + ".png");
     }
 
     private static int withAlpha(int color, float opacity) {

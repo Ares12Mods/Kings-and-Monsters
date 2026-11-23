@@ -1,0 +1,21 @@
+[
+    {
+        "id": "kingsandmonsters:ogre_lord",
+        "drops": [
+            "kingsandmonsters:ogre_kings_crown",
+            "kingsandmonsters:ogre_kings_club",
+            "minecraft:diamond",
+            "minecraft:emerald",
+            "minecraft:gold_ingot",
+            "minecraft:enchanted_golden_apple"
+        ],
+        "scale": 12,
+        "y_offset": 0,
+        "rotate_y": 0,
+        "broken_model": false,
+        "additional_info": true,
+        "position": 20,
+        "type": 1,
+        "mod_version": "1.0"
+    }
+]

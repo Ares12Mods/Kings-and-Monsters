@@ -1,20 +1,13 @@
 package com.kingsandmonsters.item;
 
-import com.kingsandmonsters.ClientConfig;
-
 import com.kingsandmonsters.ModMobEffects;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-
-import java.util.List;
 
 public class IronbellyStewItem extends Item {
     private static final int ONE_MINUTE = 20 * 60;
@@ -36,24 +29,4 @@ public class IronbellyStewItem extends Item {
         return consumer.hasInfiniteMaterials() ? result : new ItemStack(Items.BOWL);
     }
 
-    @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
-                                List<Component> tooltip, TooltipFlag flag) {
-        if (!ClientConfig.showCustomTooltips()) return;
-        tooltip.add(Component.empty());
-        tooltip.add(Component.literal("Food:").withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.literal("  Nutrition: 8 (4 drumsticks)")
-                .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("  Saturation: 14.4")
-                .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.empty());
-        tooltip.add(Component.literal("Effects:").withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.literal("  Clears existing Poison").withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("  Poison Resistance (2:00)").withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("  Resistance I (1:00)").withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("  Absorption I (2:00)").withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.empty());
-        tooltip.add(Component.literal("A heavy swamp meal fit for an ogre.")
-                .withStyle(ChatFormatting.DARK_GREEN, ChatFormatting.ITALIC));
-    }
 }

@@ -4,10 +4,9 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 
 /**
- * Presentation-only marker shown while the Warcaller Bell's passive bonus is active. Grants
- * nothing of its own — the +1 Max Heart / +4 Armor bonus is applied and removed separately by
- * {@code WarcallerBellEvents}, in lockstep with this effect, so the icon and the real bonus never
- * disagree.
+ * Icon-only marker shown while the Warcaller Bell's passive bonus is active. It grants nothing
+ * itself: the +1 Max Heart / +4 Armor is applied and removed by {@code WarcallerBellEvents} in
+ * step with this effect, so the icon and the real bonus never disagree.
  */
 public final class WarcalledEffect extends MobEffect {
     public WarcalledEffect() {

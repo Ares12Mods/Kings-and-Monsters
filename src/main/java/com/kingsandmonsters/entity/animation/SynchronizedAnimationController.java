@@ -2,6 +2,13 @@ package com.kingsandmonsters.entity.animation;
 
 import software.bernie.geckolib.animatable.GeoAnimatable;
 import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.AnimationProcessor;
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.animation.state.BoneSnapshot;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.model.GeoModel;
+
+import java.util.Map;
 
 /**
  * GeckoLib controller that can begin a newly selected one-shot at an authoritative elapsed tick.
@@ -14,10 +21,70 @@ public final class SynchronizedAnimationController<T extends GeoAnimatable> exte
     private long consumedEventStartTick = Long.MIN_VALUE;
     private int consumedEventType = Integer.MIN_VALUE;
     private long lastEvaluationGameTick = Long.MIN_VALUE;
+    private double elapsedAnimationTicks;
+
+    private Map<String, double[]> footContacts = Map.of();
+    private Runnable footListener;
+    private String footCycleAnimation;
+    private double footCycleTick;
 
     public SynchronizedAnimationController(T animatable, String name, int transitionTicks,
                                            AnimationStateHandler<T> handler) {
         super(animatable, name, transitionTicks, handler);
+    }
+
+    /**
+     * Calls {@code onFootfall} each time a looping animation reaches one of its foot-contact times
+     * (animation ticks, keyed by animation name), so step sounds land with the visible foot. Runs on
+     * whichever side renders the animation, so it only ever fires on the client.
+     */
+    public SynchronizedAnimationController<T> withFootfalls(Map<String, double[]> contacts, Runnable onFootfall) {
+        this.footContacts = contacts;
+        this.footListener = onFootfall;
+        return this;
+    }
+
+    @Override
+    public void process(GeoModel<T> model, AnimationState<T> state, Map<String, GeoBone> bones,
+                        Map<String, BoneSnapshot> snapshots, double seekTime, boolean crashWhenCantFindBone) {
+        super.process(model, state, bones, snapshots, seekTime, crashWhenCantFindBone);
+        elapsedAnimationTicks = animationSpeedModifier.apply(animatable) * Math.max(seekTime - tickOffset, 0);
+        trackFootfalls(seekTime);
+    }
+
+    /** How far into the current animation the last rendered frame was, in animation ticks. */
+    public double getElapsedAnimationTicks() {
+        return elapsedAnimationTicks;
+    }
+
+    private void trackFootfalls(double seekTime) {
+        if (footListener == null) {
+            return;
+        }
+        AnimationProcessor.QueuedAnimation current = getCurrentAnimation();
+        double[] contacts = current == null || getAnimationState() != State.RUNNING
+                ? null : footContacts.get(current.animation().name());
+        if (contacts == null) {
+            footCycleAnimation = null;
+            return;
+        }
+
+        double now = animationSpeedModifier.apply(animatable) * Math.max(seekTime - tickOffset, 0);
+        if (current.animation().name().equals(footCycleAnimation)) {
+            boolean wrapped = now < footCycleTick;
+            for (double contact : contacts) {
+                // A wrap means the loop restarted: catch contacts after the last frame or up to now.
+                boolean crossed = wrapped
+                        ? contact > footCycleTick || contact <= now
+                        : contact > footCycleTick && contact <= now;
+                if (crossed) {
+                    footListener.run();
+                    break;
+                }
+            }
+        }
+        footCycleAnimation = current.animation().name();
+        footCycleTick = now;
     }
 
     private boolean consumeAndSeek(int eventType, long eventStartTick, double elapsedTick) {
@@ -48,12 +115,11 @@ public final class SynchronizedAnimationController<T extends GeoAnimatable> exte
             super.adjustTick(tick);
             double speed = Math.max(0.0001, animationSpeedModifier.apply(animatable));
             tickOffset = tick - elapsed / speed;
-            // Must return 0.0 here, not elapsed. AnimationController.process() only dequeues/installs
-            // the newly requested animation when this transition-reset frame resolves to exactly 0
-            // (its adjustedTick == 0 gate) — tickOffset above already carries the authoritative elapsed
-            // time forward for every frame after this one. Returning elapsed instead of 0.0 makes
-            // GeckoLib skip that install and keep rendering the previous locomotion clip for the rest
-            // of the one-shot, even though the synchronized attack state is already correct.
+            // Return 0.0 here, not elapsed. AnimationController.process() only installs the newly
+            // requested animation when this transition-reset frame resolves to exactly 0 (its
+            // adjustedTick == 0 gate); tickOffset already carries the elapsed time forward after that.
+            // Returning elapsed makes GeckoLib skip the install and keep rendering the old locomotion
+            // clip for the whole one-shot.
             return 0.0;
         }
 
@@ -90,6 +156,9 @@ public final class SynchronizedAnimationController<T extends GeoAnimatable> exte
         }
 
         if (!sameEvent || renderGap) {
+            AnimationDebug.log("{}: type={} elapsed={}/{} controllerState={}",
+                    renderGap ? "seek after gap" : "start/seek new event", eventType, elapsed,
+                    durationTicks, controller.getAnimationState());
             if (renderGap) {
                 synchronizedController.seekActiveEventOnce(elapsed);
             } else {

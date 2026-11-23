@@ -62,7 +62,6 @@ public final class Config {
     public static final ModConfigSpec.IntValue CRIPPLED_BITE_DURATION_TICKS;
     public static final ModConfigSpec.IntValue CRIPPLED_SPEAR_DURATION_TICKS;
     public static final ModConfigSpec.DoubleValue HUNTERS_SPEAR_CRIPPLE_CHANCE;
-    public static final ModConfigSpec.DoubleValue HUNTERS_SPEAR_ARMOR_PIERCE;
     public static final ModConfigSpec.IntValue DAZED_HEAVY_ATTACK_DURATION_TICKS;
     public static final ModConfigSpec.DoubleValue HEAVY_THROW_DAMAGE_PER_LEVEL;
     public static final ModConfigSpec.DoubleValue HEAVY_THROW_KNOCKBACK_PER_LEVEL;
@@ -71,6 +70,11 @@ public final class Config {
     public static final ModConfigSpec.IntValue BARBED_BLEED_DURATION_TICKS;
     public static final ModConfigSpec.DoubleValue BARBED_BLEED_DAMAGE;
     public static final ModConfigSpec.DoubleValue TYRANT_SEARCH_RADIUS;
+    public static final ModConfigSpec.IntValue CROWN_ARMY_DURATION_SECONDS;
+    public static final ModConfigSpec.IntValue CROWN_ARMY_COOLDOWN_SECONDS;
+    public static final ModConfigSpec.DoubleValue GLANCING_BLOW_CHANCE;
+    public static final ModConfigSpec.IntValue GLANCING_BLOW_COOLDOWN_SECONDS;
+    public static final ModConfigSpec.DoubleValue OGRE_GLANCING_BLOW_CHANCE;
 
     public static final ModConfigSpec.IntValue TRIBUTE_MAX_ANGER;
     public static final ModConfigSpec.IntValue TRIBUTE_DEFAULT_ANGER_DELTA;
@@ -80,10 +84,18 @@ public final class Config {
     public static final ModConfigSpec.DoubleValue TRIBUTE_PATROL_CHANCE;
     public static final ModConfigSpec.IntValue ANGER_DECAY_INTERVAL_TICKS;
     public static final ModConfigSpec.IntValue ANGER_HUD_RADIUS;
+    public static final ModConfigSpec.IntValue TRIBUTE_BASELINE_ANGER;
+    public static final ModConfigSpec.IntValue TRIBUTE_APPEASED_FAVOR;
+    public static final ModConfigSpec.IntValue TRIBUTE_TRADE_FAVOR;
+    public static final ModConfigSpec.IntValue TRIBUTE_DUEL_FAVOR;
+    public static final ModConfigSpec.IntValue TRIBUTE_DUEL_COOLDOWN_MINUTES;
     public static final ModConfigSpec.DoubleValue SWAMP_OUTPOST_FORT_MAP_CHANCE;
     public static final ModConfigSpec.BooleanValue CARTOGRAPHER_FORT_MAP_ENABLED;
     public static final ModConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_PRICE;
     public static final ModConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_LEVEL;
+
+    public static final ModConfigSpec.BooleanValue SHOW_CAPTAIN_NAMETAGS;
+    public static final ModConfigSpec.BooleanValue GIVE_COMPENDIUM_ON_JOIN;
 
     public static final ModConfigSpec.BooleanValue PATROLS_ENABLED;
     public static final ModConfigSpec.IntValue PATROL_CHECK_INTERVAL_TICKS;
@@ -110,25 +122,25 @@ public final class Config {
 
         BUILDER.push("Grunt Captain");
         OGRE_GRUNT_CAPTAIN_MAX_HEALTH = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 100.0, 1.0, 300.0);
-        OGRE_GRUNT_CAPTAIN_ARMOR = BUILDER.comment("Base armor points.").defineInRange("armor", 12.0, 0.0, 40.0);
+        OGRE_GRUNT_CAPTAIN_ARMOR = BUILDER.comment("Base armor points.").defineInRange("armor", 20.0, 0.0, 40.0);
         BUILDER.pop();
 
         BUILDER.push("Ogre Archer");
-        OGRE_ARCHER_MAX_HEALTH    = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 60.0, 1.0, 200.0);
+        OGRE_ARCHER_MAX_HEALTH    = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 50.0, 1.0, 200.0);
         OGRE_ARCHER_MELEE_DAMAGE  = BUILDER.comment("Base melee (punch) damage.").defineInRange("meleeDamage", 5.0, 0.0, 100.0);
         OGRE_ARCHER_ARROW_DAMAGE  = BUILDER.comment("Base arrow damage before bow variant bonuses.").defineInRange("arrowDamage", 11.0, 0.0, 100.0);
         OGRE_ARCHER_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.288, 0.0, 1.0);
         OGRE_ARCHER_FOLLOW_RANGE  = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 34.0, 1.0, 128.0);
-        OGRE_ARCHER_ARMOR         = BUILDER.comment("Base armor points.").defineInRange("armor", 9.0, 0.0, 30.0);
+        OGRE_ARCHER_ARMOR         = BUILDER.comment("Base armor points.").defineInRange("armor", 6.0, 0.0, 30.0);
         BUILDER.pop();
 
         BUILDER.push("Ogre Guard");
         OGRE_GUARD_MAX_HEALTH     = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 70.0, 1.0, 250.0);
-        OGRE_GUARD_MELEE_DAMAGE   = BUILDER.comment("Base punch damage.").defineInRange("meleeDamage", 7.0, 0.0, 100.0);
+        OGRE_GUARD_MELEE_DAMAGE   = BUILDER.comment("Base punch damage.").defineInRange("meleeDamage", 5.0, 0.0, 100.0);
         OGRE_GUARD_SPEAR_DAMAGE   = BUILDER.comment("Base thrown spear damage.").defineInRange("spearDamage", 10.0, 0.0, 100.0);
         OGRE_GUARD_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.275, 0.0, 1.0);
         OGRE_GUARD_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 34.0, 1.0, 128.0);
-        OGRE_GUARD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 11.0, 0.0, 40.0);
+        OGRE_GUARD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 15.0, 0.0, 40.0);
         BUILDER.pop();
 
         BUILDER.push("Ogre Mage");
@@ -136,24 +148,34 @@ public final class Config {
         OGRE_MAGE_ATTACK_DAMAGE  = BUILDER.comment("Base melee damage.").defineInRange("attackDamage", 6.0, 0.0, 100.0);
         OGRE_MAGE_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.189, 0.0, 1.0);
         OGRE_MAGE_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 30.0, 1.0, 128.0);
-        OGRE_MAGE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 10.0, 0.0, 30.0);
+        OGRE_MAGE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 12.0, 0.0, 30.0);
         BUILDER.pop();
 
         BUILDER.push("Ogre Brute");
-        OGRE_BRUTE_MAX_HEALTH     = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 120.0, 1.0, 500.0);
+        OGRE_BRUTE_MAX_HEALTH     = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 150.0, 1.0, 500.0);
         OGRE_BRUTE_ATTACK_DAMAGE  = BUILDER.comment("Base melee damage.").defineInRange("attackDamage", 11.0, 0.0, 100.0);
         OGRE_BRUTE_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.325, 0.0, 1.0);
         OGRE_BRUTE_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 30.0, 1.0, 128.0);
-        OGRE_BRUTE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 18.0, 0.0, 40.0);
+        OGRE_BRUTE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 20.0, 0.0, 40.0);
         BUILDER.pop(2);
+
+        BUILDER.comment("Configure name plate display for elite ogre variants.").push("Display");
+        SHOW_CAPTAIN_NAMETAGS = BUILDER.comment("Show floating name tags above Ogre Brute, Ogre Mage, and Grunt Captain.")
+                .define("showCaptainNametags", true);
+        BUILDER.pop();
+
+        BUILDER.comment("Configure the Kings & Monsters Compendium guide book (needs Patchouli).").push("Guide Book");
+        GIVE_COMPENDIUM_ON_JOIN = BUILDER.comment("Give each player the Compendium the first time they join. It can still be crafted when this is off.")
+                .define("giveOnFirstJoin", true);
+        BUILDER.pop();
 
         BUILDER.comment("Configure boss stats and attack damage overrides.").push("Boss Config");
         BUILDER.push("Ogre Lord");
-        OGRE_LORD_MAX_HEALTH     = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 300.0, 1.0, 1000.0);
+        OGRE_LORD_MAX_HEALTH     = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 400.0, 1.0, 1000.0);
         OGRE_LORD_ATTACK_DAMAGE  = BUILDER.comment("Base melee damage.").defineInRange("attackDamage", 18.0, 0.0, 100.0);
-        OGRE_LORD_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.333, 0.0, 1.0);
+        OGRE_LORD_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.30, 0.0, 1.0);
         OGRE_LORD_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 34.0, 1.0, 128.0);
-        OGRE_LORD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 20.0, 0.0, 50.0);
+        OGRE_LORD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 25.0, 0.0, 50.0);
         OGRE_LORD_PULL_OUT_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to the phase-transition club swing.").defineInRange("pullOutBonusDamage", 10.0, 0.0, 100.0);
         OGRE_LORD_CLUB_UPSWING_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to the phase-two club upswing.").defineInRange("clubUpswingBonusDamage", 10.0, 0.0, 100.0);
         OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to Club Double Overhead.").defineInRange("clubDoubleOverheadBonusDamage", 10.0, 0.0, 100.0);
@@ -164,7 +186,6 @@ public final class Config {
         CRIPPLED_BITE_DURATION_TICKS = BUILDER.comment("Crippled duration from an Ogre Grunt bite.").defineInRange("crippledBiteDurationTicks", 80, 1, 1200);
         CRIPPLED_SPEAR_DURATION_TICKS = BUILDER.comment("Crippled duration from Hunter's Spear thrown hits.").defineInRange("crippledSpearDurationTicks", 100, 1, 1200);
         HUNTERS_SPEAR_CRIPPLE_CHANCE = BUILDER.comment("Base chance (0.0-1.0) for any Hunter's Spear thrown hit to apply Crippled. Barbed guarantees the effect.").defineInRange("huntersSpearCrippleChance", 0.25, 0.0, 1.0);
-        HUNTERS_SPEAR_ARMOR_PIERCE = BUILDER.comment("Fraction (0.0-1.0) of the target's armor damage reduction that Hunter's Spear hits (melee or thrown) bypass.").defineInRange("huntersSpearArmorPierce", 0.20, 0.0, 1.0);
         DAZED_HEAVY_ATTACK_DURATION_TICKS = BUILDER.comment("Dazed duration from Brute and Ogre King heavy attacks.").defineInRange("dazedHeavyAttackDurationTicks", 100, 1, 1200);
         HEAVY_THROW_DAMAGE_PER_LEVEL = BUILDER.comment("Bonus thrown damage per Heavy Throw level.").defineInRange("heavyThrowDamagePerLevel", 2.0, 0.0, 50.0);
         HEAVY_THROW_KNOCKBACK_PER_LEVEL = BUILDER.comment("Bonus knockback per Heavy Throw level.").defineInRange("heavyThrowKnockbackPerLevel", 0.35, 0.0, 5.0);
@@ -173,6 +194,11 @@ public final class Config {
         BARBED_BLEED_DURATION_TICKS = BUILDER.comment("Bleeding duration applied by Barbed.").defineInRange("barbedBleedDurationTicks", 100, 1, 1200);
         BARBED_BLEED_DAMAGE = BUILDER.comment("Damage dealt by each Bleeding tick per Barbed level.").defineInRange("barbedBleedDamage", 1.25, 0.0, 100.0);
         TYRANT_SEARCH_RADIUS = BUILDER.comment("Radius used to count nearby hostile mobs for Tyrant.").defineInRange("tyrantSearchRadius", 8.0, 1.0, 32.0);
+        CROWN_ARMY_DURATION_SECONDS = BUILDER.comment("How long the ogres summoned by the Ogre King's Crown stay and fight, in seconds.").defineInRange("crownArmyDurationSeconds", 90, 10, 600);
+        CROWN_ARMY_COOLDOWN_SECONDS = BUILDER.comment("How long the Ogre King's Crown needs to rest before it can summon an army again, in seconds.").defineInRange("crownArmyCooldownSeconds", 300, 10, 3600);
+        GLANCING_BLOW_CHANCE = BUILDER.comment("Chance (0.0-1.0) that the Bogsteel Chestplate turns aside a physical attack entirely.").defineInRange("glancingBlowChance", 0.10, 0.0, 1.0);
+        GLANCING_BLOW_COOLDOWN_SECONDS = BUILDER.comment("Seconds the Bogsteel Chestplate needs before it can glance another blow aside.").defineInRange("glancingBlowCooldownSeconds", 3, 0, 60);
+        OGRE_GLANCING_BLOW_CHANCE = BUILDER.comment("Chance (0.0-1.0) that an armored ogre (Brute, Grunt Captain, Guard or the Ogre King) turns aside a physical attack entirely. Uses the same cooldown as the Bogsteel Chestplate.").defineInRange("ogreGlancingBlowChance", 0.10, 0.0, 1.0);
         BUILDER.pop();
 
         BUILDER.comment("Configure the ogre faction anger and tribute systems.").push("Tribute");
@@ -184,6 +210,11 @@ public final class Config {
         TRIBUTE_PATROL_CHANCE       = BUILDER.comment("Chance (0.0-1.0) that looting a tribute chest schedules a delayed retaliation patrol.").defineInRange("tributePatrolChance", 0.20, 0.0, 1.0);
         ANGER_DECAY_INTERVAL_TICKS  = BUILDER.comment("How many ticks between each passive ogre faction anger decay of -1 (48000 = 2 in-game days).").defineInRange("angerDecayIntervalTicks", 48000, 1200, 20 * 60 * 60 * 24);
         ANGER_HUD_RADIUS            = BUILDER.comment("Radius in blocks within which a player near any camp sees the faction anger HUD.").defineInRange("angerHudRadius", 80, 16, 512);
+        TRIBUTE_BASELINE_ANGER      = BUILDER.comment("Lowest anger the tribe can calm to. Players who earn enough favor are appeased regardless; 0 also lets the shared anger fall to nothing on its own.").defineInRange("baselineAnger", 10, 0, 14);
+        TRIBUTE_APPEASED_FAVOR      = BUILDER.comment("Favor (0-100) a player needs to be appeased: patrols stop hunting them, ogres leave them alone and the Ogre King will trade.").defineInRange("appeasedFavor", 50, 1, 100);
+        TRIBUTE_TRADE_FAVOR         = BUILDER.comment("Favor (0-100) a player needs before the Ogre King will trade.").defineInRange("tradeFavor", 80, 1, 100);
+        TRIBUTE_DUEL_FAVOR          = BUILDER.comment("Favor (0-100) a player needs before the Ogre King will accept a duel: a fair one-on-one fight with no captains, that he yields instead of dying and that unlocks bog iron.").defineInRange("duelFavor", 100, 1, 100);
+        TRIBUTE_DUEL_COOLDOWN_MINUTES = BUILDER.comment("Minutes a player must wait after beating the Ogre King in a duel before they can duel him again. 0 turns the wait off.").defineInRange("duelCooldownMinutes", 10, 0, 1440);
         BUILDER.pop();
 
         BUILDER.comment("Configure structure discovery and map availability.").push("Worldgen");
@@ -205,9 +236,9 @@ public final class Config {
         BUILDER.comment("Configure patrol spawning caused by ogre faction anger.").push("Patrols");
         PATROLS_ENABLED             = BUILDER.comment("Whether angered camps can send patrols after nearby players.").define("enabled", true);
         PATROL_CHECK_INTERVAL_TICKS = BUILDER.comment("How often loaded camps check whether to spawn a patrol (ticks).").defineInRange("checkIntervalTicks", 200, 20, 20 * 60 * 10);
-        PATROL_MIN_COOLDOWN_TICKS   = BUILDER.comment("Minimum cooldown between patrols from the same camp (ticks).").defineInRange("minCooldownTicks", 20 * 60 * 10, 20 * 10, 20 * 60 * 60);
-        PATROL_MAX_COOLDOWN_TICKS   = BUILDER.comment("Maximum cooldown between patrols from the same camp (ticks).").defineInRange("maxCooldownTicks", 20 * 60 * 15, 20 * 10, 20 * 60 * 60);
-        PATROL_PLAYER_SEARCH_RADIUS = BUILDER.comment("Maximum distance from a camp where players can be targeted for patrols.").defineInRange("playerSearchRadius", 384, 32, 1024);
+        PATROL_MIN_COOLDOWN_TICKS   = BUILDER.comment("Minimum cooldown between patrols from the same camp (ticks).").defineInRange("minCooldownTicks", 20 * 60 * 40, 20 * 10, 20 * 60 * 60);
+        PATROL_MAX_COOLDOWN_TICKS   = BUILDER.comment("Maximum cooldown between patrols from the same camp (ticks).").defineInRange("maxCooldownTicks", 20 * 60 * 60, 20 * 10, 20 * 60 * 60);
+        PATROL_PLAYER_SEARCH_RADIUS = BUILDER.comment("Maximum distance from a camp where players can be targeted for patrols.").defineInRange("playerSearchRadius", 160, 32, 1024);
         PATROL_MIN_SPAWN_DISTANCE   = BUILDER.comment("Minimum distance from the target player where patrols spawn.").defineInRange("minSpawnDistance", 28, 8, 128);
         PATROL_MAX_SPAWN_DISTANCE   = BUILDER.comment("Maximum distance from the target player where patrols spawn.").defineInRange("maxSpawnDistance", 48, 8, 192);
         BUILDER.pop();

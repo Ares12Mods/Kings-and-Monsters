@@ -1,5 +1,7 @@
 package com.kingsandmonsters.world;
 
+import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -25,22 +27,26 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
             RecordCodecBuilder.<MultiExclusionRandomSpreadStructurePlacement>mapCodec(instance ->
                     placementCodec(instance)
                             .and(instance.group(
-                                    com.mojang.serialization.Codec.intRange(1, 4096)
-                                            .fieldOf("spacing")
-                                            .forGetter(RandomSpreadStructurePlacement::spacing),
-                                    com.mojang.serialization.Codec.intRange(0, 4095)
-                                            .fieldOf("separation")
-                                            .forGetter(RandomSpreadStructurePlacement::separation),
+                                    com.mojang.serialization.Codec.mapPair(
+                                                    com.mojang.serialization.Codec.intRange(1, 4096).fieldOf("spacing"),
+                                                    com.mojang.serialization.Codec.intRange(0, 4095).fieldOf("separation"))
+                                            .forGetter(p -> Pair.of(p.spacing(), p.separation())),
                                     StructurePlacement.ExclusionZone.CODEC.listOf()
                                             .optionalFieldOf("exclusion_zones", List.of())
-                                            .forGetter(MultiExclusionRandomSpreadStructurePlacement::exclusionZones)
+                                            .forGetter(MultiExclusionRandomSpreadStructurePlacement::exclusionZones),
+                                    StructurePlacement.ExclusionZone.CODEC.listOf()
+                                            .optionalFieldOf("required_nearby", List.of())
+                                            .forGetter(MultiExclusionRandomSpreadStructurePlacement::requiredNearby)
                             ))
-                            .apply(instance, MultiExclusionRandomSpreadStructurePlacement::new))
+                            .apply(instance, (offset, method, frequency, salt, zone, spread, exclusions, nearby) ->
+                                    new MultiExclusionRandomSpreadStructurePlacement(offset, method, frequency, salt,
+                                            zone, spread.getFirst(), spread.getSecond(), exclusions, nearby)))
                     .validate(placement -> placement.spacing() <= placement.separation()
                             ? DataResult.error(() -> "Spacing has to be larger than separation")
                             : DataResult.success(placement));
 
     private final List<StructurePlacement.ExclusionZone> exclusionZones;
+    private final List<StructurePlacement.ExclusionZone> requiredNearby;
 
     public MultiExclusionRandomSpreadStructurePlacement(
             Vec3i locateOffset,
@@ -50,10 +56,17 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
             Optional<ExclusionZone> exclusionZone,
             int spacing,
             int separation,
-            List<ExclusionZone> exclusionZones) {
+            List<ExclusionZone> exclusionZones,
+            List<ExclusionZone> requiredNearby) {
         super(locateOffset, frequencyReductionMethod, frequency, salt, exclusionZone,
                 spacing, separation, RandomSpreadType.LINEAR);
         this.exclusionZones = List.copyOf(exclusionZones);
+        this.requiredNearby = List.copyOf(requiredNearby);
+    }
+
+    /** When not empty, at least one of these sets must have a start within its chunk range. */
+    public List<ExclusionZone> requiredNearby() {
+        return requiredNearby;
     }
 
     public List<ExclusionZone> exclusionZones() {
@@ -68,11 +81,18 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
         if (!super.applyInteractionsWithOtherStructures(structureState, chunkX, chunkZ)) {
             return false;
         }
+        if (!WildscapesStructureCompat.isClear(structureState, chunkX, chunkZ)) {
+            return false;
+        }
         for (ExclusionZone zone : exclusionZones) {
             if (structureState.hasStructureChunkInRange(
                     zone.otherSet(), chunkX, chunkZ, zone.chunkCount())) {
                 return false;
             }
+        }
+        if (!requiredNearby.isEmpty() && requiredNearby.stream().noneMatch(zone ->
+                structureState.hasStructureChunkInRange(zone.otherSet(), chunkX, chunkZ, zone.chunkCount()))) {
+            return false;
         }
         return true;
     }

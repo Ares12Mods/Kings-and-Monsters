@@ -1,0 +1,47 @@
+{
+  "name": "Ogre Gear",
+  "category": "kingsandmonsters:artifacts",
+  "icon": "kingsandmonsters:brutes_helm",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Ogre King sells armor and tools made for ogres, cut down, if never quite to fit, for everyone else. Each is sold once to each player, for $(item)Golden Ogre Teeth$().$(br2)Their tooltips give the exact numbers."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:brutes_helm",
+      "title": "Brute's Helm",
+      "text": "Heavy iron taken from a Brute. On top of its armor, it adds to your maximum health."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:ogre_loincloth",
+      "title": "Ogre Loincloth",
+      "text": "Leg armor that is mostly attitude. Worn, it keeps Strength I and Resistance I on you."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:bogsteel_chestplate",
+      "title": "Bogsteel Chestplate",
+      "text": "Bog iron purified by ogres. Its chest defense beats netherite's, with a little less toughness. Now and then a blow glances off it and does no damage at all."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:brute_gauntlets",
+      "title": "Bogsteel Gauntlets",
+      "text": "Worn in the Hands curios slot, they give +2 armor, +1 toughness, +2 attack damage, +0.5 attack knockback and 15% knockback resistance, at the cost of 5% attack speed. Nothing about what you hold changes."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:ogre_stomach",
+      "title": "Ogre Stomach",
+      "text": "Worn in a Curios slot, it lets you eat even when you are full, and every meal goes down instantly. Foods with effects, like a golden apple, can only be gulped once every ten seconds; between times they take their usual while."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "kingsandmonsters:bog_iron_axe",
+      "title": "Timber",
+      "text": "The King's Bog Iron Axe already carries $(thing)Timber$(): chop one log and every log connected to it comes down, up to 128. Crouch to take just one."
+    }
+  ]
+}

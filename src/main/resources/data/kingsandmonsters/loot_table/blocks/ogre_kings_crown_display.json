@@ -6,13 +6,17 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "kingsandmonsters:ogre_kings_crown"
+          "name": "kingsandmonsters:ogre_kings_crown",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity"
+            }
+          ]
         }
       ],
       "conditions": [
-        {
-          "condition": "minecraft:survives_explosion"
-        }
+        { "condition": "minecraft:survives_explosion" }
       ]
     }
   ]

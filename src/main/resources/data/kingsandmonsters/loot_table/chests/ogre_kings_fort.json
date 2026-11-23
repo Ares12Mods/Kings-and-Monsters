@@ -31,9 +31,9 @@
         {
           "type": "minecraft:item",
           "name": "kingsandmonsters:raw_bog_iron",
-          "weight": 3,
+          "weight": 1,
           "functions": [
-            { "function": "minecraft:set_count", "count": { "min": 1, "max": 2, "type": "minecraft:uniform" } }
+            { "function": "minecraft:set_count", "count": 1 }
           ]
         },
         {
@@ -67,6 +67,14 @@
       "entries": [
         { "type": "minecraft:item", "name": "kingsandmonsters:bog_iron_band", "weight": 10 },
         { "type": "minecraft:empty", "weight": 90 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "kingsandmonsters:bog_eye_charm", "weight": 12 },
+        { "type": "minecraft:item", "name": "kingsandmonsters:boghide_boots", "weight": 8 },
+        { "type": "minecraft:empty", "weight": 80 }
       ]
     }
   ]

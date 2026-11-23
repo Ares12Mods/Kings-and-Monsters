@@ -25,11 +25,17 @@ public class PoisonFogCloud extends Entity {
     public static final float VISUAL_RING_RADIUS = RADIUS;
     // Sustained zone damage (ticks every second while standing in it), kept modest per-tick
     // (~0.7 hearts vs diamond) since it accumulates over the cloud's full duration.
-    private static final float DAMAGE_PER_TICK = 6.0F;
+    private static final float DAMAGE_PER_TICK = OgreDamage.raw(OgreDamage.Tier.MAGE, OgreDamage.Blow.LIGHT);
     private static final int DAMAGE_INTERVAL_TICKS = 20;
     private static final int POISON_DURATION_TICKS = 60;
 
     private int age;
+    /** Set by an army Mage's cloud: it poisons its enemies but not players, villagers or pets. */
+    private boolean sparesFriends;
+
+    public void setSparesFriends(boolean sparesFriends) {
+        this.sparesFriends = sparesFriends;
+    }
 
     public PoisonFogCloud(EntityType<? extends PoisonFogCloud> type, Level level) {
         super(type, level);
@@ -167,10 +173,17 @@ public class PoisonFogCloud extends Entity {
                 BogfumeRageEvents.applyToOgre(ogre);
                 continue;
             }
+            if (sparesFriends && OgreGrunt.spareByArmy(target)) {
+                continue;
+            }
 
             target.addEffect(new MobEffectInstance(MobEffects.POISON, POISON_DURATION_TICKS, 1));
             if (age % DAMAGE_INTERVAL_TICKS == 0) {
-                target.hurt(damageSources().magic(), DAMAGE_PER_TICK);
+                // The thick of the cloud burns hardest; its edge is thin.
+                double dx = target.getX() - getX();
+                double dz = target.getZ() - getZ();
+                target.hurt(damageSources().magic(), DAMAGE_PER_TICK
+                        * OgreDamage.falloff(Math.sqrt(dx * dx + dz * dz), RADIUS, OgreDamage.BLAST_EDGE_SHARE));
             }
         }
     }
@@ -178,11 +191,13 @@ public class PoisonFogCloud extends Entity {
     @Override
     protected void readAdditionalSaveData(CompoundTag compound) {
         age = compound.getInt("Age");
+        sparesFriends = compound.getBoolean("SparesFriends");
     }
 
     @Override
     protected void addAdditionalSaveData(CompoundTag compound) {
         compound.putInt("Age", age);
+        compound.putBoolean("SparesFriends", sparesFriends);
     }
 
     private enum ParticleMode {

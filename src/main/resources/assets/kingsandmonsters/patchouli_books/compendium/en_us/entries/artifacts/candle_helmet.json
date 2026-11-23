@@ -1,0 +1,32 @@
+{
+  "name": "Candle Helmet",
+  "category": "kingsandmonsters:artifacts",
+  "icon": "kingsandmonsters:candle_helmet",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A miner's second-best idea: take an iron helmet, bolt a candle to it, and carry your own light into the dark.$(br2)Lit and worn, the $(item)Candle Helmet$() lights the area around you and moves with you, which leaves both hands free for a pickaxe or a sword."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:candle_helmet",
+      "title": "Candle Helmet",
+      "text": "An iron helmet with a candle on top."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Lighting the Wick",
+      "text": "A new helmet starts unlit. $(thing)Place$() it on the ground like a block and light the wick with $(item)Flint and Steel$(). An empty hand puts the flame out again.$(br2)Once lit, you can pick it back up and it stays lit in your inventory. It only gives off light while you are wearing it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Brightwick",
+      "text": "The $(thing)Brightwick$() enchantment makes the flame burn brighter, adding 1 level of light per level, up to three.$(br2)The helmet gives light level 11 on its own, so a fully enchanted one reaches 14. Brightwick can be found on enchanted books or put on at an enchanting table."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Dark Places",
+      "text": "Miners in the deep have started asking for extra candles. They won't say why. They only mention scratching at the edge of the light, and that something down there doesn't seem to mind the dark at all.$(br2)Keep the wick lit. It may matter soon."
+    }
+  ]
+}

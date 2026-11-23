@@ -1,0 +1,39 @@
+{
+  "name": "Blackhide Armor",
+  "category": "kingsandmonsters:creatures",
+  "icon": "kingsandmonsters:blackhide_chestplate",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A Mudsnout Boar's hide is $(item)Blackhide Leather$(), thick, smoky and tougher than any cow's. Stitched into armor it turns more than iron does, though it is no match for diamond. The helmet needs two $(item)Mudsnout Tusks$() set on either side, the way the boar wears them."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:blackhide_helmet",
+      "recipe2": "kingsandmonsters:blackhide_chestplate",
+      "title": "Helmet & Chestplate"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:blackhide_leggings",
+      "recipe2": "kingsandmonsters:blackhide_boots",
+      "title": "Leggings & Boots",
+      "text": "Defense 3, 7, 5 and 3: 18 in all, between iron and diamond, with a little toughness."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Thick Hide",
+      "text": "Each piece worn has a 5% chance to turn an arrow aside, so a full set deflects one in five. Thrown tridents and spears are heavier than that and still pierce the hide."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Charge",
+      "text": "Wear all four pieces and a long sprint builds $(thing)momentum$(): the longer you run, the faster you go, up to 25% faster after three seconds. At top speed you are $(thing)Charged$().$(br2)A Charge lasts up to 12 seconds. Hold it longer and you are winded, and cannot build momentum for 3 seconds."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Impact",
+      "text": "While Charged, run into something and it is flung away with 4 damage, and you keep charging. A second ram ends the Charge and winds you.$(br2)Hit it instead and the blow throws it too. A fist launches as hard as a ram. A weapon launches it further and hits 25% harder. Either spends the Charge, and you have to build it again."
+    }
+  ]
+}

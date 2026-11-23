@@ -1,0 +1,32 @@
+{
+  "name": "Bogfang Blade",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:bogfang_blade",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The rarest thing a Bog Toad can give up is a $(item)Bogfang$(). Set in a blade with a strip of Boghide and a stick, it makes a weapon that does little itself and a great deal through what it carries."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:bogfang_blade",
+      "title": "Bogfang Blade",
+      "text": "Lighter than an iron sword, with a longer life."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The Rot",
+      "text": "Every hit infects a living target with $(thing)Bogrot$() for 45 seconds. This works on almost anything that can rot: zombies, skeletons, animals, players and the creatures of other mods. Only elementals, slimes and the toads' own kin are spared.$(br2)A normal hit shows no flourish. The rot just sets in."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Rupture",
+      "text": "Land three $(thing)critical hits$() on the same infected target and the rot ruptures. The Bogrot is consumed, and all the damage it had left to deal lands at once.$(br2)A rupture needs eight seconds to recover before it can happen again."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Bogburst",
+      "text": "The $(thing)Bogburst$() enchantment makes a rupture spread. Nearby hostile creatures catch the rot: within 5 blocks for 15 seconds at level I, within 7 blocks for 25 seconds at level II.$(br2)Ogres in the blast are infected like any other target. Sometimes that is the point."
+    }
+  ]
+}

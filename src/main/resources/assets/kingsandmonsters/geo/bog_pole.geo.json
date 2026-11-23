@@ -1,0 +1,72 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.chudling",
+				"texture_width": 128,
+				"texture_height": 128,
+				"visible_bounds_width": 4,
+				"visible_bounds_height": 2.5,
+				"visible_bounds_offset": [0, 0.75, 0]
+			},
+			"bones": [
+				{
+					"name": "main_chud_body",
+					"pivot": [0, 0, 0]
+				},
+				{
+					"name": "all",
+					"parent": "main_chud_body",
+					"pivot": [0, 0, 0]
+				},
+				{
+					"name": "gronkle_zonkle",
+					"parent": "all",
+					"pivot": [0, 6, 1],
+					"cubes": [
+						{"origin": [-6, 1, -6], "size": [12, 7, 11], "uv": [0, 0]},
+						{"origin": [-6, 8, -6], "size": [12, 1, 11], "uv": [0, 18]}
+					]
+				},
+				{
+					"name": "swimmy_swommer",
+					"parent": "gronkle_zonkle",
+					"pivot": [0, 4, 5],
+					"cubes": [
+						{"origin": [-2, 2, 5], "size": [4, 4, 9], "uv": [0, 44]},
+						{"origin": [0, 0, 7], "size": [0, 10, 14], "uv": [40, 30]}
+					]
+				},
+				{
+					"name": "head",
+					"parent": "gronkle_zonkle",
+					"pivot": [0, 8, 4],
+					"cubes": [
+						{"origin": [-5, 8, -5], "size": [10, 4, 10], "uv": [0, 30]},
+						{"origin": [3, 12, 0], "size": [2, 1, 2], "uv": [26, 44]},
+						{"origin": [-5, 12, 0], "size": [2, 1, 2], "uv": [46, 17]}
+					]
+				},
+				{
+					"name": "right_filping",
+					"parent": "all",
+					"pivot": [-5, 4, 2],
+					"cubes": [
+						{"origin": [-8, 0, -1], "size": [5, 5, 5], "uv": [46, 7], "mirror": true},
+						{"origin": [-11, 0, -4], "size": [5, 0, 7], "uv": [46, 0], "mirror": true}
+					]
+				},
+				{
+					"name": "left_filping",
+					"parent": "all",
+					"pivot": [5, 4, 2],
+					"cubes": [
+						{"origin": [3, 0, -1], "size": [5, 5, 5], "uv": [46, 7]},
+						{"origin": [6, 0, -4], "size": [5, 0, 7], "uv": [46, 0]}
+					]
+				}
+			]
+		}
+	]
+}

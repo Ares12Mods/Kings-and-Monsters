@@ -82,8 +82,13 @@ public class OgreMerchantBackpackItem extends CurioItem {
         return handler;
     }
 
-    private static void saveInventory(ItemStack backpack, ItemStackHandler handler,
-                                      net.minecraft.core.HolderLookup.Provider registries) {
+    /**
+     * Also called explicitly by the menu after every click and on close. ItemStackHandler's own
+     * onContentsChanged callback is skipped when a stack is grown in place (stacking onto an existing
+     * stack or shift-clicking), because setStackInSlot sees the same, already-mutated stack as unchanged.
+     */
+    public static void saveInventory(ItemStack backpack, ItemStackHandler handler,
+                                     net.minecraft.core.HolderLookup.Provider registries) {
         CustomData.update(DataComponents.CUSTOM_DATA, backpack,
                 tag -> tag.put(INVENTORY_TAG, handler.serializeNBT(registries)));
     }

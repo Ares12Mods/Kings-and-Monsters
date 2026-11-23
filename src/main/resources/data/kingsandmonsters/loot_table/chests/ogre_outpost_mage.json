@@ -51,6 +51,14 @@
           "functions": [
             { "function": "minecraft:set_count", "count": { "min": 1, "max": 2, "type": "minecraft:uniform" } }
           ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "kingsandmonsters:bog_toad_venom",
+          "weight": 2,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "min": 1, "max": 2, "type": "minecraft:uniform" } }
+          ]
         }
       ]
     },

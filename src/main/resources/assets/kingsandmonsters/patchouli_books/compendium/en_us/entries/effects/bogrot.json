@@ -1,0 +1,27 @@
+{
+  "name": "Bogrot",
+  "category": "kingsandmonsters:effects",
+  "icon": "kingsandmonsters:bogfang",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "The Rot",
+      "text": "Bogrot is the swamp's slow death. It slows movement and attack speed by 10%, wraps the victim in flies and bubbles, and deals damage that armor does nothing to stop.$(br2)Bogrot I is inflicted by the $(item)Bogfang Blade$() for 45 seconds and ticks for 2 damage every 5 seconds. Bogrot II comes from Bog Toad bites and Plague Ogres, also lasts 45 seconds, and ticks every 4 seconds.$(br2)Players take half damage from each tick."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Ogres and the Rot",
+      "text": "Ogres suffer it worst. Every tick hurts an ogre 15% more, and the Ogre King 50% more, despite his size.$(br2)A plain Ogre Grunt that dies of Bogrot II becomes a Plague Ogre."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What Resists It",
+      "text": "Bog Toads, Bog Poles and Plague Ogres cannot be infected. Neither can slimes, magma cubes, Breezes, Blazes, Vexes, Allays or golems: nothing in them can rot.$(br2)A $(item)Bog Iron Band$() reduces Bogrot and Poison damage to its wearer by 20%. Milk cures the rot, and a rupture from the Bogfang Blade consumes it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Seeing It",
+      "text": "An infected creature trails flies, bubbles and motes, sized to its body. With Jade installed, looking at it shows the level and the seconds left.$(br2)The rot is visible to everyone nearby, not only the one who spread it."
+    }
+  ]
+}

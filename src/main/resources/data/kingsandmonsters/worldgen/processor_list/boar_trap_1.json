@@ -1,0 +1,12 @@
+{
+  "processors": [
+    {
+      "processor_type": "kingsandmonsters:encounter_air",
+      "ground_y": 5,
+      "pit_x": 10,
+      "pit_z": 10,
+      "pit_radius": 7.0
+    },
+    { "processor_type": "kingsandmonsters:fort_footprint_recorder" }
+  ]
+}

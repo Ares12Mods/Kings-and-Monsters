@@ -5,10 +5,9 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 public final class OgreDamageCapEvents {
 
-    // No single ogre hit should ever take more than this fraction of a player's max health,
-    // regardless of armor — without this, the brute's heavier attacks can one-shot an unarmored
-    // player. This fires after armor/shield reductions are already applied, so it's a final ceiling
-    // on the actual damage about to land, not a change to how armor or blocking behave.
+    // No single ogre hit should take more than this fraction of a player's max health, whatever the
+    // armor; otherwise the brute's heavier attacks can one-shot an unarmored player. Fires after
+    // armor and shield reductions, so it is a final ceiling and changes nothing about armor or blocking.
     private static final float MAX_SINGLE_HIT_FRACTION = 0.7F;
 
     private OgreDamageCapEvents() {}

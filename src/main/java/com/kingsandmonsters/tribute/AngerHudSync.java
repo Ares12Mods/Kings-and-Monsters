@@ -48,6 +48,7 @@ public final class AngerHudSync {
 
         for (ServerLevel level : server.getAllLevels()) {
             for (ServerPlayer player : level.players()) {
+                TributeManager.checkTollExpiry(level, player);
                 AngerHudPayload payload = computePayload(level, player, radius);
                 AngerHudPayload lastSent = lastSentByPlayer.get(player);
                 if (!payload.equals(lastSent)) {
@@ -64,8 +65,11 @@ public final class AngerHudSync {
                 .flatMap(camp -> TributeManager.get(level, camp))
                 .map(data -> data.isChiefAlive())
                 .orElse(true);
+        // An appeased player sees the tribe as calm; everyone else sees its shared mood.
+        int anger = TributeManager.isAppeased(level, player.getUUID())
+                ? 0 : TributeManager.getFactionAngerLevel(level);
         return new AngerHudPayload(
-                TributeManager.getFactionAngerLevel(level),
+                anger,
                 Config.TRIBUTE_MAX_ANGER.get(),
                 nearbyChiefAlive);
     }

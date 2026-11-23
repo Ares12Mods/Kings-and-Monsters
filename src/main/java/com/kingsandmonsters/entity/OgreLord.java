@@ -1,16 +1,27 @@
 package com.kingsandmonsters.entity;
 
 import com.kingsandmonsters.Config;
+import com.kingsandmonsters.ModItems;
+import com.kingsandmonsters.tribute.TributeManager;
+import com.kingsandmonsters.tribute.TributeSavedData;
 import com.kingsandmonsters.ModEntities;
-import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
 import com.kingsandmonsters.network.ScreenShakePayload;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -46,7 +57,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
@@ -55,6 +65,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -73,8 +84,32 @@ public class OgreLord extends OgreGrunt {
     }
 
     @Override
-    protected int getMinimumStepSoundIntervalTicks() {
-        return entityData.get(DATA_LORD_LOCOMOTION) == LOCOMOTION_RUN ? 10 : 12;
+    protected boolean usesAnimatedFootsteps() {
+        return true;
+    }
+
+    // Animation ticks where a foot lands, from the leg keyframes: the foot is lifted half a stride
+    // earlier, comes down here, then drags back under the body while the other leg swings.
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
+            "walk", new double[]{0.0, 40.0},
+            "Combat walk", new double[]{0.0, 20.83});
+
+    /** Client-side: a heavy stomp each time a foot visibly lands. */
+    private void playFootfall() {
+        if (!onGround() || isInWater() || isSilent()) {
+            return;
+        }
+        float variation = getRandom().nextFloat() * 0.08F;
+        // A dull thud with no metal in it: the warden's footfall and a heavy landing, pitched down,
+        // with the ground's own step sound underneath so mud, stone and wood each sound different.
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.WARDEN_STEP, SoundSource.HOSTILE,
+                1.6F, 0.55F + variation, false);
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.HOSTILE_BIG_FALL, SoundSource.HOSTILE,
+                0.9F, 0.6F + variation, false);
+        BlockPos ground = getOnPos();
+        SoundType surface = level().getBlockState(ground).getSoundType(level(), ground, this);
+        level().playLocalSound(getX(), getY(), getZ(), surface.getStepSound(), SoundSource.HOSTILE,
+                1.4F, 0.5F + variation, false);
     }
     private static final EntityDataAccessor<Integer> DATA_LORD_ATTACK_ID =
             SynchedEntityData.defineId(OgreLord.class, EntityDataSerializers.INT);
@@ -98,18 +133,44 @@ public class OgreLord extends OgreGrunt {
     private static final String FORT_ENCOUNTER_STATE_TAG = "KingsAndMonstersFortEncounterState";
     private static final String ROYAL_TRIAL_POSITIONS_TAG = "KingsAndMonstersRoyalTrialPositions";
     private static final String COMPLETED_ROYAL_TRIALS_TAG = "KingsAndMonstersCompletedRoyalTrials";
+    private static final String DUELIST_TAG = "KingsAndMonstersDuelist";
+    private static final String THRONE_POS_TAG = "KingsAndMonstersThronePos";
+    private static final String THRONE_YAW_TAG = "KingsAndMonstersThroneYaw";
+    private static final String RETURN_TO_THRONE_TAG = "KingsAndMonstersReturnToThrone";
+    /** Where his throne is, remembered so a won duel can send him back to it. */
+    @Nullable
+    private BlockPos thronePos;
+    private float throneYaw;
+    /** Set when a duel is yielded away from the throne; he goes back the next time his chunk loads. */
+    private boolean returnToThroneOnLoad;
+    /** True only in the session after a load, so the return never fires in the middle of the duel's aftermath. */
+    private boolean throneReturnDue;
+    private static final String DUEL_WINS_TAG = "KingsAndMonstersDuelWins";
+    /** Players who have beaten him in a duel, and the game time they did it, for his words and the rest between duels. */
+    private final java.util.Map<UUID, Long> duelWins = new java.util.HashMap<>();
+    private int throneAwayTicks;
+    /** No player this close for this long and he goes back to the throne, loaded or not. */
+    private static final double THRONE_RETURN_AWAY_DISTANCE = 64.0;
+    private static final int THRONE_RETURN_AWAY_TICKS = 20 * 10;
     private static final String ROYAL_DEFENCE_STARTED_TAG = "KingsAndMonstersRoyalDefenceStarted";
     private static final String WAKE_UP_TICKS_TAG = "KingsAndMonstersWakeUpTicks";
+    private static final String KING_PURCHASES_TAG = "KingsAndMonstersKingPurchases";
+    private static final String KING_DAILY_TAG = "KingsAndMonstersKingDailyStock";
     private static final float PHASE_TWO_HEALTH_THRESHOLD = 0.5F;
+    // He yields a duel once a blow would take him down to this share of his health.
+    private static final float DUEL_YIELD_FRACTION = 0.15F;
+    // How long between Bogjaw traps catching him.
+    private static final int TRAP_COOLDOWN_TICKS = 20 * 12;
     private static final int PULL_OUT_BUFF_DURATION_TICKS = 60 * 20;
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
-    private static final RawAnimation IDLE_2 = RawAnimation.begin().thenLoop("idle2");
+    private static final RawAnimation IDLE_2 = RawAnimation.begin().thenLoop("idle 2");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
-    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("combat_walk");
-    private static final RawAnimation RUN = RawAnimation.begin().thenLoop("run");
+    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("Combat walk");
     // The mixed capitalization below is baked into the exported animation file
     // (ogre_lord.animation.json) — GeckoLib matches these names verbatim.
     private static final RawAnimation ONE_ARM_UPSWING = RawAnimation.begin().thenPlay("lordly one arm upswing");
+    private static final RawAnimation REGULAR_ATTACK = RawAnimation.begin().thenPlay("Regular_attack");
+    private static final RawAnimation REGULAR_ATTACK_2 = RawAnimation.begin().thenPlay("Regular_attack2");
     private static final RawAnimation DOUBLE_STOMP = RawAnimation.begin().thenPlay("Double stomp");
     private static final RawAnimation DOUBLE_OVERHEAD_SLAM = RawAnimation.begin().thenPlay("double overhead slam");
     private static final RawAnimation ROAR = RawAnimation.begin().thenPlay("Roar");
@@ -118,12 +179,15 @@ public class OgreLord extends OgreGrunt {
     private static final RawAnimation DOUBLE_ARM_UPSWING = RawAnimation.begin().thenPlay("lordly double arm upswing");
     private static final RawAnimation CLUB_HEAD_THRUST = RawAnimation.begin().thenPlay("club head thrust");
     private static final RawAnimation SINGLE_LEG_STOMP = RawAnimation.begin().thenPlay("single leg stomp");
-    private static final RawAnimation PULL_OUT = RawAnimation.begin().thenPlay("pull out");
+    // The trailing space is part of the exported clip name.
+    private static final RawAnimation PULL_OUT = RawAnimation.begin().thenPlay("club pull out ");
     private static final RawAnimation CLUB_DOUBLE_OVERHEAD = RawAnimation.begin().thenPlay("club double overhead");
     private static final RawAnimation SINGLE_OVERHEAD_SLAM = RawAnimation.begin().thenPlay("single overhead slam");
     private static final RawAnimation DEATH = RawAnimation.begin().thenPlay("death");
     private static final RawAnimation SLEEPING = RawAnimation.begin().thenLoop("sleeping");
-    private static final RawAnimation WAKE_UP = RawAnimation.begin().thenPlay("wake up animation");
+    private static final RawAnimation WAKE_UP = RawAnimation.begin().thenPlay("Stand up animation");
+    private static final RawAnimation STARTLE_AWAKE = RawAnimation.begin().thenPlay("Startle awake");
+    private static final RawAnimation SITTING_IDLE = RawAnimation.begin().thenLoop("Sitting Idle");
 
     private static final int IDLE_VARIANT_TICKS = 40;
     private static final int ONE_ARM_UPSWING_ANIMATION_TICKS = 50;
@@ -137,18 +201,55 @@ public class OgreLord extends OgreGrunt {
     private static final int CLUB_HEAD_THRUST_ANIMATION_TICKS = 50;
     private static final int SINGLE_LEG_STOMP_ANIMATION_TICKS = 50;
     private static final int PULL_OUT_ANIMATION_TICKS = 165;
-    private static final int CLUB_DOUBLE_OVERHEAD_ANIMATION_TICKS = 50;
+    private static final int CLUB_DOUBLE_OVERHEAD_ANIMATION_TICKS = 60;
     private static final int SINGLE_OVERHEAD_SLAM_ANIMATION_TICKS = 50;
+    private static final int REGULAR_ATTACK_ANIMATION_TICKS = 50;
     // The revised authored death animation is 6.5 seconds and needs no extended
     // frozen-corpse workaround; removal follows its final frame.
     private static final int DEATH_ANIMATION_TICKS = 130;
     // The animation is 2 seconds. Five extra ticks cover the movement
     // controller's polling interval so the ending cannot be clipped.
     private static final int WAKE_UP_ANIMATION_TICKS = 45;
+    // Startle awake is 1.5 seconds; same 5-tick margin as the stand-up above.
+    private static final int STARTLE_ANIMATION_TICKS = 35;
     private static final int FORT_ENCOUNTER_NORMAL = 0;
     private static final int FORT_ENCOUNTER_SLEEPING = 1;
     private static final int FORT_ENCOUNTER_WAKING = 2;
+    // Royal Trials: he stirs when the first trial starts, then sits on the throne watching.
+    private static final int FORT_ENCOUNTER_STARTLED = 3;
+    private static final int FORT_ENCOUNTER_SEATED = 4;
+    // Attack ids for the throne animations (1-14 are used above).
+    private static final int ATTACK_ID_STARTLE = 15;
+    // The two regular arm slams: right hand, then left hand.
+    private static final int ATTACK_ID_REGULAR_ATTACK = 18;
+    private static final int ATTACK_ID_REGULAR_ATTACK_2 = 19;
+    // Sleepy Zs originate just above the crown, then keep their existing upward animation.
+    private static final int SLEEP_Z_INTERVAL_TICKS = 45;
+    private static final double SLEEP_Z_HEIGHT = 0.97;
+    private static final double SLEEP_Z_FORWARD = -0.4;
+    private static final double SLEEP_Z_HORIZONTAL_JITTER = 0.12;
+    // Seated head tracking; the limits match the combat model's.
+    private static final double SEATED_HEAD_TRACK_RANGE = 40.0;
+    private static final float SEATED_HEAD_MAX_YAW = 40.0F;
+    private static final float SEATED_HEAD_MAX_UP_PITCH = 22.5F;
+    private static final float SEATED_HEAD_MAX_DOWN_PITCH = 6.0F;
+    private static final float SEATED_HEAD_TURN_RESPONSE = 0.15F;
+    // The body leans a small fraction of the head's turn, capped, and eases there slowly.
+    // Set SEATED_BODY_FOLLOW to 0 to keep the body completely still.
+    private static final float SEATED_BODY_FOLLOW = 0.12F;
+    private static final float SEATED_BODY_MAX_YAW = 6.0F;
+    private static final float SEATED_BODY_RESPONSE = 0.08F;
     private static final int ROYAL_TRIAL_COUNT = 3;
+    // Holding court: how far a visitor can be and still talk, how far away counts as gone, and
+    // how long the hall has to stay empty before he dozes off again.
+    private static final double COURT_TALK_RANGE = 10.0;
+    // How long the Royal Trials may sit with nobody near the fort before they count as abandoned.
+    private static final int ROYAL_TRIAL_ABANDON_TICKS = 20 * 120;
+    private static final double COURT_LEAVE_DISTANCE = 24.0;
+    private static final int COURT_SLEEP_DELAY_TICKS = 20 * 10;
+    private static final int CHALLENGE_ANGER = 10;
+    private static final double COURT_SPAWN_DISTANCE = 9.0;
+    private static final double COURT_SPAWN_SPACING = 3.5;
     private static final double ROYAL_TRIAL_BAR_RANGE = 96.0;
     private static final double FORT_WAKE_FORWARD_NUDGE = 0.20;
     private static final int FORT_WAKE_NUDGE_START_TICK = 10;
@@ -157,46 +258,65 @@ public class OgreLord extends OgreGrunt {
     // newly loaded fort evict a stale bar left by a King whose chunk unloaded
     // before its periodic range check ran.
     private static final Map<ServerPlayer, OgreLord> ROYAL_TRIAL_BAR_OWNERS = new WeakHashMap<>();
-    private static final int CLUB_VISIBILITY_SWAP_TICK = 110;
+    private static final int CLUB_VISIBILITY_SWAP_TICK = 108;
     // Animation controller ticks at a 5-tick cadence (see registerControllers); this covers that latency
     // so the hit lands in sync with the visual impact frame, matching the calibration approach used by OgreBrute.
     private static final int ATTACK_SYNC_DELAY_TICKS = 3;
     private static final int SUMMON_POINT_PUNCH_SOUND_TICK = 22 + ATTACK_SYNC_DELAY_TICKS;
     // The point pose lands at 1.1667s. Retain the same small client animation
     // synchronization allowance used by the King's attack impacts.
-    private static final int SUMMON_POINT_EVENT_TICK = 23 + ATTACK_SYNC_DELAY_TICKS;
-    // Forward-kinematics reconstruction of the authored Blockbench swing (torso+body+right_arm+
-    // club_hand bone chain, geo.json pivots, GeckoLib's actual render transform math and Catmull-Rom
-    // keyframe interpolation) put the club head at true ground level at tick 136. In-game testing
-    // after that change still read as slightly early, so +3 ticks on top of the FK estimate — this
-    // is an empirical correction from actual play, not a reintroduction of the old blanket
-    // ATTACK_SYNC_DELAY_TICKS animation-lag fudge (that lag no longer exists post zero-frame fix).
+    private static final int SUMMON_POINT_VOCAL_TICK = 18;
+    private static final int SUMMON_POINT_EVENT_TICK = 23;
+    // Forward-kinematics reconstruction of the Blockbench swing (bone chain, geo.json pivots,
+    // GeckoLib's render math, Catmull-Rom keyframes) puts the club head on the ground at tick 136.
+    // Play-testing still felt early, so +3 ticks on top. That is an empirical fix, not the old
+    // blanket ATTACK_SYNC_DELAY_TICKS fudge (that lag is gone since the zero-frame fix).
     private static final int PULL_OUT_IMPACT_TICK = 139;
     // The King drops to his knees around 0.42s into the pull-out animation.
     private static final int PULL_OUT_KNEEL_HURT_SOUND_TICK = 8;
     // Raising pitch also shortens/speeds the reused hurt recording, giving this exertion its own identity.
     private static final float PULL_OUT_KNEEL_HURT_SOUND_PITCH = 1.10F;
-    // Same forward-kinematics method as PULL_OUT_IMPACT_TICK, plus the same +3 empirical correction
-    // from in-game testing. Double overhead and single overhead are different swings with different
-    // windups/torso lean — they do not actually share one contact frame, so they get their own ticks.
-    // +3 further ticks on top of the above, then dialed back 1 tick, per explicit tuning feedback.
-    private static final int CLUB_DOUBLE_OVERHEAD_IMPACT_TICK = 30;
+    // Same forward-kinematics method as PULL_OUT_IMPACT_TICK plus the +3 in-game correction. Double
+    // and single overhead are different swings with different windups, so each has its own tick.
+    // A further +3 was added, then 1 taken back, per tuning feedback.
+    // The reworked double overhead is the same swing as before with a half-second longer wind-up,
+    // so its impact moved from tick 30 to 40.
+    private static final int CLUB_DOUBLE_OVERHEAD_IMPACT_TICK = 40;
     private static final int SINGLE_OVERHEAD_IMPACT_TICK = 27;
+    // Both regular slams land at 1.17s (23.3 ticks) into their clip. Rounded up like the upswing's
+    // 1.19s, so the hit never fires before the fist visibly arrives.
+    private static final int REGULAR_ATTACK_IMPACT_TICK = 24 + ATTACK_SYNC_DELAY_TICKS;
     private static final int HEAVY_ATTACK_ROAR_LEAD_TICKS = 8;
-    private static final int CLUB_DOUBLE_OVERHEAD_ROAR_LEAD_TICKS = HEAVY_ATTACK_ROAR_LEAD_TICKS + 2;
-    private static final float PULL_OUT_ROAR_PITCH = 0.94F;
-    private static final float DOUBLE_OVERHEAD_ROAR_PITCH = 0.96F;
-    // The double-club wind-up should sit in the same deep register as the King's other attack grunts.
-    private static final float CLUB_DOUBLE_OVERHEAD_ROAR_PITCH = 0.86F;
-    private static final float SINGLE_OVERHEAD_ROAR_PITCH = 1.02F;
-    private static final float HEAVY_ATTACK_ROAR_PITCH_VARIATION = 0.025F;
+    private static final int PULL_OUT_ROAR_LEAD_TICKS = 12;
+    private static final int SINGLE_OVERHEAD_ROAR_LEAD_TICKS = 13;
+    private static final int DOUBLE_OVERHEAD_ROAR_LEAD_TICKS = 17;
+    private static final int VOCAL_LAYERS = 2;
+    private static final int CLUB_DOUBLE_OVERHEAD_ROAR_LEAD_TICKS = 17;
+    // The delivered King vocals are final timed performances; play them without repitching so their
+    // duration continues to match the authored jaw motion.
+    private static final float PULL_OUT_ROAR_PITCH = 1.0F;
+    private static final float DOUBLE_OVERHEAD_ROAR_PITCH = 1.0F;
+    private static final float CLUB_DOUBLE_OVERHEAD_ROAR_PITCH = 1.0F;
+    private static final float SINGLE_OVERHEAD_ROAR_PITCH = 1.0F;
+    private static final float HEAVY_ATTACK_ROAR_PITCH_VARIATION = 0.0F;
+    // Impact sounds shift a little each time so repeated slams don't sound identical.
+    private static final float IMPACT_PITCH_VARIATION = 0.05F;
+    private static final float IMPACT_VOLUME_VARIATION = 0.05F;
 
     // Shared recovery after one arm upswing/belly bump/double arm upswing/side smack/single leg
     // stomp — counted from attack start, so this leaves a real gap before he can swing again, not
     // back-to-back combos.
-    private static final int BASIC_ATTACK_COOLDOWN_TICKS = 110;
-    private static final int DOUBLE_STOMP_SWING_COOLDOWN_TICKS = 145;
-    private static final int DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS = 140;
+    // Tightened from 110/145/140 so the fight has fewer dead gaps; each swing also gets a little
+    // random jitter (see swingCooldown) so the rhythm can't be timed exactly.
+    private static final int BASIC_ATTACK_COOLDOWN_TICKS = 85;
+    // The attacks he throws while walking never cost him time to line up or stop, so they also
+    // recover a little slower than the planted ones.
+    private static final int WALKING_ATTACK_COOLDOWN_TICKS = 90;
+    private static final int DOUBLE_STOMP_SWING_COOLDOWN_TICKS = 110;
+    private static final int DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS = 100;
+    private static final int SWING_COOLDOWN_JITTER_TICKS = 10;
+    private static final double PLOW_TRIGGER_RANGE = 24.0;
+    private static final int PLOW_BLOCKS_PER_PULSE = 40;
     // Extra per-move cooldowns on top of the shared swing recovery above, so the big AOE moves
     // don't get reselected back-to-back the way the regular rotation can.
     private static final int DOUBLE_STOMP_COOLDOWN_TICKS = 300;
@@ -205,7 +325,14 @@ public class OgreLord extends OgreGrunt {
     private static final int PHASE_TWO_ROAR_COOLDOWN_TICKS = 1200;
     private static final int PHASE_TWO_FIRST_ROAR_DELAY_TICKS = 160;
     private static final int SUMMON_COOLDOWN_TICKS = 90 * 20;
-    private static final int SUMMON_INITIAL_DELAY_TICKS = 600;
+    // The Roar and Summon are driven by health (see the gates below). These first-use timers are only
+    // a fallback so a fight that stalls above the first gate still gets them.
+    private static final int ROAR_INITIAL_DELAY_TICKS = 120 * 20;
+    private static final int SUMMON_INITIAL_DELAY_TICKS = 60 * 20;
+    // Health fractions that make the Summon / Roar ready. Phase 2 starts at 0.5, so the first two
+    // summon gates and the first roar gate are phase 1 beats; the rest are for the club phase.
+    private static final float[] SUMMON_HEALTH_GATES = {0.85F, 0.65F, 0.30F};
+    private static final float[] ROAR_HEALTH_GATES = {0.75F, 0.40F};
     private static final int SPECIAL_CONFLICT_RETRY_MIN_TICKS = 200;
     private static final int SPECIAL_CONFLICT_RETRY_RANDOM_TICKS = 101;
     // The animation opens its mouth at 1.25s and closes at the 4.25s ending frame.
@@ -227,12 +354,13 @@ public class OgreLord extends OgreGrunt {
     private static final int ROAR_SLOWNESS_REFRESH_INTERVAL_TICKS = 5;
     private static final int ROAR_SLOWNESS_REFRESH_DURATION_TICKS = 10;
     private static final double ROAR_EFFECT_RADIUS = 16.0;
+    private static final int MAX_LIVING_SUMMONS = 6;
+    // A call-up needs room for at least a pair, otherwise it waits.
+    private static final int MIN_SUMMON_ROOM = 2;
+    private static final int SUMMON_FULL_RETRY_TICKS = 10 * 20;
+    private static final double ROAR_SHOCK_KNOCKBACK = 1.6;
+    private static final double ROAR_SHOCK_TRIGGER_RANGE = 7.0;
     private static final int PHASE_TWO_SINGLE_LEG_STOMP_CHANCE = 7;
-    private static final int GUARD_FORMATION_WEIGHT = 1;
-    private static final int GRUNT_FORMATION_WEIGHT = 1;
-    private static final int MAGE_FORMATION_WEIGHT = 1;
-    private static final int TOTAL_SUMMON_FORMATION_WEIGHT =
-            GUARD_FORMATION_WEIGHT + GRUNT_FORMATION_WEIGHT + MAGE_FORMATION_WEIGHT;
     private static final double ROYAL_COMMAND_RADIUS = 32.0;
     // Reinforcements emerge inside the king's broad collision footprint. Their
     // entity collision gives him a small physical shove while he remains planted.
@@ -250,24 +378,31 @@ public class OgreLord extends OgreGrunt {
     private static final float ROAR_RIGHT_YAW_OFFSET = 15.0F;
 
     private static final double REGULAR_ATTACK_START_RANGE = 5.5;
-    private static final float SNAP_FACE_MAX_TURN_DEGREES = 100.0F;
+    private static final double STOMP_WAVE_MIN_RANGE = 4.2;
     // One arm upswing impact at 1.19s into "lordly one arm upswing".
     private static final int ONE_ARM_UPSWING_IMPACT_DELAY_TICKS = 24 + ATTACK_SYNC_DELAY_TICKS;
     // Double stomp impacts at 1.13s (left foot) and 2.88s (right foot) into "Double stomp".
     private static final int DOUBLE_STOMP_LEFT_IMPACT_DELAY_TICKS = 23 + ATTACK_SYNC_DELAY_TICKS;
     private static final int DOUBLE_STOMP_RIGHT_IMPACT_DELAY_TICKS = 58 + ATTACK_SYNC_DELAY_TICKS;
+    // The 0.5s grunts start as each jaw starts to open (1.0s and 2.75s), so the mouth is open for the whole vocal.
+    private static final int DOUBLE_STOMP_LEFT_GRUNT_DELAY_TICKS = 20 + ATTACK_SYNC_DELAY_TICKS;
+    private static final int DOUBLE_STOMP_RIGHT_GRUNT_DELAY_TICKS = 55 + ATTACK_SYNC_DELAY_TICKS;
     // Double overhead slam (Phase 1 only, unarmed hands) — forward-kinematics reconstruction put
     // both hands at ground level at tick 24; +6 ticks on top is an empirical correction confirmed
     // good from in-game testing.
     private static final int DOUBLE_OVERHEAD_SLAM_IMPACT_DELAY_TICKS = 30;
     // Belly bump and lordly double-arm upswing impact at 1.17s; single leg stomp at 1.17s.
+    private static final int BELLY_BUMP_ROAR_DELAY_TICKS = 20 + ATTACK_SYNC_DELAY_TICKS;
     private static final int BELLY_BUMP_IMPACT_DELAY_TICKS = 23 + ATTACK_SYNC_DELAY_TICKS;
+    // The jaw starts opening at 1.0s in the double-arm upswing animation.
+    private static final int DOUBLE_ARM_UPSWING_GRUNT_DELAY_TICKS = 23;
     private static final int DOUBLE_ARM_UPSWING_IMPACT_DELAY_TICKS = 23 + ATTACK_SYNC_DELAY_TICKS;
-    // Club-head thrust's whole hit window (sound + active hitbox) pushed back 3 ticks later than
-    // the other phase-two attacks above, per explicit tuning feedback (originally +6, dialed back
-    // 3 after testing felt too delayed) — shifted together so the impact sound stays synced with
-    // the extending-reach hitbox instead of firing after it closes.
-    private static final int CLUB_HEAD_THRUST_IMPACT_DELAY_TICKS = 26 + ATTACK_SYNC_DELAY_TICKS;
+    // Club-head thrust's whole hit window (sound and hitbox) sits 3 ticks later than the other
+    // phase-two attacks (+6 originally, dialed back after testing). Shifted together so the sound
+    // stays in sync with the extending-reach hitbox.
+    // The club shoots out between 1.0s and 1.13s, so the whoosh starts as it leaves; the metal hit
+    // only plays when the club head actually connects (see tickClubHeadThrustHitbox).
+    private static final int CLUB_HEAD_THRUST_WHOOSH_DELAY_TICKS = 21 + ATTACK_SYNC_DELAY_TICKS;
     private static final int CLUB_HEAD_THRUST_ACTIVE_START_TICK = 23 + ATTACK_SYNC_DELAY_TICKS;
     private static final int CLUB_HEAD_THRUST_ACTIVE_END_TICK = 31 + ATTACK_SYNC_DELAY_TICKS;
     private static final double CLUB_HEAD_THRUST_START_REACH = 1.5;
@@ -284,43 +419,78 @@ public class OgreLord extends OgreGrunt {
     private static final int DOUBLE_ARM_UPSWING_COOLDOWN_TICKS = 200;
     private static final int CLUB_DOUBLE_OVERHEAD_COOLDOWN_TICKS = 360;
     private static final int SINGLE_OVERHEAD_COOLDOWN_TICKS = 180;
-    private static final int LORD_IDLE_HUFF_MIN_COOLDOWN_TICKS = 600;
-    private static final int LORD_IDLE_HUFF_RANDOM_COOLDOWN_TICKS = 500;
-    private static final int LORD_IDLE_HUFF_CHANCE = 80;
     private static final int LOCOMOTION_IDLE = 0;
     private static final int LOCOMOTION_WALK = 1;
-    private static final int LOCOMOTION_RUN = 2;
+    // Value 2 used to be the run; it is left unused so saved values keep their meaning.
     private static final int LOCOMOTION_COMBAT_WALK = 3;
-    private static final double KING_COMBAT_WALK_SPEED = 0.90;
-    private static final double COMBAT_WALK_ENTER_RANGE = 14.0;
-    private static final double COMBAT_WALK_EXIT_RANGE = 16.0;
-    private static final double COMBAT_WALK_MAX_VERTICAL_DIFFERENCE = 4.5;
+    // He has no run any more: the combat walk is how he closes distance and how he circles.
+    private static final double KING_COMBAT_WALK_SPEED = 0.931;
     // Keep just a touch more breathing room so his long-reach attacks do not crowd the player.
     private static final double COMBAT_WALK_TARGET_GAP = 2.0;
+    private static final double COMBAT_WALK_MAX_VERTICAL_DIFFERENCE = 4.5;
+    // Frames of blending when an attack that played over the walk lets go of the upper body.
+    public static final float ATTACK_OVERLAY_FADE_OUT_TICKS = 4.0F;
+    // Strikes skip the line-of-sight check inside this range (see canStrikeReach).
+    private static final double CLOSE_STRIKE_RANGE = 10.0;
 
-    // Calibrated against fully enchanted diamond armor: 3-4 hearts per attack, max — these were
-    // landing 6-7 hearts before, so everything below is roughly halved. Double stomp's two hit
-    // circles overlap almost entirely at this radius (offset is only ±1 block), so a stationary
-    // target usually eats both — its per-hit multiplier is cut further than the others to compensate.
-    // One arm upswing is the same move as the double arm version, just redirected — same multiplier.
-    private static final float ONE_ARM_UPSWING_DAMAGE_MULTIPLIER = 1.4F;
-    private static final float DOUBLE_STOMP_DAMAGE_MULTIPLIER = 1.1F;
-    private static final float DOUBLE_OVERHEAD_SLAM_DAMAGE_MULTIPLIER = 2.0F;
-    private static final float BELLY_BUMP_DAMAGE_MULTIPLIER = 1.3F;
-    private static final float DOUBLE_ARM_UPSWING_DAMAGE_MULTIPLIER = 1.4F;
-    private static final float CLUB_HEAD_THRUST_DAMAGE_MULTIPLIER = 1.4F;
-    private static final float SINGLE_LEG_STOMP_DAMAGE_MULTIPLIER = 1.3F;
+    // Calibrated against fully enchanted diamond armor at 3-4 hearts per attack; these used to
+    // land 6-7, so everything here is roughly halved. Double stomp's two hit circles nearly
+    // overlap (offset only +-1 block), so its per-hit multiplier is cut further. One arm upswing
+    // is the double arm move redirected, so it shares that multiplier.
+    // The attacks he can now throw while walking (the upswings, the regular slams, the single club
+    // slam and the thrust) were trimmed by roughly a quarter, since he no longer has to plant his
+    // feet to throw them. The planted attacks keep their old numbers.
+    private static final float ONE_ARM_UPSWING_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+    // Double stomp lands two ripple hits, so each one is a standard blow rather than a heavy one.
+    private static final float DOUBLE_STOMP_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+    /** Ripples are 11-14 blocks across at 0.625 blocks per tick, so they outlast the attack by about 20 ticks. */
+    private static final int JUMPABLE_RIPPLE_TAIL_TICKS = 24;
+    private int jumpableRippleUntilTick;
+    private static final float DOUBLE_OVERHEAD_SLAM_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.CRUSHING);
+    private static final float BELLY_BUMP_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
+    private static final double BELLY_BUMP_HORIZONTAL_LAUNCH = 1.6;
+    private static final float DOUBLE_ARM_UPSWING_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+    private static final float CLUB_HEAD_THRUST_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+    // Regular slams: the hand itself hits for the full amount, anything else in the smoke ring
+    // takes less the further out it is.
+    private static final float REGULAR_ATTACK_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+    // Flat club bonus is a config value; the walking club attacks apply this fraction of it.
+    private static final float MOBILE_CLUB_BONUS_SCALE = 0.5F;
+    // Stomp Wave: the right-foot stomp sends a line of ripples straight ahead. It trades the old
+    // stomp's unavoidable 6.5-block circle (1.3x) for a longer, dodgeable hit that is stronger,
+    // so it must be sidestepped or jumped. Each target is hit once per wave.
+    // 20 raw damage against his default 18 attack: the stomp is his repeatable poke, so its wave hits
+    // softer than a regular swing (24) and clearly below the club slams' ripples. It scales with the
+    // attack attribute like every other blow.
+    private static final float STOMP_WAVE_DAMAGE_MULTIPLIER = 20.0F / 18.0F;
+    private static final int STOMP_WAVE_PULSES = 6;
+    private static final int STOMP_WAVE_PULSE_INTERVAL_TICKS = 4;
+    private static final double STOMP_WAVE_FIRST_DISTANCE = 1.8;
+    private static final double STOMP_WAVE_SPACING = 2.5;
+    private static final float STOMP_WAVE_PULSE_RADIUS = 2.3F;
+    private static final double STOMP_WAVE_VERTICAL_HIT_RANGE = 1.6;
+    private static final double STOMP_WAVE_LAUNCH = 0.55;
+    private static final int STOMP_WAVE_SLOWNESS_TICKS = 30;
+    private static final int STOMP_WAVE_MAX_LIFETIME_TICKS = 120;
 
     // 1.5x the original 7.5/9.0 block radii.
     private static final float DOUBLE_STOMP_AREA_RADIUS = 11.25F;
     private static final float DOUBLE_OVERHEAD_SLAM_AREA_RADIUS = 13.5F;
-    private static final float PULL_OUT_DAMAGE_MULTIPLIER = 1.4F;
-    private static final float CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER = 2.0F;
-    private static final float SINGLE_OVERHEAD_DAMAGE_MULTIPLIER = 1.4F;
+    private static final float PULL_OUT_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
+    private static final float CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.CRUSHING);
+    private static final float SINGLE_OVERHEAD_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
 
     // Terrain destruction on the big ground smashes — kept small ("a couple" blocks), not a crater.
     private static final int DOUBLE_STOMP_BLOCKS_DESTROYED = 2;
     private static final int DOUBLE_OVERHEAD_SLAM_BLOCKS_DESTROYED = 3;
+    private static final int REGULAR_ATTACK_BLOCKS_DESTROYED = 1;
+    private static final int SINGLE_OVERHEAD_BLOCKS_DESTROYED = 2;
+    // Where the single-arm slams come down in front of him, and how far their smoke ring reaches.
+    private static final double SINGLE_OVERHEAD_REACH = 4.96;
+    private static final float SINGLE_OVERHEAD_AREA_RADIUS = 6.0F;
+    private static final double REGULAR_SLAM_REACH = 3.4;
+    private static final double REGULAR_SLAM_SIDE_OFFSET = 1.3;
+    private static final float REGULAR_SLAM_AREA_RADIUS = 4.5F;
     private static final float MAX_DESTRUCTIBLE_HARDNESS = 20.0F;
 
     private int idleAnimationTicks;
@@ -332,10 +502,22 @@ public class OgreLord extends OgreGrunt {
     private int doubleArmUpswingCooldownTicks;
     private int clubDoubleOverheadCooldownTicks;
     private int singleOverheadCooldownTicks;
-    private int lordIdleHuffCooldownTicks;
     private int closePressureTicks;
     // Starts on cooldown so he can't roar the instant a fight begins.
-    private int roarCooldownTicks = ROAR_COOLDOWN_TICKS;
+    private int roarCooldownTicks = ROAR_INITIAL_DELAY_TICKS;
+    // Plow-through: when he can't reach a target nearby for a while he loses patience and smashes a
+    // path to them. Every number below is re-rolled per attempt so it never plays out the same way.
+    private int frustrationTicks;
+    private int frustrationThresholdTicks = rollFrustrationThreshold();
+    private int plowTicksRemaining;
+    private int plowCooldownTicks;
+    private double plowHalfWidth;
+    private int plowHeight;
+    private double plowReach;
+    private float plowDropChance;
+    private int nextSummonGate;
+    private int nextRoarGate;
+    private boolean healthGatesInitialised;
     private int roarActiveTicks;
     private boolean roarEffectsApplied;
     private boolean roarSoundPlayed;
@@ -343,6 +525,7 @@ public class OgreLord extends OgreGrunt {
     private int summonCooldownTicks = SUMMON_INITIAL_DELAY_TICKS;
     private int summonActiveTicks;
     private boolean summonEventFired;
+    private boolean summonVocalPlayed;
     private boolean summonPunchSoundPlayed;
     private double summonLockedX;
     private double summonLockedZ;
@@ -354,8 +537,12 @@ public class OgreLord extends OgreGrunt {
     private int oneArmUpswingImpactSoundDelayTicks = -1;
     private int doubleStompLeftImpactSoundDelayTicks = -1;
     private int doubleStompRightImpactSoundDelayTicks = -1;
+    private int doubleStompLeftGruntDelayTicks = -1;
+    private int doubleStompRightGruntDelayTicks = -1;
     private int doubleOverheadSlamImpactSoundDelayTicks = -1;
+    private int bellyBumpRoarDelayTicks = -1;
     private int bellyBumpImpactSoundDelayTicks = -1;
+    private int doubleArmUpswingGruntDelayTicks = -1;
     private int doubleArmUpswingImpactSoundDelayTicks = -1;
     private int clubHeadThrustImpactSoundDelayTicks = -1;
     private int clubHeadThrustElapsedTicks;
@@ -364,7 +551,16 @@ public class OgreLord extends OgreGrunt {
     private float clubHeadThrustYaw;
     private Vec3 previousClubHeadThrustPosition;
     private final Set<UUID> clubHeadThrustHitTargets = new HashSet<>();
+    /** The thrust's impact sounds play once per swing, however many targets the club head passes through. */
+    private boolean clubHeadThrustImpactSoundPlayed;
     private int singleLegStompImpactSoundDelayTicks = -1;
+    // Stomp Wave: -1 when idle, otherwise ticks since the stomp began.
+    private int stompWaveElapsedTicks = -1;
+    private long stompWaveStartTime;
+    private Vec3 stompWaveOrigin = Vec3.ZERO;
+    private Vec3 stompWaveDirection = Vec3.ZERO;
+    private final Set<UUID> stompWaveHitTargets = new HashSet<>();
+    private final List<DelayedSound> delayedSounds = new ArrayList<>();
     private int heavyAttackRoarDelayTicks = -1;
     private int heavyAttackRoarAttackId;
     private float heavyAttackRoarPitch = 1.0F;
@@ -374,10 +570,13 @@ public class OgreLord extends OgreGrunt {
     private int secondLastSelectedAttackId;
     private final Set<UUID> directShockwaveWeaponHitTargets = new HashSet<>();
     private int lastAnimationTick = -1;
-    private int movementAnimationGraceTicks;
+    private long lastMovingAnimationTick = Long.MIN_VALUE / 2;
+    private static final int MOVEMENT_ANIMATION_GRACE_TICKS = 4;
     private final CanonicalOneShotState visualOneShot = new CanonicalOneShotState();
+    // The attacks he throws while walking play on their own controller, over the walk.
+    private final CanonicalOneShotState visualOverlayOneShot = new CanonicalOneShotState();
+    private boolean attackOverlayVisible;
     private long visualDeathStartGameTime = Long.MIN_VALUE;
-    private boolean openingRunAttackCompleted;
     private int phaseTransitionElapsedTicks;
     private int clubAttackElapsedTicks;
     private boolean clubAttackImpactFired;
@@ -389,7 +588,7 @@ public class OgreLord extends OgreGrunt {
     private final List<BlockPos> royalTrialPositions = new ArrayList<>(ROYAL_TRIAL_COUNT);
     private final Set<UUID> royalDefenceIntroducedPlayers = new HashSet<>();
     private final ServerBossEvent royalTrialProgress = new ServerBossEvent(
-            royalUiText("Royal Defence 0/" + ROYAL_TRIAL_COUNT),
+            royalUiText("Royal Trials 0/" + ROYAL_TRIAL_COUNT),
             BossEvent.BossBarColor.PURPLE,
             BossEvent.BossBarOverlay.PROGRESS);
     private final ServerBossEvent kingBossBar = new ServerBossEvent(
@@ -399,34 +598,31 @@ public class OgreLord extends OgreGrunt {
     private int completedRoyalTrialsMask;
     private boolean royalDefenceStarted;
     private int wakeUpTicks;
+    @Nullable private UUID courtGuestId;
+    @Nullable private UUID duelistId;
+    private int trapReadyAtTick;
+    private int courtEmptyTicks;
+    private int royalTrialAbandonTicks;
+    // Which of the King's wares each player has bought, one bit per ware; his stock is theirs alone.
+    private final Map<UUID, Integer> kingPurchases = new java.util.HashMap<>();
+    /** What each player has bought of his repeatable wares today; stock refills at the start of each day. */
+    private final Map<UUID, DailyStock> kingDaily = new java.util.HashMap<>();
     private int lastRenderedFortEncounterState = -1;
 
     public OgreLord(EntityType<? extends OgreLord> type, Level level) {
         super(type, level);
         avoidWaterPathfinding();
         xpReward = LORD_XP_REWARD;
-        resetLordIdleHuffCooldown();
-    }
-
-    @Override
-    public void onAddedToLevel() {
-        super.onAddedToLevel();
-        if (!level().isClientSide) {
-            // Entity construction is not the authoritative start of a loaded entity's idle
-            // lifecycle. Establish a fresh scheduler baseline here for spawn eggs, commands, and
-            // chunk/world reloads without treating initialization itself as an idle-sound roll.
-            resetLordIdleHuffCooldown();
-        }
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 300.0)
+                .add(Attributes.MAX_HEALTH, 400.0)
                 .add(Attributes.ATTACK_DAMAGE, 18.0)
-                // Matches OgreBrute's chase speed.
-                .add(Attributes.MOVEMENT_SPEED, 0.333)
+                // A little slower than OgreBrute's chase speed.
+                .add(Attributes.MOVEMENT_SPEED, 0.30)
                 .add(Attributes.FOLLOW_RANGE, 34.0)
-                .add(Attributes.ARMOR, 20.0)
+                .add(Attributes.ARMOR, 25.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
                 .add(Attributes.ATTACK_KNOCKBACK, 2.0)
                 .add(Attributes.STEP_HEIGHT, 1.3)
@@ -473,14 +669,61 @@ public class OgreLord extends OgreGrunt {
                 royalTrialPositions.stream().mapToLong(BlockPos::asLong).toArray());
         tag.putInt(COMPLETED_ROYAL_TRIALS_TAG, completedRoyalTrialsMask);
         tag.putBoolean(ROYAL_DEFENCE_STARTED_TAG, royalDefenceStarted);
-        if (isWakingFromFortEncounter()) {
+        if (duelistId != null) {
+            tag.putUUID(DUELIST_TAG, duelistId);
+        }
+        if (thronePos != null) {
+            tag.putLong(THRONE_POS_TAG, thronePos.asLong());
+            tag.putFloat(THRONE_YAW_TAG, throneYaw);
+        }
+        tag.putBoolean(RETURN_TO_THRONE_TAG, returnToThroneOnLoad);
+        net.minecraft.nbt.ListTag wins = new net.minecraft.nbt.ListTag();
+        duelWins.forEach((playerId, time) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putLong("time", time);
+            wins.add(entry);
+        });
+        tag.put(DUEL_WINS_TAG, wins);
+        if (isWakingFromFortEncounter() || isStartledInFort()) {
             tag.putInt(WAKE_UP_TICKS_TAG, wakeUpTicks);
         }
+        net.minecraft.nbt.ListTag purchases = new net.minecraft.nbt.ListTag();
+        kingPurchases.forEach((playerId, mask) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putInt("bought", mask);
+            purchases.add(entry);
+        });
+        tag.put(KING_PURCHASES_TAG, purchases);
+        net.minecraft.nbt.ListTag daily = new net.minecraft.nbt.ListTag();
+        kingDaily.forEach((playerId, stock) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putLong("day", stock.day());
+            entry.putIntArray("used", stock.used());
+            daily.add(entry);
+        });
+        tag.put(KING_DAILY_TAG, daily);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        net.minecraft.nbt.ListTag purchases = tag.getList(KING_PURCHASES_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        for (int i = 0; i < purchases.size(); i++) {
+            CompoundTag entry = purchases.getCompound(i);
+            if (entry.hasUUID("player")) {
+                kingPurchases.put(entry.getUUID("player"), entry.getInt("bought"));
+            }
+        }
+        net.minecraft.nbt.ListTag daily = tag.getList(KING_DAILY_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        for (int i = 0; i < daily.size(); i++) {
+            CompoundTag entry = daily.getCompound(i);
+            if (entry.hasUUID("player")) {
+                kingDaily.put(entry.getUUID("player"), new DailyStock(entry.getLong("day"), entry.getIntArray("used")));
+            }
+        }
         if (tag.getBoolean(PHASE_TWO_TAG)) {
             entityData.set(DATA_LORD_PHASE_TWO, true);
         }
@@ -499,7 +742,7 @@ public class OgreLord extends OgreGrunt {
             }
         }
         int encounterState = Mth.clamp(tag.getInt(FORT_ENCOUNTER_STATE_TAG),
-                FORT_ENCOUNTER_NORMAL, FORT_ENCOUNTER_WAKING);
+                FORT_ENCOUNTER_NORMAL, FORT_ENCOUNTER_SEATED);
         entityData.set(DATA_FORT_ENCOUNTER_STATE, encounterState);
         royalTrialPositions.clear();
         for (long packedPos : tag.getLongArray(ROYAL_TRIAL_POSITIONS_TAG)) {
@@ -507,9 +750,28 @@ public class OgreLord extends OgreGrunt {
         }
         completedRoyalTrialsMask = tag.getInt(COMPLETED_ROYAL_TRIALS_TAG);
         royalDefenceStarted = tag.getBoolean(ROYAL_DEFENCE_STARTED_TAG);
-        wakeUpTicks = Mth.clamp(tag.getInt(WAKE_UP_TICKS_TAG), 0, WAKE_UP_ANIMATION_TICKS);
+        duelistId = tag.hasUUID(DUELIST_TAG) ? tag.getUUID(DUELIST_TAG) : null;
+        thronePos = tag.contains(THRONE_POS_TAG) ? BlockPos.of(tag.getLong(THRONE_POS_TAG)) : null;
+        throneYaw = tag.getFloat(THRONE_YAW_TAG);
+        returnToThroneOnLoad = tag.getBoolean(RETURN_TO_THRONE_TAG);
+        // Being read from a save means the chunk was unloaded and is back: that is when he goes home.
+        throneReturnDue = returnToThroneOnLoad;
+        duelWins.clear();
+        net.minecraft.nbt.ListTag wins = tag.getList(DUEL_WINS_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        for (int i = 0; i < wins.size(); i++) {
+            CompoundTag entry = wins.getCompound(i);
+            if (entry.hasUUID("player")) {
+                duelWins.put(entry.getUUID("player"), entry.getLong("time"));
+            }
+        }
+        wakeUpTicks =Mth.clamp(tag.getInt(WAKE_UP_TICKS_TAG), 0, WAKE_UP_ANIMATION_TICKS);
         if (encounterState == FORT_ENCOUNTER_WAKING && wakeUpTicks < WAKE_UP_ANIMATION_TICKS) {
             entityData.set(DATA_LORD_ATTACK_ID, 14);
+            entityData.set(DATA_LORD_ATTACK_START_TICK,
+                    Math.max(1L, level().getGameTime() - wakeUpTicks));
+        } else if (encounterState == FORT_ENCOUNTER_STARTLED) {
+            wakeUpTicks = Mth.clamp(wakeUpTicks, 0, STARTLE_ANIMATION_TICKS);
+            entityData.set(DATA_LORD_ATTACK_ID, ATTACK_ID_STARTLE);
             entityData.set(DATA_LORD_ATTACK_START_TICK,
                     Math.max(1L, level().getGameTime() - wakeUpTicks));
         }
@@ -530,6 +792,9 @@ public class OgreLord extends OgreGrunt {
         completedRoyalTrialsMask = 0;
         royalDefenceStarted = false;
         wakeUpTicks = 0;
+        thronePos = blockPosition();
+        throneYaw = getYRot();
+        returnToThroneOnLoad = false;
         entityData.set(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_SLEEPING);
         entityData.set(DATA_LORD_LOCOMOTION, LOCOMOTION_IDLE);
         setNoAi(true);
@@ -563,10 +828,8 @@ public class OgreLord extends OgreGrunt {
                 return;
             }
             kingBossBar.setProgress(getMaxHealth() <= 0.0F ? 0.0F : getHealth() / getMaxHealth());
-            // Never assert a locomotion state while a special/attack state owns the model — this
-            // write is currently masked by animateLord()'s one-shot check always running first, but
-            // it should not rely on that alone (attack animation ownership belongs at the write site
-            // too, not just the read order).
+            // Don't assert a locomotion state while an attack state owns the model. animateLord()'s
+            // one-shot check currently masks this write, but ownership should be enforced here too.
             if ((getTarget() == null || !isAggressive())
                     && !isRoaring() && !isPhaseTransitioning() && !isDyingAnimation() && !isMidSwing()) {
                 entityData.set(DATA_LORD_LOCOMOTION,
@@ -575,6 +838,25 @@ public class OgreLord extends OgreGrunt {
             if (isDyingAnimation()) {
                 freezeSpecialAnimationPose();
                 return;
+            }
+            if (thronePos == null && (isSleepingInFort() || isSeatedInFort()) && !returnToThroneOnLoad) {
+                // A King placed before the throne was remembered: wherever he rests now is the throne.
+                thronePos = blockPosition();
+                throneYaw = getYRot();
+            }
+            if (returnToThroneOnLoad && !throneReturnDue) {
+                // The chunk does not always unload when you leave (view and simulation distance keep it
+                // alive), so being far away long enough counts as leaving too.
+                if (level().getNearestPlayer(this, THRONE_RETURN_AWAY_DISTANCE) == null) {
+                    if (++throneAwayTicks >= THRONE_RETURN_AWAY_TICKS) {
+                        throneReturnDue = true;
+                    }
+                } else {
+                    throneAwayTicks = 0;
+                }
+            }
+            if (throneReturnDue && returnToThroneOnLoad) {
+                returnToThroneAfterReload();
             }
             if (!isPhaseTwo()
                     && isAlive()
@@ -587,8 +869,16 @@ public class OgreLord extends OgreGrunt {
                 return;
             }
 
+            // The attack id is cleared when the animation ends, but a stomp's ripple is still travelling
+            // for up to ~18 ticks after that. Keep the jump dodge open for the ripple's whole journey.
+            if (activeLordAttackId == 2 || activeLordAttackId == 3 || activeLordAttackId == 8
+                    || activeLordAttackId == 10) {
+                jumpableRippleUntilTick = tickCount + JUMPABLE_RIPPLE_TAIL_TICKS;
+            }
             tickClubAttackTimeline();
             tickClubHeadThrustHitbox();
+            tickStompWave();
+            tickFrustration();
 
             doubleStompCooldownTicks = Math.max(doubleStompCooldownTicks - 1, 0);
             doubleOverheadSlamCooldownTicks = Math.max(doubleOverheadSlamCooldownTicks - 1, 0);
@@ -598,7 +888,7 @@ public class OgreLord extends OgreGrunt {
             singleOverheadCooldownTicks = Math.max(singleOverheadCooldownTicks - 1, 0);
             roarCooldownTicks = Math.max(roarCooldownTicks - 1, 0);
             summonCooldownTicks = Math.max(summonCooldownTicks - 1, 0);
-            lordIdleHuffCooldownTicks = Math.max(lordIdleHuffCooldownTicks - 1, 0);
+            tickHealthGates();
 
             tickClosePressure();
             tickRoarScreenShake();
@@ -606,7 +896,6 @@ public class OgreLord extends OgreGrunt {
             maybeStartRoar();
             tickSummonPoint();
             maybeStartSummonPoint();
-            maybePlayLordIdleHuff();
             tickDelayedImpactSounds();
         }
     }
@@ -619,8 +908,30 @@ public class OgreLord extends OgreGrunt {
         entityData.set(DATA_LORD_LOCOMOTION, LOCOMOTION_IDLE);
 
         if (isSleepingInFort()) {
+            if (tickCount % SLEEP_Z_INTERVAL_TICKS == 0) {
+                emitSleepZ();
+            }
             if (tickCount % 10 == 0) {
                 updateRoyalTrialProgress();
+            }
+            if (isSleepingInFort() && royalDefenceStarted) {
+                beginStartle();
+            }
+        } else if (isStartledInFort()) {
+            wakeUpTicks++;
+            if (tickCount % 10 == 0) {
+                updateRoyalTrialProgress();
+            }
+            if (isStartledInFort() && wakeUpTicks >= STARTLE_ANIMATION_TICKS) {
+                enterSeated();
+            }
+        } else if (isSeatedInFort()) {
+            if (tickCount % 10 == 0) {
+                updateRoyalTrialProgress();
+            }
+            if (isSeatedInFort()) {
+                trackNearestPlayerWithHead();
+                tickCourtSleep();
             }
         } else if (isWakingFromFortEncounter()) {
             wakeUpTicks++;
@@ -635,10 +946,44 @@ public class OgreLord extends OgreGrunt {
         }
     }
 
+    /**
+     * If everyone who started the Royal Trials has died or left, the attempt is abandoned: the
+     * trials reset, the ogres still standing in them are sent away, and he can sleep and talk again.
+     * Trials already cleared stay cleared. Returns true on the tick it resets.
+     */
+    private boolean tickRoyalTrialAbandon(ServerLevel serverLevel) {
+        if (!royalDefenceStarted || serverLevel.getNearestPlayer(this, ROYAL_TRIAL_BAR_RANGE) != null) {
+            royalTrialAbandonTicks = 0;
+            return false;
+        }
+        // Called every 10 ticks.
+        royalTrialAbandonTicks += 10;
+        if (royalTrialAbandonTicks < ROYAL_TRIAL_ABANDON_TICKS) {
+            return false;
+        }
+        royalTrialAbandonTicks = 0;
+        royalDefenceStarted = false;
+        royalDefenceIntroducedPlayers.clear();
+        clearRoyalTrialBossBarPlayers();
+        for (OgreGrunt ogre : serverLevel.getEntitiesOfClass(OgreGrunt.class,
+                getBoundingBox().inflate(ROYAL_TRIAL_BAR_RANGE),
+                candidate -> candidate != this && candidate.isRoyalTrialOgre() && candidate.isAlive())) {
+            serverLevel.sendParticles(ParticleTypes.POOF, ogre.getX(), ogre.getY() + ogre.getBbHeight() * 0.5,
+                    ogre.getZ(), 12, 0.4, 0.6, 0.4, 0.02);
+            ogre.discard();
+        }
+        return true;
+    }
+
     private void updateRoyalTrialProgress() {
         if (!(level() instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (tickRoyalTrialAbandon(serverLevel)) {
+            return;
+        }
+        // A trial spawner left running with nobody near it does not count as someone being there.
+        boolean playersNearby = serverLevel.getNearestPlayer(this, ROYAL_TRIAL_BAR_RANGE) != null;
 
         for (int index = 0; index < royalTrialPositions.size(); index++) {
             int bit = 1 << index;
@@ -655,7 +1000,7 @@ public class OgreLord extends OgreGrunt {
                 continue;
             }
             TrialSpawnerState trialState = state.getValue(TrialSpawnerBlock.STATE);
-            if (!royalDefenceStarted && trialState == TrialSpawnerState.ACTIVE) {
+            if (!royalDefenceStarted && playersNearby && trialState == TrialSpawnerState.ACTIVE) {
                 royalDefenceStarted = true;
             }
             if (trialState == TrialSpawnerState.WAITING_FOR_REWARD_EJECTION
@@ -669,14 +1014,14 @@ public class OgreLord extends OgreGrunt {
         int completed = Integer.bitCount(completedRoyalTrialsMask & 0b111);
         royalTrialProgress.setProgress(completed / (float) ROYAL_TRIAL_COUNT);
         royalTrialProgress.setName(royalUiText(
-                "Royal Defence " + completed + "/" + ROYAL_TRIAL_COUNT));
+                "Royal Trials " + completed + "/" + ROYAL_TRIAL_COUNT));
         if (completed >= ROYAL_TRIAL_COUNT) {
             beginFortWakeUp();
         }
     }
 
     private void beginFortWakeUp() {
-        if (!isSleepingInFort()) {
+        if (!isRoyalDefenceInProgress()) {
             return;
         }
         wakeUpTicks = 0;
@@ -734,6 +1079,529 @@ public class OgreLord extends OgreGrunt {
         setPos(getX() + wakeForward.x, getY(), getZ() + wakeForward.z);
     }
 
+    /** A Z of pixels floats up from above his head while he sleeps on the throne. */
+    private void emitSleepZ() {
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
+        serverLevel.sendParticles(com.kingsandmonsters.ModParticles.SLEEP_Z.get(),
+                getX() + forward.x * SLEEP_Z_FORWARD
+                        + (random.nextDouble() - 0.5) * SLEEP_Z_HORIZONTAL_JITTER,
+                getY() + getBbHeight() * SLEEP_Z_HEIGHT,
+                getZ() + forward.z * SLEEP_Z_FORWARD
+                        + (random.nextDouble() - 0.5) * SLEEP_Z_HORIZONTAL_JITTER,
+                1, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    private void beginStartle() {
+        wakeUpTicks = 0;
+        entityData.set(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_STARTLED);
+        playAttackAnimation(ATTACK_ID_STARTLE);
+    }
+
+    private void enterSeated() {
+        entityData.set(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_SEATED);
+        wakeUpTicks = 0;
+        activeLordAttackId = 0;
+        attackAnimationTicks = 0;
+        clearLordAttackSync();
+        courtEmptyTicks = 0;
+        if (courtGuestId != null && !royalDefenceStarted && level() instanceof ServerLevel serverLevel
+                && serverLevel.getPlayerByUUID(courtGuestId) instanceof ServerPlayer guest
+                && guest.distanceToSqr(this) <= COURT_TALK_RANGE * COURT_TALK_RANGE) {
+            greet(guest);
+        }
+        courtGuestId = null;
+    }
+
+    /**
+     * Seated without the trials having started, he is holding court: he sits for whoever woke
+     * him and, once nobody is left in his hall, drifts back to sleep.
+     */
+    private void tickCourtSleep() {
+        if (royalDefenceStarted) {
+            return;
+        }
+        if (level().getNearestPlayer(this, COURT_LEAVE_DISTANCE) != null) {
+            courtEmptyTicks = 0;
+        } else if (++courtEmptyTicks >= COURT_SLEEP_DELAY_TICKS) {
+            returnToSleep();
+        }
+    }
+
+    private void returnToSleep() {
+        wakeUpTicks = 0;
+        courtEmptyTicks = 0;
+        activeLordAttackId = 0;
+        attackAnimationTicks = 0;
+        clearLordAttackSync();
+        setYHeadRot(getYRot());
+        setXRot(0.0F);
+        entityData.set(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_SLEEPING);
+    }
+
+    @Override
+    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+        boolean canWake = isSleepingInFort() || isSeatedInFort();
+        if (canWake && royalDefenceStarted && !player.isSecondaryUseActive()) {
+            // The Royal Trials are under way: he has nothing to say until they are over.
+            if (player instanceof ServerPlayer watcher) {
+                watcher.displayClientMessage(Component.translatable("dialogue.kingsandmonsters.king_trials_silence")
+                        .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (!canWake || royalDefenceStarted || player.isSecondaryUseActive()) {
+            return super.mobInteract(player, hand);
+        }
+        if (!(player instanceof ServerPlayer talker)) {
+            return InteractionResult.SUCCESS;
+        }
+        if (isSleepingInFort()) {
+            courtGuestId = talker.getUUID();
+            beginStartle();
+        } else {
+            greet(talker);
+        }
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public boolean canGiveErrandsTo(ServerPlayer player) {
+        return isSeatedInFort() && !royalDefenceStarted
+                && player.distanceToSqr(this) <= COURT_TALK_RANGE * COURT_TALK_RANGE;
+    }
+
+    /** A finished errand is settled before anything else; otherwise he opens with the usual audience. */
+    private void greet(ServerPlayer player) {
+        com.kingsandmonsters.tribute.QuestManager.playDialogueStartParticle(this);
+        if (com.kingsandmonsters.tribute.QuestManager.view(player, this).state()
+                == com.kingsandmonsters.tribute.QuestManager.READY) {
+            com.kingsandmonsters.tribute.QuestManager.open(player, this);
+        } else {
+            openDialogue(player);
+        }
+    }
+
+    private void openDialogue(ServerPlayer player) {
+        ServerLevel serverLevel = player.serverLevel();
+        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/audience");
+        PacketDistributor.sendToPlayer(player, new com.kingsandmonsters.network.KingDialoguePayload(
+                getId(), TributeManager.getFavor(serverLevel, player.getUUID()), Config.TRIBUTE_APPEASED_FAVOR.get(),
+                Config.TRIBUTE_TRADE_FAVOR.get(), Config.TRIBUTE_DUEL_FAVOR.get(),
+                TributeManager.isAppeased(serverLevel, player.getUUID()),
+                duelWins.containsKey(player.getUUID()), (duelRestTicks(player) + 19) / 20));
+    }
+
+    /** Handles a button pressed on the dialogue screen; the server re-checks everything. */
+    public void handleDialogueAction(ServerPlayer player, int action) {
+        if (!isSeatedInFort() || royalDefenceStarted
+                || player.distanceToSqr(this) > COURT_TALK_RANGE * COURT_TALK_RANGE) {
+            return;
+        }
+        ServerLevel serverLevel = player.serverLevel();
+        if (action == com.kingsandmonsters.network.KingDialogueActionPayload.TRADE) {
+            if (TributeManager.isAppeased(serverLevel, player.getUUID())
+                    && TributeManager.getFavor(serverLevel, player.getUUID()) >= Config.TRIBUTE_TRADE_FAVOR.get()) {
+                UUID buyer = player.getUUID();
+                KingTrades trades = new KingTrades(level(), offersFor(buyer), index -> {
+                    recordSale(buyer, index);
+                    com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/royal_patronage");
+                });
+                todaysWares().stream().filter(Ware::needed).findFirst().ifPresent(ware ->
+                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                                "message.kingsandmonsters.king_need",
+                                new ItemStack(ware.first().item().value()).getHoverName()), true));
+                trades.setTradingPlayer(player);
+                trades.openTradingScreen(player, getDisplayName(), 1);
+            }
+        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.ERRANDS) {
+            com.kingsandmonsters.tribute.QuestManager.open(player, this);
+        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.DUEL) {
+            if (TributeManager.getFavor(serverLevel, player.getUUID()) >= Config.TRIBUTE_DUEL_FAVOR.get()
+                    && duelRestTicks(player) <= 0) {
+                duel(player);
+            }
+        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.CHALLENGE) {
+            challenge(player);
+        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.OFFER_COINS) {
+            TributeManager.offerTribute(player);
+            openDialogue(player);
+        }
+    }
+
+    /**
+     * A fair fight for the throne, open to a player the tribe thinks well of: no captains join, and
+     * winning costs no favor and angers no one.
+     */
+    private void duel(ServerPlayer player) {
+        duelistId = player.getUUID();
+        player.serverLevel().players().stream()
+                .filter(nearby -> nearby.distanceToSqr(this) <= COURT_LEAVE_DISTANCE * COURT_LEAVE_DISTANCE)
+                .forEach(nearby -> nearby.sendSystemMessage(Component.translatable(
+                        "dialogue.kingsandmonsters.king_duel").withStyle(ChatFormatting.GOLD)));
+        beginFortWakeUp();
+    }
+
+    /** True when this King was fought in a duel: his fall is not an act of war on the tribe. */
+    public boolean isDuel() {
+        return duelistId != null;
+    }
+
+    /** True while this King is in a duel with the player: the fair fight that has not ended yet. */
+    public boolean isDuelingWith(Player player) {
+        return isAlive() && player.getUUID().equals(duelistId);
+    }
+
+    public boolean isDuelist(ServerPlayer player) {
+        return player.getUUID().equals(duelistId);
+    }
+
+    /**
+     * The King yields: he stands down at full health and takes his seat again, no one is hurt in the
+     * tribe's eyes, and the bog iron opens to every player. He keeps his crown and club; only
+     * a challenge that ends in his death takes them.
+     */
+    private void yieldDuel(ServerPlayer winner) {
+        duelistId = null;
+        setHealth(getMaxHealth());
+        entityData.set(DATA_LORD_PHASE_TWO, false);
+        entityData.set(DATA_LORD_TRANSITIONING, false);
+        cancelActiveMeleeAttack();
+        stopRoarImmediately();
+        stopSummonImmediately();
+        setTarget(null);
+        setAggressive(false);
+        getNavigation().stop();
+        setDeltaMovement(Vec3.ZERO);
+        setNoAi(true);
+        kingBossBar.removeAllPlayers();
+        enterSeated();
+        duelWins.put(winner.getUUID(), level().getGameTime());
+        sayYield(winner);
+        // He sits where the fight ended for now, and goes back to his throne once the chunk reloads.
+        returnToThroneOnLoad = thronePos != null && !thronePos.closerToCenterThan(position(), 2.0);
+        throneReturnDue = false;
+        playSound(ModSoundEvents.OGRE_LORD_HUFF.get(), 1.5F, 0.8F);
+        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
+        com.kingsandmonsters.tribute.BogIronProgression.unlock(winner.server,
+                "The Ogre King yields to a fair fight. Its buried iron now answers to your kind.");
+    }
+
+    private static final int YIELD_LINES = 4;
+
+    /** What he says to whoever has just beaten him, heard by everyone in his hall. */
+    private void sayYield(ServerPlayer winner) {
+        Component line = Component.translatable("dialogue.kingsandmonsters.king_yield."
+                + (1 + getRandom().nextInt(YIELD_LINES))).withStyle(ChatFormatting.GOLD);
+        winner.serverLevel().players().stream()
+                .filter(nearby -> nearby.distanceToSqr(this) <= COURT_LEAVE_DISTANCE * COURT_LEAVE_DISTANCE)
+                .forEach(nearby -> nearby.sendSystemMessage(line));
+    }
+
+    /** Ticks before this player may duel him again; 0 when they can, or have never beaten him. */
+    private int duelRestTicks(ServerPlayer player) {
+        Long won = duelWins.get(player.getUUID());
+        if (won == null) {
+            return 0;
+        }
+        long rest = Config.TRIBUTE_DUEL_COOLDOWN_MINUTES.get() * 60L * 20L - (level().getGameTime() - won);
+        return (int) Math.max(0L, rest);
+    }
+
+    /** The chunk is back after a won duel: he is carried back to his throne, seated, as if he had never left. */
+    private void returnToThroneAfterReload() {
+        throneReturnDue = false;
+        returnToThroneOnLoad = false;
+        if (thronePos == null || !isSeatedInFort() || royalDefenceStarted) {
+            return;
+        }
+        moveTo(thronePos.getX() + 0.5, thronePos.getY(), thronePos.getZ() + 0.5, throneYaw, 0.0F);
+        setYBodyRot(throneYaw);
+        setYHeadRot(throneYaw);
+        getNavigation().stop();
+        setDeltaMovement(Vec3.ZERO);
+    }
+
+    /** True while he can be caught in a Bogjaw trap: awake, fighting and not recently held. */
+    public boolean canBeTrapped() {
+        return !isFortEncounterDormant() && !isDyingAnimation() && !isPhaseTransitioning()
+                && tickCount >= trapReadyAtTick;
+    }
+
+    /** A trap holds him only briefly, and not again for a while, so it can't be chained. */
+    public void onTrapped() {
+        trapReadyAtTick = tickCount + TRAP_COOLDOWN_TICKS;
+    }
+
+    /** Turning on the King ends any peace: favor is gone and the tribe is angry again. */
+    private void challenge(ServerPlayer player) {
+        duelistId = null;
+        ServerLevel serverLevel = player.serverLevel();
+        TributeManager.addFavor(serverLevel, player, -TributeSavedData.MAX_FAVOR);
+        TributeManager.raiseFactionAnger(serverLevel, CHALLENGE_ANGER);
+        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/biting_the_hand");
+        summonUnfinishedCaptains(serverLevel, player);
+        beginFortWakeUp();
+    }
+
+    /**
+     * Challenging him before the Royal Trials are cleared brings every captain the player has not
+     * beaten to his side. Clearing the trials first is how to face him alone. The trials are in the
+     * order Mage, Brute, Grunt Captain, one bit each.
+     */
+    private void summonUnfinishedCaptains(ServerLevel serverLevel, ServerPlayer challenger) {
+        List<EntityType<? extends OgreGrunt>> captains = new ArrayList<>();
+        if ((completedRoyalTrialsMask & 1) == 0) captains.add(ModEntities.OGRE_MAGE.get());
+        if ((completedRoyalTrialsMask & 2) == 0) captains.add(ModEntities.OGRE_BRUTE.get());
+        if ((completedRoyalTrialsMask & 4) == 0) captains.add(ModEntities.OGRE_GRUNT_CAPTAIN.get());
+        if (captains.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < captains.size(); i++) {
+            BlockPos spawnPos = findCourtSpawnPos(serverLevel, i, captains.size(), captains.get(i));
+            if (spawnPos == null) {
+                continue;
+            }
+            OgreGrunt captain = captains.get(i).spawn(serverLevel, spawnPos, MobSpawnType.MOB_SUMMONED);
+            if (captain == null) {
+                continue;
+            }
+            captain.setYRot(getYRot());
+            captain.setYBodyRot(getYRot());
+            captain.setYHeadRot(getYRot());
+            captain.markRoyalTrialOgre();
+            captain.setPersistenceRequired();
+            captain.setRoyalCommandTarget(challenger);
+            summonedOgres.add(captain.getUUID());
+        }
+        playVocal(ModSoundEvents.OGRE_LORD_SUMMON_GRUNT.get(), 5.0F, 1.0F);
+        challenger.sendSystemMessage(Component.empty()
+                .append(getDisplayName().copy().withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                .append(Component.translatable("dialogue.kingsandmonsters.king_challenge")
+                        .withStyle(ChatFormatting.WHITE, ChatFormatting.ITALIC)));
+    }
+
+    /**
+     * The captains arrive at fixed spots out in front of the throne, spread in a line across his
+     * view, rather than inside his collision box. Starts at the full distance and works back toward
+     * him until there is room, since the throne room is enclosed.
+     */
+    @Nullable
+    private BlockPos findCourtSpawnPos(ServerLevel serverLevel, int index, int count,
+                                       EntityType<? extends OgreGrunt> entityType) {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        double lateral = (index - (count - 1) / 2.0) * COURT_SPAWN_SPACING;
+        for (double distance = COURT_SPAWN_DISTANCE; distance >= 2.0; distance -= 1.0) {
+            double x = getX() + forward.x * distance + right.x * lateral;
+            double z = getZ() + forward.z * distance + right.z * lateral;
+            for (int dy : new int[] {0, -1, 1, -2, 2}) {
+                BlockPos pos = BlockPos.containing(x, getY() + dy, z);
+                BlockPos below = pos.below();
+                if (serverLevel.getBlockState(below).getCollisionShape(serverLevel, below).isEmpty()
+                        || nearFire(serverLevel, pos)
+                        || !serverLevel.getFluidState(pos).isEmpty()
+                        || !serverLevel.noCollision(entityType.getDimensions().makeBoundingBox(
+                                pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5))) {
+                    continue;
+                }
+                return pos;
+            }
+        }
+        return null;
+    }
+
+    /** The firepit in front of the throne: a captain is never put on it or beside it. */
+    private static boolean nearFire(ServerLevel serverLevel, BlockPos pos) {
+        for (BlockPos check : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) {
+            BlockState state = serverLevel.getBlockState(check);
+            if (state.is(net.minecraft.tags.BlockTags.FIRE) || state.is(net.minecraft.tags.BlockTags.CAMPFIRES)
+                    || state.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)
+                    || state.is(net.minecraft.world.level.block.Blocks.LAVA)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** How many of the first wares are one-time artifacts; everything after them is repeatable. */
+    private static final int ONE_TIME_WARES = 9;
+
+    private record DailyStock(long day, int[] used) {}
+
+    /** A repeatable ware: what it costs, what it gives, and how many a player may buy per day. */
+    private record Ware(ItemCost first, @Nullable ItemCost second, ItemStack result, int perDay, boolean needed) {}
+
+    private static ItemCost cost(net.minecraft.world.level.ItemLike item, int count) {
+        return new ItemCost(item, count);
+    }
+
+    /**
+     * What the King sells this player. Everything here is his alone (the Merchant stocks none of
+     * it), the artifacts are sold once to each player, the crown and club stay with whoever
+     * overthrows him, and the rest is the daily market of {@link #todaysWares()}. Order matters: it
+     * is the slot each purchase is saved under.
+     */
+    private MerchantOffers offersFor(UUID buyer) {
+        int bought = kingPurchases.getOrDefault(buyer, 0);
+        MerchantOffers offers = new MerchantOffers();
+        offers.add(artifact(ModItems.OGRE_KINGS_BANNER.get(), cost(Items.GOLD_INGOT, 12), null, (bought & 1) != 0));
+        offers.add(artifact(ModItems.HUNTERS_SPEAR.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(ModItems.GOLD_COIN.get(), 3), (bought & 2) != 0));
+        offers.add(artifact(ModItems.KINGS_CLEAVER.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 3), cost(Items.DIAMOND, 6), (bought & 4) != 0));
+        offers.add(artifact(ModItems.BRUTES_HELM.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 3), cost(Items.DIAMOND, 10), (bought & 8) != 0));
+        offers.add(artifact(ModItems.OGRE_LOINCLOTH.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(ModItems.GOLD_COIN.get(), 15), (bought & 16) != 0));
+        offers.add(artifact(ModItems.BRUTE_GAUNTLETS.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(ModItems.GOLD_COIN.get(), 23), (bought & 32) != 0));
+        offers.add(artifact(ModItems.OGRE_STOMACH.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 8), cost(Items.NETHERITE_INGOT, 3), (bought & 64) != 0));
+        offers.add(new MerchantOffer(cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), Optional.of(cost(Items.RABBIT, 34)), timberAxe(),
+                (bought & 128) != 0 ? 1 : 0, 1, 0, 0.0F));
+        // Appended rather than inserted so every older one-time purchase keeps its original save bit.
+        offers.add(artifact(ModItems.BOGSTEEL_CHESTPLATE.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 4),
+                cost(Items.DIAMOND, 17), (bought & 256) != 0));
+        List<Ware> wares = todaysWares();
+        int[] used = usedToday(buyer, wares.size());
+        for (int i = 0; i < wares.size(); i++) {
+            Ware ware = wares.get(i);
+            offers.add(new MerchantOffer(ware.first(), Optional.ofNullable(ware.second()), ware.result().copy(),
+                    used[i], ware.perDay(), 0, 0.0F));
+        }
+        return offers;
+    }
+
+    /** A bog iron axe that already carries the Timber enchantment, which only the King can give. */
+    private ItemStack timberAxe() {
+        ItemStack axe = new ItemStack(ModItems.BOG_IRON_AXE.get());
+        axe.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                Component.literal("Stumpsplitter").withStyle(style -> style.withItalic(false)));
+        axe.enchant(level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                .getOrThrow(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER), 1);
+        return axe;
+    }
+
+    /** Cooked meats the tribe pays coin for. Exactly one of these is on offer each day. */
+    private static List<Ware> meatPool() {
+        ItemStack coin = new ItemStack(ModItems.GOLD_COIN.get());
+        return List.of(
+                new Ware(cost(ModItems.ROASTED_MUDSNOUT_HAUNCH.get(), 16), null, coin.copy(), 2, false),
+                new Ware(cost(Items.COOKED_BEEF, 16), null, coin.copy(), 2, false),
+                new Ware(cost(Items.COOKED_PORKCHOP, 16), null, coin.copy(), 2, false),
+                new Ware(cost(Items.COOKED_MUTTON, 16), null, coin.copy(), 2, false),
+                new Ware(cost(Items.COOKED_CHICKEN, 16), null, coin.copy(), 2, false));
+    }
+
+    /** Hides the tribe pays coin for. Exactly one of these is on offer each day. */
+    private static List<Ware> leatherPool() {
+        ItemStack coin = new ItemStack(ModItems.GOLD_COIN.get());
+        return List.of(
+                new Ware(cost(ModItems.BLACKHIDE_LEATHER.get(), 16), null, coin.copy(), 3, false),
+                new Ware(cost(Items.LEATHER, 16), null, coin.copy(), 3, false));
+    }
+
+    /** Affordable Ogre cooking sold for ordinary gold rather than the tribe's favor currency. */
+    private static List<Ware> provisionPool() {
+        return List.of(
+                new Ware(cost(Items.GOLD_INGOT, 8), null, new ItemStack(ModItems.IRONBELLY_STEW.get()), 4, false),
+                new Ware(cost(Items.GOLD_INGOT, 6), null, new ItemStack(ModItems.BONE_BROTH.get()), 4, false));
+    }
+
+    /**
+     * The King's market for today: one meat and one hide the tribe buys, both Ogre meals for gold, and two
+     * useful tribal provisions for Gold Coins. There is deliberately no circular exchange into
+     * gold, emeralds, or golden teeth. Order matters: it is the slot each purchase is saved under.
+     */
+    private List<Ware> todaysWares() {
+        java.util.Random random = new java.util.Random(level().getDayTime() / 24000L * 31L + getUUID().hashCode());
+        List<Ware> meats = new java.util.ArrayList<>(meatPool());
+        List<Ware> leathers = new java.util.ArrayList<>(leatherPool());
+        List<Ware> provisions = new java.util.ArrayList<>(provisionPool());
+        java.util.Collections.shuffle(meats, random);
+        java.util.Collections.shuffle(leathers, random);
+        java.util.Collections.shuffle(provisions, random);
+
+        // One meat and one hide, never two of the same kind.
+        List<Ware> market = new java.util.ArrayList<>();
+        market.add(meats.get(0));
+        market.add(leathers.get(0));
+        market.add(provisions.get(0));
+        market.add(provisions.get(1));
+        market.add(new Ware(cost(Items.GOLD_NUGGET, 13), null, new ItemStack(Items.IRON_INGOT, 2), 12, false));
+        return market;
+    }
+
+    /** Today's purchases of each repeatable ware; a new day starts them all over. */
+    private int[] usedToday(UUID buyer, int count) {
+        long day = level().getDayTime() / 24000L;
+        DailyStock stock = kingDaily.get(buyer);
+        if (stock == null || stock.day() != day || stock.used().length != count) {
+            stock = new DailyStock(day, new int[count]);
+            kingDaily.put(buyer, stock);
+        }
+        return stock.used();
+    }
+
+    private void recordSale(UUID buyer, int index) {
+        if (index < ONE_TIME_WARES) {
+            kingPurchases.merge(buyer, 1 << index, (old, bit) -> old | bit);
+            return;
+        }
+        int[] used = usedToday(buyer, todaysWares().size());
+        if (index - ONE_TIME_WARES < used.length) {
+            used[index - ONE_TIME_WARES]++;
+        }
+    }
+
+    private static MerchantOffer artifact(Item result, ItemCost first, @Nullable ItemCost second, boolean soldOut) {
+        return new MerchantOffer(first, Optional.ofNullable(second), new ItemStack(result), soldOut ? 1 : 0, 1, 0, 0.0F);
+    }
+
+    /**
+     * His AI is off while dormant, so nothing turns his head. Turn it toward the nearest player
+     * by hand; the model adds the same procedural tracking it uses in combat on top of this.
+     */
+    private void trackNearestPlayerWithHead() {
+        Player nearest = level().getNearestPlayer(this, SEATED_HEAD_TRACK_RANGE);
+        float seatYaw = getYRot();
+        float desiredYaw = seatYaw;
+        float desiredPitch = 0.0F;
+        if (nearest != null) {
+            double dx = nearest.getX() - getX();
+            double dz = nearest.getZ() - getZ();
+            double dy = nearest.getY(0.5) - getEyeY();
+            desiredYaw = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
+            desiredPitch = (float) -(Mth.atan2(dy, Math.sqrt(dx * dx + dz * dz)) * (180.0 / Math.PI));
+        }
+        // Keep the head inside what he can turn on the throne, measured from the seat.
+        float yawOffset = Mth.clamp(Mth.wrapDegrees(desiredYaw - seatYaw),
+                -SEATED_HEAD_MAX_YAW, SEATED_HEAD_MAX_YAW);
+        setYHeadRot(Mth.rotLerp(SEATED_HEAD_TURN_RESPONSE, getYHeadRot(), seatYaw + yawOffset));
+        setXRot(Mth.lerp(SEATED_HEAD_TURN_RESPONSE, getXRot(),
+                Mth.clamp(desiredPitch, -SEATED_HEAD_MAX_UP_PITCH, SEATED_HEAD_MAX_DOWN_PITCH)));
+    }
+
+    /**
+     * Vanilla swivels a mob's whole body toward its head once the head holds still. On the throne
+     * only the head should move, so the body stays on the seat with a very small lean toward the
+     * head. Runs on both sides, since the client works out its own body rotation.
+     */
+    @Override
+    protected float tickHeadTurn(float yRot, float animStep) {
+        if (!isRoyalDefenceInProgress()) {
+            return super.tickHeadTurn(yRot, animStep);
+        }
+        float seatYaw = getYRot();
+        float targetYaw = seatYaw;
+        if (isSeatedInFort()) {
+            float headOffset = Mth.wrapDegrees(getYHeadRot() - seatYaw);
+            targetYaw += Mth.clamp(headOffset * SEATED_BODY_FOLLOW,
+                    -SEATED_BODY_MAX_YAW, SEATED_BODY_MAX_YAW);
+        }
+        yBodyRotO = yBodyRot;
+        yBodyRot = Mth.rotLerp(SEATED_BODY_RESPONSE, yBodyRot, targetYaw);
+        return animStep;
+    }
+
     private void reacquireTargetAfterWake() {
         if (!(level() instanceof ServerLevel serverLevel)) {
             return;
@@ -781,10 +1649,10 @@ public class OgreLord extends OgreGrunt {
         }
         royalTrialProgress.addPlayer(player);
         if (royalDefenceStarted
-                && isSleepingInFort()
+                && isRoyalDefenceInProgress()
                 && royalDefenceIntroducedPlayers.add(player.getUUID())) {
             PacketDistributor.sendToPlayer(player,
-                    com.kingsandmonsters.network.OgreOverlayPayload.major("ROYAL DEFENCE", ""));
+                    com.kingsandmonsters.network.OgreOverlayPayload.major("ROYAL TRIALS", ""));
         }
     }
 
@@ -809,10 +1677,6 @@ public class OgreLord extends OgreGrunt {
     @Override
     public void startSeenByPlayer(ServerPlayer player) {
         super.startSeenByPlayer(player);
-        // Beginning client tracking is initialization, not an idle-sound opportunity. Rebase the
-        // server-owned scheduler so an already-expired cooldown cannot emit a snort as the King
-        // first becomes visible to this player.
-        resetLordIdleHuffCooldown();
         if (!isFortEncounterDormant()) {
             kingBossBar.addPlayer(player);
         }
@@ -829,11 +1693,25 @@ public class OgreLord extends OgreGrunt {
 
     /** Client-visible encounter authority for music: awakening begins the encounter, sleep excludes it. */
     public boolean isFortEncounterMusicActive() {
-        return entityData.get(DATA_FORT_ENCOUNTER_STATE) != FORT_ENCOUNTER_SLEEPING;
+        // The trials play out without the boss theme; it starts when he stands up.
+        return !isRoyalDefenceInProgress();
     }
 
     private boolean isSleepingInFort() {
         return entityData.get(DATA_FORT_ENCOUNTER_STATE) == FORT_ENCOUNTER_SLEEPING;
+    }
+
+    private boolean isStartledInFort() {
+        return entityData.get(DATA_FORT_ENCOUNTER_STATE) == FORT_ENCOUNTER_STARTLED;
+    }
+
+    private boolean isSeatedInFort() {
+        return entityData.get(DATA_FORT_ENCOUNTER_STATE) == FORT_ENCOUNTER_SEATED;
+    }
+
+    /** True from the start of the trials until he stands up: asleep, startled, or seated. */
+    private boolean isRoyalDefenceInProgress() {
+        return isSleepingInFort() || isStartledInFort() || isSeatedInFort();
     }
 
     private boolean isWakingFromFortEncounter() {
@@ -856,9 +1734,15 @@ public class OgreLord extends OgreGrunt {
         return entityData.get(DATA_LORD_DYING);
     }
 
+    /** True on the final authored death-animation tick, immediately before normal removal. */
+    public boolean isDyingAnimationFinishing() {
+        return isDyingAnimation() && deathTime >= DEATH_ANIMATION_TICKS - 1;
+    }
+
     /** Synced, render-only exclusion for Sleeping, Pull-Out, and Death. */
     public boolean isProceduralHeadTrackingSuppressed() {
-        return entityData.get(DATA_FORT_ENCOUNTER_STATE) == FORT_ENCOUNTER_SLEEPING
+        // Seated he watches the room, so only sleeping and the startle suppress tracking.
+        return isSleepingInFort() || isStartledInFort()
                 || entityData.get(DATA_LORD_TRANSITIONING)
                 || entityData.get(DATA_LORD_DYING);
     }
@@ -879,7 +1763,8 @@ public class OgreLord extends OgreGrunt {
         addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, PULL_OUT_BUFF_DURATION_TICKS, 0));
         addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, PULL_OUT_BUFF_DURATION_TICKS, 0));
         playAttackAnimation(9);
-        scheduleHeavyAttackRoar(9, PULL_OUT_IMPACT_TICK, PULL_OUT_ROAR_PITCH, false);
+        scheduleHeavyAttackRoar(9, PULL_OUT_IMPACT_TICK, PULL_OUT_ROAR_PITCH, false,
+                PULL_OUT_ROAR_LEAD_TICKS);
     }
 
     private void tickPhaseTransition() {
@@ -888,9 +1773,7 @@ public class OgreLord extends OgreGrunt {
         heavyAttackRoarDelayTicks = tickDelayedHeavyAttackRoar(heavyAttackRoarDelayTicks);
 
         if (phaseTransitionElapsedTicks == PULL_OUT_KNEEL_HURT_SOUND_TICK) {
-            level().playSound(null, getX(), getY(), getZ(),
-                    ModSoundEvents.OGRE_LORD_HURT.get(), SoundSource.HOSTILE,
-                    1.25F, PULL_OUT_KNEEL_HURT_SOUND_PITCH);
+            playVocal(ModSoundEvents.OGRE_LORD_HURT.get(), 1.25F, PULL_OUT_KNEEL_HURT_SOUND_PITCH);
         }
         if (phaseTransitionElapsedTicks >= CLUB_VISIBILITY_SWAP_TICK && !isClubInHand()) {
             entityData.set(DATA_LORD_CLUB_IN_HAND, true);
@@ -907,18 +1790,28 @@ public class OgreLord extends OgreGrunt {
     }
 
     private void tickClubAttackTimeline() {
-        if (activeLordAttackId != 10 && activeLordAttackId != 11) {
+        int attackId = activeLordAttackId;
+        if (attackId != 10 && attackId != 11
+                && attackId != ATTACK_ID_REGULAR_ATTACK && attackId != ATTACK_ID_REGULAR_ATTACK_2) {
             return;
         }
-        freezeSpecialAnimationPose();
+        // Only the double overhead plants him; the single club slam and the regular slams are thrown
+        // while he walks, so they strike wherever he and his heading are at the moment of impact.
+        if (attackId == 10) {
+            freezeSpecialAnimationPose();
+        }
         clubAttackElapsedTicks++;
-        int impactTick = activeLordAttackId == 10 ? CLUB_DOUBLE_OVERHEAD_IMPACT_TICK : SINGLE_OVERHEAD_IMPACT_TICK;
+        int impactTick = switch (attackId) {
+            case 10 -> CLUB_DOUBLE_OVERHEAD_IMPACT_TICK;
+            case 11 -> SINGLE_OVERHEAD_IMPACT_TICK;
+            default -> REGULAR_ATTACK_IMPACT_TICK;
+        };
         if (!clubAttackImpactFired && clubAttackElapsedTicks >= impactTick) {
             clubAttackImpactFired = true;
-            if (activeLordAttackId == 10) {
-                performClubDoubleOverhead();
-            } else {
-                performSingleOverheadSlam();
+            switch (attackId) {
+                case 10 -> performClubDoubleOverhead();
+                case 11 -> performSingleOverheadSlam();
+                default -> performRegularSlam(attackId == ATTACK_ID_REGULAR_ATTACK ? 1.0 : -1.0);
             }
         }
     }
@@ -937,15 +1830,25 @@ public class OgreLord extends OgreGrunt {
         freezeSpecialAnimationPose();
     }
 
+    /** Share of the remaining turn closed each tick when a special attack or roar swings him round. */
+    private static final float FACING_EASE_FRACTION = 0.45F;
+    /** The roar's own authored sway takes over from the ease after this many ticks. */
+    private static final int ROAR_FACING_EASE_TICKS = 6;
+
+    /** One proportional step toward a facing (like the Ogre move control's turning), landing exactly when close. */
+    private static float easeFacing(float current, float target, float fraction) {
+        float remaining = Mth.wrapDegrees(target - current);
+        return Math.abs(remaining) < 0.5F ? target : current + remaining * fraction;
+    }
+
     private void freezeSpecialAnimationPose() {
         getNavigation().stop();
         setPos(lockedSpecialX, getY(), lockedSpecialZ);
-        setYRot(lockedSpecialYaw);
-        setYBodyRot(lockedSpecialYaw);
-        setYHeadRot(lockedSpecialYaw);
-        yRotO = lockedSpecialYaw;
-        yBodyRotO = lockedSpecialYaw;
-        yHeadRotO = lockedSpecialYaw;
+        // Eases round to the locked facing over a few ticks instead of snapping to it, and leaves the
+        // previous rotations alone so the renderer blends between ticks.
+        setYRot(easeFacing(getYRot(), lockedSpecialYaw, FACING_EASE_FRACTION));
+        setYBodyRot(easeFacing(yBodyRot, lockedSpecialYaw, FACING_EASE_FRACTION));
+        setYHeadRot(easeFacing(getYHeadRot(), lockedSpecialYaw, FACING_EASE_FRACTION));
         setXxa(0.0F);
         setZza(0.0F);
         setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
@@ -960,6 +1863,7 @@ public class OgreLord extends OgreGrunt {
     private void stopSummonImmediately() {
         summonActiveTicks = 0;
         summonEventFired = false;
+        summonVocalPlayed = false;
         summonPunchSoundPlayed = false;
         summonTarget = null;
     }
@@ -1021,13 +1925,76 @@ public class OgreLord extends OgreGrunt {
                 2.4F, 3);
     }
 
+    /**
+     * The single club slam lands wherever he is walking: a smoke-ring burst that hurts everything
+     * inside it, harder if the club head itself comes down on someone. No ripple.
+     */
     private void performSingleOverheadSlam() {
-        performOverheadClubStrike(
-                8.0, 3.75, 8.0F,
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 impact = position().add(forward.scale(SINGLE_OVERHEAD_REACH));
+        performAreaSlam(position().add(forward.scale(1.5)), impact, 3.0, SINGLE_OVERHEAD_AREA_RADIUS,
                 SINGLE_OVERHEAD_DAMAGE_MULTIPLIER,
-                Config.OGRE_LORD_SINGLE_OVERHEAD_BONUS_DAMAGE.get().floatValue(),
-                3.2, 0.65,
-                1.8F, 2);
+                Config.OGRE_LORD_SINGLE_OVERHEAD_BONUS_DAMAGE.get().floatValue() * MOBILE_CLUB_BONUS_SCALE,
+                0.65, 1.8F);
+        playHeavyClubImpact(impact, SINGLE_OVERHEAD_BLOCKS_DESTROYED);
+    }
+
+    /** The regular slams: the same burst from a bare hand, to the right or left of his heading. */
+    private void performRegularSlam(double rightSign) {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        Vec3 impact = position()
+                .add(forward.scale(REGULAR_SLAM_REACH))
+                .add(right.scale(REGULAR_SLAM_SIDE_OFFSET * rightSign));
+        Vec3 strikeStart = position()
+                .add(forward.scale(1.2))
+                .add(right.scale(REGULAR_SLAM_SIDE_OFFSET * rightSign));
+        performAreaSlam(strikeStart, impact, 2.6, REGULAR_SLAM_AREA_RADIUS, REGULAR_ATTACK_DAMAGE_MULTIPLIER,
+                0.0F, 0.5, 1.3F);
+        playRegularSlamImpact(impact);
+    }
+
+    /**
+     * Damages everything inside the smoke ring around {@code impact}. A target the hand or club
+     * head actually lands on takes the full hit and is knocked up; the rest of the ring takes a
+     * share of it. Everything is applied at once, so it cannot be jumped like a ripple.
+     *
+     * <p>The strike zone is the whole path the hand or club head comes down along, from
+     * {@code strikeStart} out to the impact, widened by {@code directRadius}. A single circle on the
+     * landing spot missed people the fist visibly came down on while he was walking or turning.</p>
+     */
+    private void performAreaSlam(Vec3 strikeStart, Vec3 impact, double directRadius, float areaRadius,
+                                 float damageMultiplier, float bonusDamage, double lift, float shake) {
+        AABB directVolume = new AABB(
+                Math.min(strikeStart.x, impact.x) - directRadius, getY() - 1.0,
+                Math.min(strikeStart.z, impact.z) - directRadius,
+                Math.max(strikeStart.x, impact.x) + directRadius, getY() + 6.5,
+                Math.max(strikeStart.z, impact.z) + directRadius);
+        double areaRadiusSqr = (double) areaRadius * areaRadius;
+        double search = impact.distanceTo(position()) + areaRadius + 1.0;
+
+        for (LivingEntity target : getClubCandidates(search, 7.0)) {
+            AABB bounds = target.getBoundingBox();
+            double dx = target.getX() - impact.x;
+            double dz = target.getZ() - impact.z;
+            boolean struck = bounds.intersects(directVolume);
+            boolean inRing = dx * dx + dz * dz <= areaRadiusSqr
+                    && bounds.maxY >= impact.y - 1.0 && bounds.minY <= impact.y + 3.5;
+            if (!struck && !inRing) {
+                continue;
+            }
+            // The ring around the impact fades toward its rim, like every other ogre's slam.
+            float share = struck ? 1.0F
+                    : OgreDamage.falloff(Math.sqrt(dx * dx + dz * dz), areaRadius, OgreDamage.BLAST_EDGE_SHARE);
+            if (dealClubDamage(target, damageMultiplier * share, bonusDamage * share)) {
+                if (struck) {
+                    applyHeavyClubHitEffects(target);
+                }
+                applyVerticalShockwaveLaunch(target, lift * share);
+            }
+        }
+
+        spawnClubImpactEffects(impact, areaRadius, shake);
     }
 
     private void performOverheadClubStrike(double length, double halfWidth, float rippleRadius,
@@ -1037,7 +2004,7 @@ public class OgreLord extends OgreGrunt {
         Vec3 forward = Vec3.directionFromRotation(0.0F, lockedSpecialYaw).normalize();
         Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
         Vec3 impact = position().add(forward.scale(length * 0.62));
-        double clubHeadRadius = length > 10.0 ? 3.25 : 2.75;
+        double clubHeadRadius = 3.25;
         AABB directImpactVolume = new AABB(
                 impact.x - clubHeadRadius, getY() - 1.0, impact.z - clubHeadRadius,
                 impact.x + clubHeadRadius, getY() + 6.5, impact.z + clubHeadRadius);
@@ -1067,9 +2034,18 @@ public class OgreLord extends OgreGrunt {
 
         playHeavyClubImpact(impact, blocksDestroyed);
         spawnClubImpactEffects(impact, rippleRadius, shake);
-        startClubGroundRipple(impact, rippleRadius, verticalKnockback,
-                length > 10.0 ? GroundRippleKind.KING_CLUB_DOUBLE : GroundRippleKind.KING_CLUB_SINGLE,
+        startClubGroundRipple(impact, rippleRadius, verticalKnockback, GroundRippleKind.KING_CLUB_DOUBLE,
                 hitTargets);
+    }
+
+    @Override
+    protected boolean showsGroundRippleVisual(MeleeAttackHit hit, GroundRippleProfile profile) {
+        return switch (profile.kind()) {
+            case KING_STOMP_WAVE, KING_CLUB_DOUBLE, KING_CLUB_PULL_OUT -> true;
+            case STANDARD -> hit.areaRadius() == DOUBLE_OVERHEAD_SLAM_AREA_RADIUS
+                    || hit.areaRadius() == DOUBLE_STOMP_AREA_RADIUS;
+            default -> false;
+        };
     }
 
     private void startClubGroundRipple(Vec3 impact, float radius, double verticalKnockback,
@@ -1091,8 +2067,22 @@ public class OgreLord extends OgreGrunt {
                 getBoundingBox().inflate(horizontalRange, verticalRange, horizontalRange),
                 target -> target != this
                         && target.isAlive()
-                        && !(target instanceof OgreGrunt)
-                        && getSensing().hasLineOfSight(target));
+                        && (!(target instanceof OgreGrunt) || isPlagueEnemy(target))
+                        && canStrikeReach(target));
+    }
+
+    /**
+     * Leaves and trunks block the sight ray, so a target stood among trees used to dodge his
+     * strikes just by being behind one. Within his club's reach it is a hit regardless.
+     */
+    private boolean canStrikeReach(LivingEntity target) {
+        return getSensing().hasLineOfSight(target)
+                || distanceToSqr(target) <= CLOSE_STRIKE_RANGE * CLOSE_STRIKE_RANGE;
+    }
+
+    @Override
+    protected boolean canAreaHitReach(LivingEntity target) {
+        return canStrikeReach(target);
     }
 
     private boolean intersectsAnySwingSample(LivingEntity target, List<Vec3> samples, double radius) {
@@ -1139,10 +2129,12 @@ public class OgreLord extends OgreGrunt {
     }
 
     private void playHeavyClubImpact(Vec3 impact, int blocksDestroyed) {
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
         level().playSound(null, impact.x, impact.y, impact.z,
-                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.45F);
-        level().playSound(null, impact.x, impact.y, impact.z,
-                ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(), SoundSource.HOSTILE, 1.5F, 0.65F);
+                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
+        playSlamLayers(impact, 1.6F, shift);
+        scheduleSlamRumble(impact, 1.5F);
         destroyNearbyBlocks(impact, blocksDestroyed);
     }
 
@@ -1151,6 +2143,8 @@ public class OgreLord extends OgreGrunt {
             return;
         }
         spawnDenseDustCloud(serverLevel, impact, radius);
+        // The ring of cloud at the slam's full reach, as a boss's area attack should show.
+        StaticShockwaveParticles.spawn(serverLevel, impact, radius);
         PacketDistributor.sendToPlayersNear(
                 serverLevel, null, impact.x, impact.y, impact.z,
                 Math.max(24.0, radius * 4.0),
@@ -1158,10 +2152,9 @@ public class OgreLord extends OgreGrunt {
     }
 
     /**
-     * The club slams' dense dust burst (cloud + poof + boundary ring), reused for the unarmed
-     * Phase-1 Double Overhead Slam so a slam that size reads with the same amount of dust — that
-     * attack already gets its own screenshake through the standard shared hit pipeline, so this
-     * intentionally excludes it to avoid a duplicate shake packet.
+     * The club slams' dense dust burst (cloud, poof, boundary ring), reused for the unarmed Phase-1
+     * Double Overhead Slam so it reads with the same amount of dust. That attack already gets its
+     * own screenshake from the shared hit pipeline, so this excludes it to avoid a duplicate packet.
      */
     private void spawnDenseDustCloud(ServerLevel serverLevel, Vec3 impact, float radius) {
         int particles = Math.max(30, (int) (radius * 9.0F));
@@ -1186,10 +2179,9 @@ public class OgreLord extends OgreGrunt {
     }
 
     /**
-     * Fills the gap between a shockwave's center burst and its edge ring with concentric bands of
-     * decreasing density — dense right at the impact point, thinning out toward (but not replacing)
-     * the existing ring. Radius here only controls how far the fill reaches; it does not draw or
-     * resize the ring itself.
+     * Fills the gap between a shockwave's center burst and its edge ring with concentric bands that
+     * thin out away from the impact. Radius only controls how far the fill reaches; it doesn't draw
+     * or resize the ring.
      */
     private void spawnGraduatedDustFill(ServerLevel serverLevel, Vec3 center, float radius) {
         double y = center.y + 0.12;
@@ -1220,37 +2212,22 @@ public class OgreLord extends OgreGrunt {
         }
     }
 
-    private void maybePlayLordIdleHuff() {
-        if (lordIdleHuffCooldownTicks > 0
-                || activeLordAttackId != 0
-                || isRoaring()
-                || getTarget() != null
-                || isAggressive()
-                || !getNavigation().isDone()) {
-            return;
-        }
-
-        if (getRandom().nextInt(LORD_IDLE_HUFF_CHANCE) != 0) {
-            return;
-        }
-
-        playLordHuff(0.9F);
-        resetLordIdleHuffCooldown();
-    }
-
-    private void resetLordIdleHuffCooldown() {
-        lordIdleHuffCooldownTicks = LORD_IDLE_HUFF_MIN_COOLDOWN_TICKS + getRandom().nextInt(LORD_IDLE_HUFF_RANDOM_COOLDOWN_TICKS + 1);
-    }
-
     private void tickDelayedImpactSounds() {
+        tickScheduledSounds();
         heavyAttackRoarDelayTicks = tickDelayedHeavyAttackRoar(heavyAttackRoarDelayTicks);
         oneArmUpswingImpactSoundDelayTicks = tickDelayedImpactSound(oneArmUpswingImpactSoundDelayTicks, 1, this::playLaunchImpactSound);
         doubleStompLeftImpactSoundDelayTicks = tickDelayedImpactSound(doubleStompLeftImpactSoundDelayTicks, 2, () -> playDoubleStompImpactSound(-1.0));
         doubleStompRightImpactSoundDelayTicks = tickDelayedImpactSound(doubleStompRightImpactSoundDelayTicks, 2, () -> playDoubleStompImpactSound(1.0));
+        doubleStompLeftGruntDelayTicks = tickDelayedImpactSound(doubleStompLeftGruntDelayTicks, 2, this::playPreAttackGrunt);
+        doubleStompRightGruntDelayTicks = tickDelayedImpactSound(doubleStompRightGruntDelayTicks, 2, this::playPreAttackGrunt);
         doubleOverheadSlamImpactSoundDelayTicks = tickDelayedImpactSound(doubleOverheadSlamImpactSoundDelayTicks, 3, this::playDoubleOverheadSlamImpactSound);
+        bellyBumpRoarDelayTicks = tickDelayedImpactSound(bellyBumpRoarDelayTicks, 5,
+                () -> playVocal(ModSoundEvents.OGRE_LORD_BELLY_BUMP_ROAR.get(), 1.3F, 1.0F));
         bellyBumpImpactSoundDelayTicks = tickDelayedImpactSound(bellyBumpImpactSoundDelayTicks, 5, this::playBellyBumpImpactSound);
+        doubleArmUpswingGruntDelayTicks = tickDelayedImpactSound(doubleArmUpswingGruntDelayTicks, 6,
+                () -> playVocal(ModSoundEvents.OGRE_LORD_DOUBLE_ARM_UPSWING_GRUNT.get(), 1.35F, 1.0F));
         doubleArmUpswingImpactSoundDelayTicks = tickDelayedImpactSound(doubleArmUpswingImpactSoundDelayTicks, 6, this::playLaunchImpactSound);
-        clubHeadThrustImpactSoundDelayTicks = tickDelayedImpactSound(clubHeadThrustImpactSoundDelayTicks, 7, this::playClubHeadThrustImpactSound);
+        clubHeadThrustImpactSoundDelayTicks = tickDelayedImpactSound(clubHeadThrustImpactSoundDelayTicks, 7, this::playClubHeadThrustWhoosh);
         singleLegStompImpactSoundDelayTicks = tickDelayedImpactSound(singleLegStompImpactSoundDelayTicks, 8, this::playSingleLegStompImpactSound);
     }
 
@@ -1263,11 +2240,14 @@ public class OgreLord extends OgreGrunt {
         }
         if (ticks <= 0) {
             float variation = (getRandom().nextFloat() * 2.0F - 1.0F) * HEAVY_ATTACK_ROAR_PITCH_VARIATION;
-            level().playSound(null, getX(), getY(), getZ(),
-                    (heavyAttackUsesOgrebloodRoar
-                            ? ModSoundEvents.OGREBLOOD_TOTEM_ACTIVATE
-                            : ModSoundEvents.OGRE_LORD_OVERHEAD_GRUNT).get(), SoundSource.HOSTILE,
-                    1.85F, heavyAttackRoarPitch + variation);
+            SoundEvent roar = heavyAttackUsesOgrebloodRoar
+                    ? ModSoundEvents.OGREBLOOD_TOTEM_ACTIVATE.get() : ModSoundEvents.OGRE_LORD_OVERHEAD_GRUNT.get();
+            if (heavyAttackUsesOgrebloodRoar) {
+                level().playSound(null, getX(), getY(), getZ(), roar, SoundSource.HOSTILE,
+                        1.85F, heavyAttackRoarPitch + variation);
+            } else {
+                playVocal(roar, 1.85F, heavyAttackRoarPitch + variation);
+            }
             return -1;
         }
         return ticks - 1;
@@ -1280,7 +2260,10 @@ public class OgreLord extends OgreGrunt {
     private void scheduleHeavyAttackRoar(int attackId, int impactTick, float pitch, boolean useOgrebloodRoar,
                                          int leadTicks) {
         heavyAttackRoarAttackId = attackId;
-        heavyAttackRoarDelayTicks = Math.max(0, impactTick - leadTicks);
+        // The server starts the attack before the synchronized client controller visibly reaches
+        // frame zero. Delay the vocal by the same allowance as attack impacts so the mouth has
+        // actually begun opening before the pre-attack grunt starts.
+        heavyAttackRoarDelayTicks = Math.max(0, impactTick - leadTicks + ATTACK_SYNC_DELAY_TICKS);
         heavyAttackRoarPitch = pitch;
         heavyAttackUsesOgrebloodRoar = useOgrebloodRoar;
     }
@@ -1303,40 +2286,148 @@ public class OgreLord extends OgreGrunt {
     }
 
     private void playLordHuff(float volume) {
-        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_LORD_HUFF.get(), SoundSource.HOSTILE, volume, 1.0F);
+        playVocal(ModSoundEvents.OGRE_LORD_HUFF.get(), volume, 1.0F);
+    }
+
+    private void playPreAttackGrunt() {
+        playVocal(ModSoundEvents.OGRE_LORD_OVERHEAD_GRUNT.get(), 1.35F, 1.0F);
+    }
+
+    /**
+     * The King's recordings are mastered quiet (peaks near 0.3, where the other ogres reach 0.5 to
+     * 0.8) and a game volume above 1 only widens the range, so each vocal is played twice on one
+     * seed: the same variation, layered, at twice the level.
+     */
+    private void playVocal(SoundEvent sound, float volume, float pitch) {
+        if (isSilent()) {
+            return;
+        }
+        long seed = getRandom().nextLong();
+        for (int layer = 0; layer < VOCAL_LAYERS; layer++) {
+            level().playSeededSound(null, getX(), getY(), getZ(), sound, getSoundSource(), volume, pitch, seed);
+        }
+    }
+
+    private boolean isKingVocal(SoundEvent sound) {
+        return sound == ModSoundEvents.OGRE_LORD_HURT.get()
+                || sound == ModSoundEvents.OGRE_LORD_DEATH.get()
+                || sound == ModSoundEvents.OGRE_LORD_HUFF.get();
+    }
+
+    @Override
+    public void playSound(SoundEvent sound, float volume, float pitch) {
+        if (isKingVocal(sound)) {
+            playVocal(sound, volume, pitch);
+        } else {
+            super.playSound(sound, volume, pitch);
+        }
+    }
+
+    /** One shared shift per impact, so the layers of a slam stay in tune with each other. */
+    private float impactPitchShift() {
+        return (getRandom().nextFloat() * 2.0F - 1.0F) * IMPACT_PITCH_VARIATION;
+    }
+
+    private float impactVolumeScale() {
+        return 1.0F + (getRandom().nextFloat() * 2.0F - 1.0F) * IMPACT_VOLUME_VARIATION;
     }
 
     private void playDoubleStompImpactSound(double rightOffset) {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.3F, 0.55F);
-        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(), SoundSource.HOSTILE, 1.3F, 0.85F);
-        destroyNearbyBlocks(getImpactCenter(0.4, rightOffset), DOUBLE_STOMP_BLOCKS_DESTROYED);
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        Vec3 impact = getImpactCenter(0.4, rightOffset);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.3F * volume, 0.55F + shift);
+        playSlamLayers(impact, 1.0F, shift);
+        destroyNearbyBlocks(impact, DOUBLE_STOMP_BLOCKS_DESTROYED);
     }
 
     private void playDoubleOverheadSlamImpactSound() {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.45F);
-        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(), SoundSource.HOSTILE, 1.5F, 0.65F);
-        destroyNearbyBlocks(getImpactCenter(1.6, 0.0), DOUBLE_OVERHEAD_SLAM_BLOCKS_DESTROYED);
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        Vec3 impact = getImpactCenter(1.6, 0.0);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
+        playSlamLayers(impact, 1.5F, shift);
+        scheduleSlamRumble(impact, 1.4F);
+        destroyNearbyBlocks(impact, DOUBLE_OVERHEAD_SLAM_BLOCKS_DESTROYED);
+    }
+
+    /** A bare-handed slam: a deep thud, the belly-slam body hit and the ground giving way. */
+    private void playRegularSlamImpact(Vec3 impact) {
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.HOSTILE, 1.2F * volume, 0.6F + shift);
+        playSlamLayers(impact, 1.1F, shift);
+        destroyNearbyBlocks(impact, REGULAR_ATTACK_BLOCKS_DESTROYED);
     }
 
     private void playSingleLegStompImpactSound() {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.1F, 0.6F);
-        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_BELLY_SLAM_IMPACT.get(), SoundSource.HOSTILE, 1.1F, 0.9F);
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.1F * volume, 0.6F + shift);
+        playSlamLayers(position(), 1.0F, shift);
+    }
+
+    /** A low boom that trails the hit by a few ticks, like the slam rolling away across the ground. */
+    private void scheduleSlamRumble(Vec3 at, float power) {
+        delayedSounds.add(new DelayedSound(7 + getRandom().nextInt(3), () ->
+                level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(),
+                        SoundSource.HOSTILE, 0.8F * power, 0.35F)));
+    }
+
+    private static final class DelayedSound {
+        private int ticks;
+        private final Runnable play;
+
+        private DelayedSound(int ticks, Runnable play) {
+            this.ticks = ticks;
+            this.play = play;
+        }
+    }
+
+    private void tickScheduledSounds() {
+        for (java.util.Iterator<DelayedSound> it = delayedSounds.iterator(); it.hasNext(); ) {
+            DelayedSound sound = it.next();
+            if (--sound.ticks <= 0) {
+                sound.play.run();
+                it.remove();
+            }
+        }
     }
 
     // The combo variety attacks below reuse OgreBrute's sound palette directly. Both launch-style
     // upswings (one arm and double arm) share this: a wet smack for the grab plus his recorded whoosh.
     private void playBellyBumpImpactSound() {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE, 1.2F, 0.6F);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE, 1.2F * impactVolumeScale(), 0.6F + impactPitchShift());
     }
 
     private void playLaunchImpactSound() {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.SLIME_ATTACK, SoundSource.HOSTILE, 1.2F, 0.65F);
-        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_UPSWING_WHOOSH.get(), SoundSource.HOSTILE, 1.15F, 0.88F);
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.SLIME_ATTACK, SoundSource.HOSTILE, 1.2F * volume, 0.65F + shift);
+        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_UPSWING_WHOOSH.get(), SoundSource.HOSTILE, 1.15F * volume, 0.88F + shift);
     }
 
-    private void playClubHeadThrustImpactSound() {
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.15F, 0.8F);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.0F, 0.75F);
+    /** The club leaving his hands: a low whoosh with a sweep behind it, no metal until it lands. */
+    private void playClubHeadThrustWhoosh() {
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_UPSWING_WHOOSH.get(),
+                SoundSource.HOSTILE, 1.2F * volume, 0.7F + shift);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP,
+                SoundSource.HOSTILE, 1.0F * volume, 0.55F + shift);
+    }
+
+    /** The club head hitting someone, played where they stand. */
+    private void playClubHeadThrustHit(LivingEntity target) {
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.ANVIL_LAND,
+                SoundSource.HOSTILE, 1.0F * volume, 0.8F + shift);
+        level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.IRON_GOLEM_DAMAGE,
+                SoundSource.HOSTILE, 1.0F * volume, 0.75F + shift);
+        level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK,
+                SoundSource.HOSTILE, 1.2F * volume, 0.6F + shift);
     }
 
     private Vec3 getImpactCenter(double forwardOffset, double rightOffset) {
@@ -1345,40 +2436,21 @@ public class OgreLord extends OgreGrunt {
         return position().add(forward.scale(forwardOffset)).add(right.scale(rightOffset));
     }
 
+    /**
+     * His slams break up to {@code count} blocks around the impact, any ordinary block in the open.
+     * Inside a structure, his own fort included, only soft blocks can go, rarely and only a couple
+     * a minute (see OgreGroundBreaker), so the fort takes a little wear and no more.
+     */
     private void destroyNearbyBlocks(Vec3 center, int count) {
-        if (!(level() instanceof ServerLevel serverLevel)) {
-            return;
-        }
-
-        BlockPos centerPos = BlockPos.containing(center.x, center.y, center.z);
-        List<BlockPos> candidates = new ArrayList<>();
-        for (BlockPos pos : BlockPos.betweenClosed(centerPos.offset(-1, -1, -1), centerPos.offset(1, 1, 1))) {
-            BlockState state = serverLevel.getBlockState(pos);
-            if (state.isAir() || state.hasBlockEntity()) {
-                continue;
-            }
-
-            float hardness = state.getDestroySpeed(serverLevel, pos);
-            if (hardness < 0.0F || hardness > MAX_DESTRUCTIBLE_HARDNESS) {
-                continue;
-            }
-
-            candidates.add(pos.immutable());
-        }
-
-        int destroyed = 0;
-        while (destroyed < count && !candidates.isEmpty()) {
-            BlockPos pos = candidates.remove(getRandom().nextInt(candidates.size()));
-            serverLevel.destroyBlock(pos, false);
-            destroyed++;
+        if (level() instanceof ServerLevel serverLevel) {
+            OgreGroundBreaker.breakNearby(serverLevel, this, center, count, OgreGroundBreaker.Strength.HEAVY);
         }
     }
 
     private void maybeStartRoar() {
-        // activeLordAttackId (cleared server-side by onMeleeAttackPlanFinished()) is used here
-        // instead of attackAnimationTicks — the latter is only ever assigned a fresh duration and
-        // never decremented on the server, so it would otherwise block every roar attempt after
-        // his first swing.
+        // Uses activeLordAttackId (cleared server-side by onMeleeAttackPlanFinished()).
+        // attackAnimationTicks is never decremented on the server and would block every roar
+        // after his first swing.
         if (isSummoning()) {
             if (roarCooldownTicks <= 0) {
                 roarCooldownTicks = getSpecialConflictRetryTicks();
@@ -1386,7 +2458,7 @@ public class OgreLord extends OgreGrunt {
             return;
         }
         if (isPhaseTransitioning() || isDyingAnimation()
-                || isRoaring() || roarCooldownTicks > 0 || activeLordAttackId != 0) {
+                || isRoaring() || roarCooldownTicks > 0 || activeLordAttackId != 0 || hasActiveMeleeAttack()) {
             return;
         }
 
@@ -1410,16 +2482,13 @@ public class OgreLord extends OgreGrunt {
         roarLockedX = getX();
         roarLockedZ = getZ();
         roarActiveTicks = ROAR_ANIMATION_TICKS;
+        roarVariant = chooseRoarVariant();
+        lastRoarVariant = roarVariant;
         roarCooldownTicks = isPhaseTwo() ? PHASE_TWO_ROAR_COOLDOWN_TICKS : ROAR_COOLDOWN_TICKS;
         roarEffectsApplied = false;
         roarSoundPlayed = false;
         getNavigation().stop();
-        setYRot(roarLockedYaw);
-        setYBodyRot(roarLockedYaw);
-        setYHeadRot(roarLockedYaw);
-        yRotO = roarLockedYaw;
-        yBodyRotO = roarLockedYaw;
-        yHeadRotO = roarLockedYaw;
+        // He turns to the locked facing in tickRoar over the first few ticks rather than snapping here.
         setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
         playAttackAnimation(4);
     }
@@ -1436,15 +2505,19 @@ public class OgreLord extends OgreGrunt {
         int elapsedTicks = ROAR_ANIMATION_TICKS - roarActiveTicks;
         tickAnchoredNudgeMovement(roarLockedX, roarLockedZ);
         float roarYaw = roarLockedYaw + getRoarYawOffset(elapsedTicks);
-        setYRot(roarYaw);
-        setYBodyRot(roarYaw);
-        setYHeadRot(roarYaw);
-        yRotO = roarYaw;
-        yBodyRotO = roarYaw;
-        yHeadRotO = roarYaw;
+        if (elapsedTicks < ROAR_FACING_EASE_TICKS) {
+            // Closes most of the turn from wherever he was facing, then the authored sway takes over.
+            setYRot(easeFacing(getYRot(), roarYaw, 0.5F));
+            setYBodyRot(easeFacing(yBodyRot, roarYaw, 0.5F));
+            setYHeadRot(easeFacing(getYHeadRot(), roarYaw, 0.5F));
+        } else {
+            setYRot(roarYaw);
+            setYBodyRot(roarYaw);
+            setYHeadRot(roarYaw);
+        }
 
         if (elapsedTicks >= ROAR_SOUND_TICK && !roarSoundPlayed) {
-            level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_LORD_ROAR.get(), SoundSource.HOSTILE, 1.8F, 1.0F);
+            playVocal(ModSoundEvents.OGRE_LORD_ROAR.get(), 2.2F, 1.0F);
             roarSoundPlayed = true;
             startRoarScreenShake();
         }
@@ -1573,30 +2646,121 @@ public class OgreLord extends OgreGrunt {
                 entity -> entity != this && entity.isAlive() && distanceToSqr(entity) <= ROAR_EFFECT_RADIUS * ROAR_EFFECT_RADIUS);
 
         for (LivingEntity entity : nearby) {
-            if (entity instanceof OgreGrunt) {
-                entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, ROAR_BUFF_DURATION_TICKS, 1));
-                entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ROAR_BUFF_DURATION_TICKS, 0));
-            } else if (entity instanceof Player) {
-                entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ROAR_WEAKNESS_DURATION_TICKS, 0));
+            if (entity instanceof OgreGrunt grunt && !(entity instanceof PlagueOgre) && !grunt.isArmyAlly()) {
+                switch (roarVariant) {
+                    case BATTLE -> {
+                        entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, ROAR_BUFF_DURATION_TICKS, 1));
+                        entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ROAR_BUFF_DURATION_TICKS, 0));
+                    }
+                    // Rallying Roar: a longer, fuller buff for the ogres around him.
+                    case RALLY -> {
+                        int duration = ROAR_BUFF_DURATION_TICKS * 2;
+                        entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, duration, 1));
+                        entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, duration, 1));
+                        entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, duration, 0));
+                    }
+                    case SHOCK -> entity.addEffect(new MobEffectInstance(
+                            MobEffects.DAMAGE_BOOST, ROAR_BUFF_DURATION_TICKS / 2, 0));
+                }
+            } else if (isRoarOpponent(entity)) {
+                boolean earmuffs = com.kingsandmonsters.effect.SonicDamage.isWearingPaddedEarmuffs(entity);
+                switch (roarVariant) {
+                    case BATTLE -> entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,
+                            earmuffs ? ROAR_WEAKNESS_DURATION_TICKS / 2 : ROAR_WEAKNESS_DURATION_TICKS, 0));
+                    // Rallying Roar leaves the players' arms alone; the slow still applies.
+                    case RALLY -> { }
+                    // Shock Roar: blasts everyone nearby back, with a short bout of weakness.
+                    case SHOCK -> {
+                        double dx = entity.getX() - getX();
+                        double dz = entity.getZ() - getZ();
+                        double distance = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+                        double push = earmuffs ? ROAR_SHOCK_KNOCKBACK * 0.5 : ROAR_SHOCK_KNOCKBACK;
+                        Vec3 motion = entity.getDeltaMovement();
+                        entity.setDeltaMovement(motion.x + dx / distance * push, Math.max(motion.y, 0.35),
+                                motion.z + dz / distance * push);
+                        entity.hurtMarked = true;
+                        entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,
+                                earmuffs ? ROAR_WEAKNESS_DURATION_TICKS / 4 : ROAR_WEAKNESS_DURATION_TICKS / 2, 0));
+                    }
+                }
             }
         }
 
     }
 
+    /**
+     * Each Roar is one of three: the standard Battle Roar, a Rallying Roar (only when ogres are
+     * around to rally) or a Shock Roar (only when someone is close enough to be blasted). Never the
+     * same one twice running.
+     */
+    private RoarVariant chooseRoarVariant() {
+        int ogresNearby = level().getEntitiesOfClass(OgreGrunt.class, getBoundingBox().inflate(ROAR_EFFECT_RADIUS),
+                ogre -> ogre != this && ogre.isAlive()).size();
+        boolean someoneClose = !level().getEntitiesOfClass(Player.class, getBoundingBox().inflate(ROAR_SHOCK_TRIGGER_RANGE),
+                player -> player.isAlive() && !player.isSpectator() && !player.isCreative()).isEmpty();
+        int[] weights = {3, ogresNearby >= 2 ? 2 : 0, someoneClose ? 4 : 0};
+        RoarVariant[] all = RoarVariant.values();
+        int total = 0;
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] != lastRoarVariant) total += weights[i];
+        }
+        if (total == 0) {
+            return RoarVariant.BATTLE;
+        }
+        int roll = getRandom().nextInt(total);
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] == lastRoarVariant) continue;
+            roll -= weights[i];
+            if (roll < 0) return all[i];
+        }
+        return RoarVariant.BATTLE;
+    }
+
+    /**
+     * Who the roar hurts: players, plus anything on a player's side or fighting him: tamed boars and other
+     * pets, the player's summoned army ogres, and any mob that has him as its target. His own Tribe
+     * (including its jockey boars) and Plague Ogres are not affected.
+     */
+    private boolean isRoarOpponent(LivingEntity entity) {
+        if (entity == this || !entity.isAlive()) {
+            return false;
+        }
+        if (entity instanceof Player) {
+            return true;
+        }
+        if (entity instanceof PlagueOgre) {
+            return false;
+        }
+        if (entity instanceof OgreGrunt grunt) {
+            return grunt.isArmyAlly();
+        }
+        if (entity instanceof MudsnoutBoar boar && boar.isTamed()) {
+            return true;
+        }
+        if (entity instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isTame()) {
+            return true;
+        }
+        return entity instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == this;
+    }
+
     private void tickRoarSlowness(int elapsedTicks) {
+        if (roarVariant == RoarVariant.SHOCK) {
+            return;
+        }
         if (elapsedTicks < ROAR_SOUND_TICK
                 || elapsedTicks % ROAR_SLOWNESS_REFRESH_INTERVAL_TICKS != 0) {
             return;
         }
 
         AABB area = getBoundingBox().inflate(ROAR_EFFECT_RADIUS);
-        for (Player player : level().getEntitiesOfClass(Player.class, area,
-                candidate -> candidate.isAlive()
+        for (LivingEntity victim : level().getEntitiesOfClass(LivingEntity.class, area,
+                candidate -> isRoarOpponent(candidate)
                         && distanceToSqr(candidate) <= ROAR_EFFECT_RADIUS * ROAR_EFFECT_RADIUS)) {
-            player.addEffect(new MobEffectInstance(
+            int amplifier = com.kingsandmonsters.effect.SonicDamage.isWearingPaddedEarmuffs(victim) ? 0 : 1;
+            victim.addEffect(new MobEffectInstance(
                     MobEffects.MOVEMENT_SLOWDOWN,
                     ROAR_SLOWNESS_REFRESH_DURATION_TICKS,
-                    1));
+                    amplifier));
         }
     }
 
@@ -1604,43 +2768,87 @@ public class OgreLord extends OgreGrunt {
         LivingEntity target = summonTarget != null && summonTarget.isAlive() ? summonTarget : getTarget();
         commandNearbyOgres(target);
 
-        int roll = getRandom().nextInt(TOTAL_SUMMON_FORMATION_WEIGHT);
-        switch (selectSummonFormation(roll)) {
-            case GUARDS -> spawnFormation(serverLevel, target,
-                    ModEntities.OGRE_GUARD.get(), ModEntities.OGRE_GUARD.get());
-            case CAPTAIN -> spawnFormation(serverLevel, target,
-                    ModEntities.OGRE_GRUNT.get(), ModEntities.OGRE_GRUNT.get(),
-                    ModEntities.OGRE_GRUNT_CAPTAIN.get());
-            case MAGE -> spawnFormation(serverLevel, target,
-                    ModEntities.OGRE_MAGE.get(), ModEntities.OGRE_ARCHER.get(),
-                    ModEntities.OGRE_ARCHER.get());
+        SummonFormation formation = chooseSummonFormation();
+        List<EntityType<? extends OgreGrunt>> ogres = new ArrayList<>();
+        switch (formation) {
+            case GUARDS -> {
+                ogres.add(ModEntities.OGRE_GUARD.get());
+                ogres.add(ModEntities.OGRE_GUARD.get());
+            }
+            case CAPTAIN -> {
+                ogres.add(ModEntities.OGRE_GRUNT.get());
+                ogres.add(ModEntities.OGRE_GRUNT.get());
+                ogres.add(ModEntities.OGRE_GRUNT_CAPTAIN.get());
+            }
+            case MAGE -> {
+                ogres.add(ModEntities.OGRE_MAGE.get());
+                ogres.add(ModEntities.OGRE_ARCHER.get());
+                ogres.add(ModEntities.OGRE_ARCHER.get());
+            }
+            case VOLLEY -> {
+                for (int i = 0; i < 4; i++) ogres.add(ModEntities.OGRE_ARCHER.get());
+            }
+            case BRUTE -> {
+                ogres.add(ModEntities.OGRE_BRUTE.get());
+                ogres.add(ModEntities.OGRE_GRUNT.get());
+            }
         }
+        // Later call-ups arrive heavier: an extra Grunt from the third, and a Guard on top from the fourth.
+        if (summonsPerformed >= 2) {
+            ogres.add(ModEntities.OGRE_GRUNT.get());
+        }
+        if (summonsPerformed >= 3) {
+            ogres.add(ModEntities.OGRE_GUARD.get());
+        }
+        // Never exceed the cap: trim the group to the room left (the extras go first).
+        int room = MAX_LIVING_SUMMONS - livingSummonCount(serverLevel);
+        if (room <= 0) {
+            return;
+        }
+        while (ogres.size() > room) {
+            ogres.remove(ogres.size() - 1);
+        }
+        lastSummonFormation = formation;
+        summonsPerformed++;
+        spawnFormation(serverLevel, target, ogres);
     }
 
-    private static SummonFormation selectSummonFormation(int roll) {
-        if (roll < GUARD_FORMATION_WEIGHT) {
-            return SummonFormation.GUARDS;
-        }
-        if (roll < GUARD_FORMATION_WEIGHT + GRUNT_FORMATION_WEIGHT) {
-            return SummonFormation.CAPTAIN;
-        }
-        return SummonFormation.MAGE;
+    private int livingSummonCount(ServerLevel serverLevel) {
+        summonedOgres.removeIf(id -> !(serverLevel.getEntity(id) instanceof OgreGrunt ogre) || !ogre.isAlive());
+        return summonedOgres.size();
     }
 
-    @SafeVarargs
-    private final void spawnFormation(ServerLevel serverLevel, LivingEntity target,
-                                      EntityType<? extends OgreGrunt>... formation) {
-        for (int i = 0; i < formation.length; i++) {
-            double angle = getSummonSpawnAngle(i, formation.length);
-            BlockPos spawnPos = findSummonSpawnPos(serverLevel, angle, formation[i]);
+    /** Weighted pick that never repeats the last group; the Brute only answers later call-ups. */
+    private SummonFormation chooseSummonFormation() {
+        int[] weights = {3, 3, 2, 2, summonsPerformed >= 2 ? 2 : summonsPerformed >= 1 ? 1 : 0};
+        SummonFormation[] all = SummonFormation.values();
+        int total = 0;
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] != lastSummonFormation) total += weights[i];
+        }
+        int roll = getRandom().nextInt(Math.max(1, total));
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] == lastSummonFormation) continue;
+            roll -= weights[i];
+            if (roll < 0) return all[i];
+        }
+        return SummonFormation.GUARDS;
+    }
+
+    private void spawnFormation(ServerLevel serverLevel, LivingEntity target,
+                                List<EntityType<? extends OgreGrunt>> formation) {
+        for (int i = 0; i < formation.size(); i++) {
+            double angle = getSummonSpawnAngle(i, formation.size());
+            BlockPos spawnPos = findSummonSpawnPos(serverLevel, angle, formation.get(i));
             if (spawnPos == null) {
                 continue;
             }
-            OgreGrunt ogre = formation[i].spawn(serverLevel, spawnPos, MobSpawnType.MOB_SUMMONED);
+            OgreGrunt ogre = formation.get(i).spawn(serverLevel, spawnPos, MobSpawnType.MOB_SUMMONED);
             if (ogre == null) {
                 continue;
             }
 
+            summonedOgres.add(ogre.getUUID());
             if (ogre instanceof OgreGuard guard) {
                 guard.rollEliteSpearEnchantment();
             }
@@ -1689,7 +2897,16 @@ public class OgreLord extends OgreGrunt {
                 + Math.TAU * index / formationSize;
     }
 
-    private enum SummonFormation { GUARDS, CAPTAIN, MAGE }
+    private enum SummonFormation { GUARDS, CAPTAIN, MAGE, VOLLEY, BRUTE }
+
+    private enum RoarVariant { BATTLE, RALLY, SHOCK }
+
+    // Ogres he has called in that are still alive; the call-up waits or shrinks to stay under the cap.
+    private final Set<UUID> summonedOgres = new HashSet<>();
+    private SummonFormation lastSummonFormation;
+    private int summonsPerformed;
+    private RoarVariant roarVariant = RoarVariant.BATTLE;
+    private RoarVariant lastRoarVariant;
 
     private void maybeStartSummonPoint() {
         if (isRoaring()) {
@@ -1699,12 +2916,19 @@ public class OgreLord extends OgreGrunt {
             return;
         }
         if (isPhaseTransitioning() || isDyingAnimation() || isSummoning()
-                || summonCooldownTicks > 0 || activeLordAttackId != 0) {
+                || summonCooldownTicks > 0 || activeLordAttackId != 0 || hasActiveMeleeAttack()) {
             return;
         }
 
         LivingEntity target = getTarget();
         if (target == null || !target.isAlive()) {
+            return;
+        }
+
+        // Too many of his summons still standing: check again shortly instead of crowding the fight.
+        if (level() instanceof ServerLevel serverLevel
+                && livingSummonCount(serverLevel) > MAX_LIVING_SUMMONS - MIN_SUMMON_ROOM) {
+            summonCooldownTicks = SUMMON_FULL_RETRY_TICKS;
             return;
         }
 
@@ -1720,6 +2944,7 @@ public class OgreLord extends OgreGrunt {
         summonActiveTicks = SUMMON_POINT_ANIMATION_TICKS;
         summonCooldownTicks = SUMMON_COOLDOWN_TICKS;
         summonEventFired = false;
+        summonVocalPlayed = false;
         summonPunchSoundPlayed = false;
         getNavigation().stop();
         setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
@@ -1748,10 +2973,12 @@ public class OgreLord extends OgreGrunt {
             level().playSound(null, getX(), getY(), getZ(),
                     SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE, 1.25F, 0.8F);
         }
+        if (!summonVocalPlayed && elapsedTicks >= SUMMON_POINT_VOCAL_TICK) {
+            summonVocalPlayed = true;
+            playVocal(ModSoundEvents.OGRE_LORD_SUMMON_GRUNT.get(), 1.3F, 1.0F);
+        }
         if (!summonEventFired && elapsedTicks >= SUMMON_POINT_EVENT_TICK) {
             summonEventFired = true;
-            level().playSound(null, getX(), getY(), getZ(),
-                    ModSoundEvents.OGRE_LORD_SUMMON_GRUNT.get(), SoundSource.HOSTILE, 1.3F, 1.0F);
             if (level() instanceof ServerLevel serverLevel) {
                 performRoyalSummon(serverLevel);
             }
@@ -1768,6 +2995,13 @@ public class OgreLord extends OgreGrunt {
 
     private boolean isSummoning() {
         return summonActiveTicks > 0 || activeLordAttackId == 13 && attackAnimationTicks > 0;
+    }
+
+    @Override
+    protected boolean isAttackCommitted() {
+        // A swing plays out to the end even if the goal would drop it (a lost target, say), so the
+        // summon and the roar can't cut in on the second stomp.
+        return activeLordAttackId != 0 && !isPhaseTransitioning() && !isDyingAnimation();
     }
 
     @Override
@@ -1816,9 +3050,21 @@ public class OgreLord extends OgreGrunt {
             return startDoubleArmUpswing();
         }
 
-        return switch (chooseVariedNormalAttack(1, 8)) {
+        // The stomp wave is the midrange harass; it is listed twice so it comes up as often as the
+        // two regular slams do once he is far enough out to use it.
+        int[] pool = isFarEnoughForStompWave(target)
+                ? new int[]{ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2, 1, 8, 8}
+                : new int[]{ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2, 1};
+        return startNormalAttack(chooseVariedNormalAttack(pool));
+    }
+
+    private MeleeAttackPlan startNormalAttack(int attackId) {
+        return switch (attackId) {
             case 1 -> startOneArmUpswing();
-            default -> startSingleLegStomp();
+            case 7 -> startClubHeadThrust();
+            case 8 -> startSingleLegStomp();
+            case ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2 -> startRegularSlam(attackId);
+            default -> startSingleOverheadSlam();
         };
     }
 
@@ -1848,30 +3094,26 @@ public class OgreLord extends OgreGrunt {
             closePressureTicks = 0;
             return startClubHeadThrust();
         }
-        if (singleOverheadCooldownTicks <= 0) {
-            if (shouldUsePhaseTwoSingleLegStomp()) {
-                return startSingleLegStomp();
-            }
-            // Single Overhead Slam (11, the default case) listed twice so it's the most common
-            // pick in this pool; Club Head Thrust still gets its normal share, plus its own
-            // separate appearances via the Belly Bump alternative and the fallback pool below.
-            return switch (chooseVariedNormalAttack(1, 7, 11, 11)) {
-                case 1 -> startOneArmUpswing();
-                case 7 -> startClubHeadThrust();
-                default -> startSingleOverheadSlam();
-            };
-        }
         if (shouldUsePhaseTwoSingleLegStomp()) {
             return startSingleLegStomp();
         }
-        return switch (chooseVariedNormalAttack(1, 7)) {
-            case 1 -> startOneArmUpswing();
-            default -> startClubHeadThrust();
-        };
+        // The club phase keeps only the second regular slam. Single Overhead Slam (11) is listed
+        // twice so it is the most common pick while off cooldown; Club Head Thrust still gets its
+        // share, plus its own appearances via the Belly Bump alternative above.
+        if (singleOverheadCooldownTicks <= 0) {
+            return startNormalAttack(chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7, 11, 11));
+        }
+        return startNormalAttack(chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7));
     }
 
     private boolean shouldUsePhaseTwoSingleLegStomp() {
-        return getRandom().nextInt(PHASE_TWO_SINGLE_LEG_STOMP_CHANCE) == 0;
+        return isFarEnoughForStompWave(getTarget())
+                && getRandom().nextInt(PHASE_TWO_SINGLE_LEG_STOMP_CHANCE) == 0;
+    }
+
+    /** The wave is a midrange attack; up close he swings or bumps instead. */
+    private boolean isFarEnoughForStompWave(LivingEntity target) {
+        return target != null && distanceToSqr(target) >= STOMP_WAVE_MIN_RANGE * STOMP_WAVE_MIN_RANGE;
     }
 
     private int chooseVariedNormalAttack(int... attackIds) {
@@ -1896,28 +3138,38 @@ public class OgreLord extends OgreGrunt {
 
     private MeleeAttackPlan startClubDoubleOverhead() {
         playAttackAnimation(10);
-        scheduleHeavyAttackRoar(10, CLUB_DOUBLE_OVERHEAD_IMPACT_TICK, CLUB_DOUBLE_OVERHEAD_ROAR_PITCH, true,
+        scheduleHeavyAttackRoar(10, CLUB_DOUBLE_OVERHEAD_IMPACT_TICK, CLUB_DOUBLE_OVERHEAD_ROAR_PITCH, false,
                 CLUB_DOUBLE_OVERHEAD_ROAR_LEAD_TICKS);
         lockSpecialAnimationPose();
         clubAttackElapsedTicks = 0;
         clubAttackImpactFired = false;
         clubDoubleOverheadCooldownTicks = CLUB_DOUBLE_OVERHEAD_COOLDOWN_TICKS;
         return new MeleeAttackPlan(
-                DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS,
+                swingCooldown(DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS),
                 CLUB_DOUBLE_OVERHEAD_ANIMATION_TICKS,
                 List.of());
     }
 
     private MeleeAttackPlan startSingleOverheadSlam() {
         playAttackAnimation(11);
-        scheduleHeavyAttackRoar(11, SINGLE_OVERHEAD_IMPACT_TICK, SINGLE_OVERHEAD_ROAR_PITCH, false);
-        lockSpecialAnimationPose();
+        scheduleHeavyAttackRoar(11, SINGLE_OVERHEAD_IMPACT_TICK, SINGLE_OVERHEAD_ROAR_PITCH, false, SINGLE_OVERHEAD_ROAR_LEAD_TICKS);
         clubAttackElapsedTicks = 0;
         clubAttackImpactFired = false;
         singleOverheadCooldownTicks = SINGLE_OVERHEAD_COOLDOWN_TICKS;
         return new MeleeAttackPlan(
-                BASIC_ATTACK_COOLDOWN_TICKS,
+                swingCooldown(WALKING_ATTACK_COOLDOWN_TICKS),
                 SINGLE_OVERHEAD_SLAM_ANIMATION_TICKS,
+                List.of());
+    }
+
+    /** The two bread-and-butter slams, thrown while walking; 18 is the right hand, 19 the left. */
+    private MeleeAttackPlan startRegularSlam(int attackId) {
+        playAttackAnimation(attackId);
+        clubAttackElapsedTicks = 0;
+        clubAttackImpactFired = false;
+        return new MeleeAttackPlan(
+                swingCooldown(WALKING_ATTACK_COOLDOWN_TICKS),
+                REGULAR_ATTACK_ANIMATION_TICKS,
                 List.of());
     }
 
@@ -1939,11 +3191,10 @@ public class OgreLord extends OgreGrunt {
             double baseDamage = Math.max(0.01, getAttributeValue(Attributes.ATTACK_DAMAGE));
             damageMultiplier += (float) (Config.OGRE_LORD_CLUB_UPSWING_BONUS_DAMAGE.get() / baseDamage);
         }
-        // Same launch as the double arm version, but redirected: he swings with his right hand
-        // across to his left, so the launch is ~45 degrees up-and-out to his left instead of
-        // straight up. In phase two, the metal club tip adds damage, reach, and a stronger launch.
-        // The delayed impact sound uses playLaunchImpactSound(), including the same recorded whoosh.
-        return new MeleeAttackPlan(BASIC_ATTACK_COOLDOWN_TICKS, ONE_ARM_UPSWING_ANIMATION_TICKS, List.of(
+        // Same launch as the double arm version, redirected: he swings right hand across to the left,
+        // so the launch goes ~45 degrees up and out to his left. In phase two the metal club tip adds
+        // damage, reach and a stronger launch. The delayed impact sound uses playLaunchImpactSound().
+        return new MeleeAttackPlan(swingCooldown(WALKING_ATTACK_COOLDOWN_TICKS), ONE_ARM_UPSWING_ANIMATION_TICKS, List.of(
                 MeleeAttackHit.areaSpecial(ONE_ARM_UPSWING_IMPACT_DELAY_TICKS, damageMultiplier, hitRadius, false,
                                 0.2F, horizontalLaunch, 120.0F, verticalLaunch, 0, 0, false)
                         .withAreaOffset(forwardOffset, 0.0)
@@ -1956,8 +3207,10 @@ public class OgreLord extends OgreGrunt {
         doubleStompCooldownTicks = DOUBLE_STOMP_COOLDOWN_TICKS;
         doubleStompLeftImpactSoundDelayTicks = DOUBLE_STOMP_LEFT_IMPACT_DELAY_TICKS;
         doubleStompRightImpactSoundDelayTicks = DOUBLE_STOMP_RIGHT_IMPACT_DELAY_TICKS;
+        doubleStompLeftGruntDelayTicks = DOUBLE_STOMP_LEFT_GRUNT_DELAY_TICKS;
+        doubleStompRightGruntDelayTicks = DOUBLE_STOMP_RIGHT_GRUNT_DELAY_TICKS;
         warmUpRippleBlockVisual();
-        return new MeleeAttackPlan(DOUBLE_STOMP_SWING_COOLDOWN_TICKS, DOUBLE_STOMP_ANIMATION_TICKS, List.of(
+        return new MeleeAttackPlan(swingCooldown(DOUBLE_STOMP_SWING_COOLDOWN_TICKS), DOUBLE_STOMP_ANIMATION_TICKS, List.of(
                 MeleeAttackHit.areaSpecial(DOUBLE_STOMP_LEFT_IMPACT_DELAY_TICKS, DOUBLE_STOMP_DAMAGE_MULTIPLIER, DOUBLE_STOMP_AREA_RADIUS, true,
                                 0.2F, 2.2, 0.0F, 0.85, 30, 0, true)
                         .withAreaOffset(0.4, -1.0)
@@ -1974,11 +3227,12 @@ public class OgreLord extends OgreGrunt {
 
     private MeleeAttackPlan startDoubleOverheadSlam() {
         playAttackAnimation(3);
-        scheduleHeavyAttackRoar(3, DOUBLE_OVERHEAD_SLAM_IMPACT_DELAY_TICKS, DOUBLE_OVERHEAD_ROAR_PITCH, true);
+        scheduleHeavyAttackRoar(3, DOUBLE_OVERHEAD_SLAM_IMPACT_DELAY_TICKS,
+                DOUBLE_OVERHEAD_ROAR_PITCH, false, DOUBLE_OVERHEAD_ROAR_LEAD_TICKS);
         doubleOverheadSlamCooldownTicks = DOUBLE_OVERHEAD_SLAM_COOLDOWN_TICKS;
         doubleOverheadSlamImpactSoundDelayTicks = DOUBLE_OVERHEAD_SLAM_IMPACT_DELAY_TICKS;
         warmUpRippleBlockVisual();
-        return new MeleeAttackPlan(DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS, DOUBLE_OVERHEAD_SLAM_ANIMATION_TICKS, List.of(
+        return new MeleeAttackPlan(swingCooldown(DOUBLE_OVERHEAD_SLAM_SWING_COOLDOWN_TICKS), DOUBLE_OVERHEAD_SLAM_ANIMATION_TICKS, List.of(
                 MeleeAttackHit.areaSpecial(DOUBLE_OVERHEAD_SLAM_IMPACT_DELAY_TICKS, DOUBLE_OVERHEAD_SLAM_DAMAGE_MULTIPLIER, DOUBLE_OVERHEAD_SLAM_AREA_RADIUS, true,
                                 0.3F, 3.0, 0.0F, 1.3, 40, 20, true)
                         .withAreaOffset(1.6, 0.0)
@@ -1990,11 +3244,12 @@ public class OgreLord extends OgreGrunt {
     private MeleeAttackPlan startBellyBump() {
         playAttackAnimation(5);
         bellyBumpCooldownTicks = BELLY_BUMP_COOLDOWN_TICKS;
+        bellyBumpRoarDelayTicks = BELLY_BUMP_ROAR_DELAY_TICKS;
         bellyBumpImpactSoundDelayTicks = BELLY_BUMP_IMPACT_DELAY_TICKS;
         closePressureTicks = 0;
         // Omnidirectional (coneDegrees 0 skips the facing check) — this punishes anyone crowded
         // around him, not just whoever he's currently facing.
-        return new MeleeAttackPlan(BASIC_ATTACK_COOLDOWN_TICKS, BELLY_BUMP_ANIMATION_TICKS, List.of(
+        return new MeleeAttackPlan(swingCooldown(BASIC_ATTACK_COOLDOWN_TICKS), BELLY_BUMP_ANIMATION_TICKS, List.of(
                 MeleeAttackHit.areaSpecial(BELLY_BUMP_IMPACT_DELAY_TICKS, BELLY_BUMP_DAMAGE_MULTIPLIER, 6.0F, false,
                                 0.2F, 4.5, 0.0F, 1.3, 0, 0, false)
                         .withVerticalHitRange(4.0)));
@@ -2003,8 +3258,9 @@ public class OgreLord extends OgreGrunt {
     private MeleeAttackPlan startDoubleArmUpswing() {
         playAttackAnimation(6);
         doubleArmUpswingCooldownTicks = DOUBLE_ARM_UPSWING_COOLDOWN_TICKS;
+        doubleArmUpswingGruntDelayTicks = DOUBLE_ARM_UPSWING_GRUNT_DELAY_TICKS;
         doubleArmUpswingImpactSoundDelayTicks = DOUBLE_ARM_UPSWING_IMPACT_DELAY_TICKS;
-        return new MeleeAttackPlan(BASIC_ATTACK_COOLDOWN_TICKS, DOUBLE_ARM_UPSWING_ANIMATION_TICKS, List.of(
+        return new MeleeAttackPlan(swingCooldown(WALKING_ATTACK_COOLDOWN_TICKS), DOUBLE_ARM_UPSWING_ANIMATION_TICKS, List.of(
                 MeleeAttackHit.areaSpecial(DOUBLE_ARM_UPSWING_IMPACT_DELAY_TICKS, DOUBLE_ARM_UPSWING_DAMAGE_MULTIPLIER, 5.5F, false,
                                 0.2F, 1.5, 120.0F, 2.2, 0, 0, false)
                         .withAreaOffset(1.3, 0.0)
@@ -2013,14 +3269,17 @@ public class OgreLord extends OgreGrunt {
 
     private MeleeAttackPlan startClubHeadThrust() {
         playAttackAnimation(7);
-        clubHeadThrustImpactSoundDelayTicks = CLUB_HEAD_THRUST_IMPACT_DELAY_TICKS;
+        // The quick thrust intentionally has no pre-attack vocal.
+        heavyAttackRoarDelayTicks = -1;
+        clubHeadThrustImpactSoundDelayTicks = CLUB_HEAD_THRUST_WHOOSH_DELAY_TICKS;
         clubHeadThrustElapsedTicks = 0;
         clubHeadThrustOriginX = getX();
         clubHeadThrustOriginZ = getZ();
         clubHeadThrustYaw = getYRot();
         previousClubHeadThrustPosition = null;
         clubHeadThrustHitTargets.clear();
-        return new MeleeAttackPlan(BASIC_ATTACK_COOLDOWN_TICKS, CLUB_HEAD_THRUST_ANIMATION_TICKS, List.of());
+        clubHeadThrustImpactSoundPlayed = false;
+        return new MeleeAttackPlan(swingCooldown(WALKING_ATTACK_COOLDOWN_TICKS), CLUB_HEAD_THRUST_ANIMATION_TICKS, List.of());
     }
 
     private void tickClubHeadThrustHitbox() {
@@ -2030,6 +3289,10 @@ public class OgreLord extends OgreGrunt {
         }
 
         clubHeadThrustElapsedTicks++;
+        // He keeps walking through the thrust, so the club head is measured from where he is now.
+        clubHeadThrustOriginX = getX();
+        clubHeadThrustOriginZ = getZ();
+        clubHeadThrustYaw = getYRot();
         if (clubHeadThrustElapsedTicks < CLUB_HEAD_THRUST_ACTIVE_START_TICK
                 || clubHeadThrustElapsedTicks > CLUB_HEAD_THRUST_ACTIVE_END_TICK) {
             return;
@@ -2061,14 +3324,18 @@ public class OgreLord extends OgreGrunt {
         for (LivingEntity target : level().getEntitiesOfClass(LivingEntity.class, sweptVolume,
                 candidate -> candidate != this
                         && candidate.isAlive()
-                        && !(candidate instanceof OgreGrunt)
+                        && (!(candidate instanceof OgreGrunt) || isPlagueEnemy(candidate))
                         && candidate.getBoundingBox().intersects(sweptVolume)
-                        && getSensing().hasLineOfSight(candidate))) {
+                        && canStrikeReach(candidate))) {
             if (!clubHeadThrustHitTargets.add(target.getUUID())) {
                 continue;
             }
             if (doScaledHurtTarget(target, hit.damageMultiplier(), hit.armorPierceFraction())) {
                 applyAttackHitExtras(target, hit);
+                if (!clubHeadThrustImpactSoundPlayed) {
+                    clubHeadThrustImpactSoundPlayed = true;
+                    playClubHeadThrustHit(target);
+                }
             }
         }
     }
@@ -2077,16 +3344,218 @@ public class OgreLord extends OgreGrunt {
         playAttackAnimation(8);
         singleLegStompImpactSoundDelayTicks = SINGLE_LEG_STOMP_IMPACT_DELAY_TICKS;
         warmUpRippleBlockVisual();
-        // Smaller/regular-tier ground stomp — right leg only, so offset toward his right side like
-        // the right foot of the (bigger, rarer) double stomp.
-        float stompRadius = 6.5F;
-        return new MeleeAttackPlan(BASIC_ATTACK_COOLDOWN_TICKS, SINGLE_LEG_STOMP_ANIMATION_TICKS, List.of(
-                MeleeAttackHit.areaSpecial(SINGLE_LEG_STOMP_IMPACT_DELAY_TICKS, SINGLE_LEG_STOMP_DAMAGE_MULTIPLIER, stompRadius, true,
-                                0.2F, 2.0, 0.0F, 0.6, 20, 0, true)
-                        .withAreaOffset(0.4, 1.0)
-                        .withVerticalHitRange(4.0)
-                        .withScreenShake(1.0F)
-                        .withBlockRippleParticles()));
+        // The stomp itself deals no area damage; the wave it starts at the moment of impact does.
+        stompWaveElapsedTicks = 0;
+        stompWaveStartTime = level().getGameTime();
+        stompWaveHitTargets.clear();
+        return new MeleeAttackPlan(swingCooldown(BASIC_ATTACK_COOLDOWN_TICKS), SINGLE_LEG_STOMP_ANIMATION_TICKS, List.of());
+    }
+
+    private int rollFrustrationThreshold() {
+        return 100 + getRandom().nextInt(81);
+    }
+
+    /**
+     * Counts how long a nearby target has been out of reach (up a tree, behind a wall, in a pit) and
+     * then plows through whatever is in the way. Fort walls and every other structure are left alone.
+     */
+    private void tickFrustration() {
+        plowCooldownTicks = Math.max(plowCooldownTicks - 1, 0);
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        LivingEntity target = getTarget();
+        boolean free = isFortEncounterDormant() || isSummoning() || isRoaring() || isDyingAnimation()
+                || isPhaseTransitioning() || target == null || !target.isAlive();
+        if (free) {
+            frustrationTicks = 0;
+            plowTicksRemaining = 0;
+            return;
+        }
+
+        if (plowTicksRemaining > 0) {
+            plowTicksRemaining--;
+            if (plowTicksRemaining % 5 == 0) {
+                clearPlowPath(serverLevel, target);
+            }
+            if (plowTicksRemaining == 0) {
+                plowCooldownTicks = 400 + getRandom().nextInt(301);
+            }
+            return;
+        }
+
+        if (tickCount % 10 != 0) {
+            return;
+        }
+        double distanceSqr = distanceToSqr(target);
+        boolean nearby = distanceSqr > REGULAR_ATTACK_START_RANGE * REGULAR_ATTACK_START_RANGE
+                && distanceSqr < PLOW_TRIGGER_RANGE * PLOW_TRIGGER_RANGE;
+        net.minecraft.world.level.pathfinder.Path path = nearby ? getNavigation().createPath(target, 0) : null;
+        boolean blocked = nearby && (path == null || !path.canReach());
+        frustrationTicks = blocked ? frustrationTicks + 10 : Math.max(0, frustrationTicks - 20);
+        if (frustrationTicks >= frustrationThresholdTicks && plowCooldownTicks <= 0 && activeLordAttackId == 0) {
+            startPlow(serverLevel);
+        }
+    }
+
+    private void startPlow(ServerLevel serverLevel) {
+        frustrationTicks = 0;
+        frustrationThresholdTicks = rollFrustrationThreshold();
+        plowTicksRemaining = 60 + getRandom().nextInt(61);
+        plowHalfWidth = 1.2 + getRandom().nextDouble() * 1.0;
+        plowHeight = 5 + getRandom().nextInt(3);
+        plowReach = 4.0 + getRandom().nextDouble() * 3.0;
+        plowDropChance = getRandom().nextFloat() * 0.3F;
+        playLordHuff(1.3F);
+        serverLevel.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.HOSTILE, 0.8F, 0.55F + getRandom().nextFloat() * 0.2F);
+    }
+
+    /** Breaks a corridor ahead of him toward the target, and a pocket around them once he's close. */
+    private void clearPlowPath(ServerLevel serverLevel, LivingEntity target) {
+        Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0, target.getZ() - getZ());
+        if (toTarget.lengthSqr() < 1.0E-4) {
+            return;
+        }
+        Vec3 forward = toTarget.normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        double ahead = Math.min(plowReach, toTarget.length());
+        int broken = 0;
+        for (double along = 0.5; along <= ahead && broken < PLOW_BLOCKS_PER_PULSE; along += 1.0) {
+            for (double side = -plowHalfWidth; side <= plowHalfWidth && broken < PLOW_BLOCKS_PER_PULSE; side += 1.0) {
+                for (int up = 0; up < plowHeight && broken < PLOW_BLOCKS_PER_PULSE; up++) {
+                    BlockPos pos = BlockPos.containing(getX() + forward.x * along + right.x * side,
+                            getY() + up, getZ() + forward.z * along + right.z * side);
+                    if (breakPlowBlock(serverLevel, pos)) broken++;
+                }
+            }
+        }
+        if (toTarget.length() <= plowReach + 2.0) {
+            BlockPos center = target.blockPosition();
+            for (BlockPos pos : BlockPos.betweenClosed(center.offset(-2, -1, -2), center.offset(2, 3, 2))) {
+                if (broken >= PLOW_BLOCKS_PER_PULSE) break;
+                // Leave the block the target is standing on so the pocket doesn't just drop them.
+                if (pos.getY() == center.getY() - 1 && pos.getX() == center.getX() && pos.getZ() == center.getZ()) continue;
+                if (breakPlowBlock(serverLevel, pos.immutable())) broken++;
+            }
+        }
+    }
+
+    private boolean breakPlowBlock(ServerLevel serverLevel, BlockPos pos) {
+        BlockState state = serverLevel.getBlockState(pos);
+        if (state.isAir() || state.hasBlockEntity() || !state.getFluidState().isEmpty()) {
+            return false;
+        }
+        float hardness = state.getDestroySpeed(serverLevel, pos);
+        if (hardness < 0.0F || hardness > MAX_DESTRUCTIBLE_HARDNESS
+                || serverLevel.structureManager().hasAnyStructureAt(pos)) {
+            return false;
+        }
+        serverLevel.destroyBlock(pos, getRandom().nextFloat() < plowDropChance, this);
+        return true;
+    }
+
+    /** Swing recovery with a little jitter, so the King's rhythm isn't a fixed metronome. */
+    private int swingCooldown(int baseTicks) {
+        return baseTicks + getRandom().nextInt(SWING_COOLDOWN_JITTER_TICKS * 2 + 1) - SWING_COOLDOWN_JITTER_TICKS;
+    }
+
+    /**
+     * Crossing a health gate makes the Roar or Summon ready; whichever it is still waits for him to be
+     * idle, so it fires between swings. A King loaded mid-fight skips the gates he's already past
+     * instead of firing them all at once.
+     */
+    private void tickHealthGates() {
+        float fraction = getHealth() / Math.max(1.0F, getMaxHealth());
+        boolean fire = healthGatesInitialised;
+        healthGatesInitialised = true;
+        while (nextSummonGate < SUMMON_HEALTH_GATES.length && fraction <= SUMMON_HEALTH_GATES[nextSummonGate]) {
+            nextSummonGate++;
+            if (fire) summonCooldownTicks = 0;
+        }
+        while (nextRoarGate < ROAR_HEALTH_GATES.length && fraction <= ROAR_HEALTH_GATES[nextRoarGate]) {
+            nextRoarGate++;
+            if (fire) roarCooldownTicks = 0;
+        }
+    }
+
+    private void tickStompWave() {
+        if (stompWaveElapsedTicks < 0) {
+            return;
+        }
+        if (!isAlive() || level().getGameTime() - stompWaveStartTime > STOMP_WAVE_MAX_LIFETIME_TICKS) {
+            stompWaveElapsedTicks = -1;
+            return;
+        }
+
+        int sinceImpact = stompWaveElapsedTicks++ - SINGLE_LEG_STOMP_IMPACT_DELAY_TICKS;
+        if (sinceImpact < 0) {
+            return;
+        }
+        if (sinceImpact == 0) {
+            // He doesn't turn mid-stomp, so the wave runs where he is facing at the moment of impact.
+            stompWaveOrigin = position();
+            stompWaveDirection = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        }
+        int lastPulseTick = (STOMP_WAVE_PULSES - 1) * STOMP_WAVE_PULSE_INTERVAL_TICKS;
+        if (sinceImpact > lastPulseTick + 6) {
+            // The last pulse's ripple has finished.
+            stompWaveElapsedTicks = -1;
+        } else if (sinceImpact <= lastPulseTick && sinceImpact % STOMP_WAVE_PULSE_INTERVAL_TICKS == 0
+                && !spawnStompWavePulse(sinceImpact / STOMP_WAVE_PULSE_INTERVAL_TICKS)) {
+            // The wave ran into a wall.
+            stompWaveElapsedTicks = -1;
+        }
+    }
+
+    private boolean hasCollision(BlockPos pos) {
+        return !level().getBlockState(pos).getCollisionShape(level(), pos).isEmpty();
+    }
+
+    /** Returns false when terrain blocks the wave (a wall or step more than a block high). */
+    private boolean spawnStompWavePulse(int pulse) {
+        double distance = STOMP_WAVE_FIRST_DISTANCE + pulse * STOMP_WAVE_SPACING;
+        double x = stompWaveOrigin.x + stompWaveDirection.x * distance;
+        double z = stompWaveOrigin.z + stompWaveDirection.z * distance;
+        int baseY = Mth.floor(stompWaveOrigin.y);
+
+        // Find a standing surface up to a block higher or three lower, with room for a player above
+        // it. Ceilings and canopies further up don't matter, only what is at body height.
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        Double floorY = null;
+        for (int surface = baseY + 1; surface >= baseY - 3; surface--) {
+            if (hasCollision(pos.set(Mth.floor(x), surface - 1, Mth.floor(z)))
+                    && !hasCollision(pos.set(Mth.floor(x), surface, Mth.floor(z)))
+                    && !hasCollision(pos.set(Mth.floor(x), surface + 1, Mth.floor(z)))) {
+                floorY = (double) surface;
+                break;
+            }
+        }
+        if (floorY == null) {
+            // Solid at body height means a wall; otherwise it is a gap, which just skips this pulse.
+            return !hasCollision(pos.set(Mth.floor(x), baseY, Mth.floor(z)))
+                    && !hasCollision(pos.set(Mth.floor(x), baseY + 1, Mth.floor(z)));
+        }
+
+        Vec3 center = new Vec3(x, floorY, z);
+        MeleeAttackHit hit = MeleeAttackHit.areaSpecial(0, STOMP_WAVE_DAMAGE_MULTIPLIER, STOMP_WAVE_PULSE_RADIUS,
+                        false, 0.2F, 0.0, 0.0F, STOMP_WAVE_LAUNCH, STOMP_WAVE_SLOWNESS_TICKS, 0, false)
+                .withVerticalHitRange(STOMP_WAVE_VERTICAL_HIT_RANGE);
+        int rings = Math.max(2, (int) Math.ceil(STOMP_WAVE_PULSE_RADIUS / 1.25F));
+        float propagationSpeed = STOMP_WAVE_PULSE_RADIUS / (rings * 2.0F);
+        startGroundRipple(center, hit, new GroundRippleProfile(STOMP_WAVE_PULSE_RADIUS, propagationSpeed,
+                1.125F, 0.44F, 1.0F, STOMP_WAVE_VERTICAL_HIT_RANGE, false, GroundRippleKind.KING_STOMP_WAVE));
+        if (level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.POOF, x, floorY + 0.1, z, 5, 0.6, 0.1, 0.6, 0.02);
+            serverLevel.playSound(null, x, floorY, z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE,
+                    0.45F, 0.75F + pulse * 0.04F);
+            // The ground itself cracking up under each pulse, in whatever it is made of.
+            BlockPos below = BlockPos.containing(x, floorY - 0.5, z);
+            serverLevel.playSound(null, x, floorY, z,
+                    serverLevel.getBlockState(below).getSoundType(serverLevel, below, this).getBreakSound(),
+                    SoundSource.HOSTILE, 0.8F, 0.6F + pulse * 0.03F);
+        }
+        return true;
     }
 
     private boolean isWithinRegularAttackStartRange(LivingEntity target) {
@@ -2102,22 +3571,46 @@ public class OgreLord extends OgreGrunt {
 
     @Override
     public boolean canDisableShield() {
-        return activeLordAttackId == 1 || super.canDisableShield();
+        return activeLordAttackId == 1 || activeLordAttackId == ATTACK_ID_REGULAR_ATTACK
+                || activeLordAttackId == ATTACK_ID_REGULAR_ATTACK_2 || super.canDisableShield();
     }
 
     @Override
     protected boolean shouldFaceMeleeTarget(LivingEntity target) {
-        return !isRoaring() && !isPhaseTransitioning() && !isDyingAnimation() && !isMidSwing();
+        // The attacks he throws while walking keep turning him toward his target.
+        return !isRoaring() && !isPhaseTransitioning() && !isDyingAnimation()
+                && (!isMidSwing() || isWalkingAttack(activeLordAttackId));
     }
 
     @Override
     protected boolean shouldStayStationaryDuringMeleeAttack() {
-        // Without this, the goal keeps re-evaluating movement every tick during a swing — if the
-        // target steps out of range mid-attack, it kicks off a repath toward the new position,
-        // which reorients his body. shouldFaceMeleeTarget() already blocks the look-based rotation
-        // mid-swing; this blocks the navigation-driven one too, so he stays committed to a swing
-        // instead of whipping around partway through it.
-        return isRoaring() || isPhaseTransitioning() || isDyingAnimation() || isMidSwing();
+        // Without this the goal re-evaluates movement every tick mid-swing, and a target stepping
+        // out of range triggers a repath that turns his body. shouldFaceMeleeTarget() already
+        // blocks look-based rotation mid-swing; this blocks the navigation-driven kind too.
+        return isRoaring() || isPhaseTransitioning() || isDyingAnimation()
+                || isMidSwing() && !isWalkingAttack(activeLordAttackId);
+    }
+
+    /**
+     * Attacks whose clips leave the legs alone, so they can be thrown on top of the combat walk
+     * while he keeps moving: the regular slams, both upswings, the single club slam and the thrust.
+     * Every other attack plants him.
+     */
+    private static boolean isWalkingAttack(int attackId) {
+        return switch (attackId) {
+            case 1, 6, 7, 11, ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2 -> true;
+            default -> false;
+        };
+    }
+
+    @Override
+    protected boolean canCombatWalkDuringAttack() {
+        return isWalkingAttack(activeLordAttackId);
+    }
+
+    @Override
+    protected boolean keepsMovingThroughAttackRange() {
+        return true;
     }
 
     @Override
@@ -2135,45 +3628,26 @@ public class OgreLord extends OgreGrunt {
     @Override
     protected boolean shouldUseCombatWalk(LivingEntity target, boolean closeEnoughToAttack,
                                           int ticksUntilNextAttack, boolean currentlyCombatWalking) {
-        if (target == null || !target.isAlive() || isMidSwing()
-                || isPhaseTransitioning() || isRoaring() || isDyingAnimation()) {
-            return false;
-        }
-
-        double horizontalX = target.getX() - getX();
-        double horizontalZ = target.getZ() - getZ();
-        double horizontalDistanceSqr = horizontalX * horizontalX + horizontalZ * horizontalZ;
-        double threshold = currentlyCombatWalking || openingRunAttackCompleted
-                ? COMBAT_WALK_EXIT_RANGE
-                : COMBAT_WALK_ENTER_RANGE;
-        if (horizontalDistanceSqr > threshold * threshold
-                || Math.abs(target.getY() - getY()) > COMBAT_WALK_MAX_VERTICAL_DIFFERENCE) {
-            openingRunAttackCompleted = false;
-            return false;
-        }
-
-        return openingRunAttackCompleted;
+        // Once he has a target the combat walk is his only gait, near or far; the planted attacks
+        // and the roar are what stop him.
+        return target != null && target.isAlive()
+                && (!isMidSwing() || isWalkingAttack(activeLordAttackId))
+                && !isPhaseTransitioning() && !isRoaring() && !isDyingAnimation();
     }
 
     @Override
     protected void setUsingCombatWalk(boolean usingCombatWalk) {
         if (!level().isClientSide) {
-            if (!usingCombatWalk && (getTarget() == null || !isAggressive())) {
-                openingRunAttackCompleted = false;
-            }
-            int locomotion = usingCombatWalk
+            int locomotion = usingCombatWalk || getTarget() != null && isAggressive()
                     ? LOCOMOTION_COMBAT_WALK
-                    : getTarget() != null && isAggressive()
-                            ? LOCOMOTION_RUN
-                            : getNavigation().isDone() ? LOCOMOTION_IDLE : LOCOMOTION_WALK;
+                    : getNavigation().isDone() ? LOCOMOTION_IDLE : LOCOMOTION_WALK;
             entityData.set(DATA_LORD_LOCOMOTION, locomotion);
         }
     }
 
     @Override
     protected boolean usesRunningTurnSmoothing() {
-        int locomotion = entityData.get(DATA_LORD_LOCOMOTION);
-        return locomotion == LOCOMOTION_RUN || locomotion == LOCOMOTION_COMBAT_WALK;
+        return entityData.get(DATA_LORD_LOCOMOTION) == LOCOMOTION_COMBAT_WALK;
     }
 
     @Override
@@ -2205,23 +3679,69 @@ public class OgreLord extends OgreGrunt {
         return activeLordAttackId != 0 && attackAnimationTicks > 0;
     }
 
+    /**
+     * Only a real jump or fall gets under a ground wave. Being off the ground is not enough on its
+     * own: swimming, climbing a ladder or vines, or riding a mount (the rider is never "on the
+     * ground", the mount is) would otherwise make a player immune to every ripple.
+     */
     private boolean isAirborneShockwaveDodge(LivingEntity target) {
-        return !target.onGround();
+        net.minecraft.world.entity.Entity body = target.getRootVehicle();
+        return !body.onGround() && !body.isInWaterOrBubble() && !body.isInLava() && !target.onClimbable();
     }
 
     @Override
     protected void applyAttackHitExtras(LivingEntity target, MeleeAttackHit hit) {
-        // Ground shockwaves launch vertically without replacing the target's horizontal motion.
-        // Direct contact with a directionally moving weapon keeps its authored knockback.
-        super.applyAttackHitExtras(target,
-                hit.blockRippleParticles() ? hit.withoutHorizontalKnockback() : hit);
+        if (activeLordAttackId == 5) {
+            super.applyAttackHitExtras(target, hit.withoutHorizontalKnockback());
+            applyBellyBumpLaunch(target, hit.verticalKnockbackStrength());
+        } else {
+            // Ground shockwaves launch vertically without replacing the target's horizontal motion.
+            // Direct contact with a directionally moving weapon keeps its authored knockback.
+            super.applyAttackHitExtras(target,
+                    hit.blockRippleParticles() ? hit.withoutHorizontalKnockback() : hit);
+        }
+        if (dazesOnHit(activeLordAttackId) && (!(target instanceof OgreGrunt) || isPlagueEnemy(target))) {
+            applyHeavyClubHitEffects(target);
+        }
+    }
+
+    private void applyBellyBumpLaunch(LivingEntity target, double verticalStrength) {
+        Vec3 outward = target.position().subtract(position()).multiply(1.0, 0.0, 1.0);
+        if (outward.lengthSqr() < 1.0E-4) {
+            outward = Vec3.directionFromRotation(0.0F, getYRot());
+        } else {
+            outward = outward.normalize();
+        }
+        Vec3 movement = target.getDeltaMovement();
+        target.setDeltaMovement(
+                outward.x * BELLY_BUMP_HORIZONTAL_LAUNCH,
+                Math.max(movement.y, verticalStrength),
+                outward.z * BELLY_BUMP_HORIZONTAL_LAUNCH);
+        target.hasImpulse = true;
+    }
+
+    /**
+     * The attacks that go through the shared hit path and are heavy enough to daze: both upswings,
+     * the double stomp, the double overhead slam, the belly bump and the club head thrust. The
+     * club strikes daze through their own paths, and the single leg stomp is his repeatable
+     * poke, so it does not.
+     */
+    private static boolean dazesOnHit(int attackId) {
+        return switch (attackId) {
+            case 1, 2, 3, 5, 6, 7 -> true;
+            default -> false;
+        };
     }
 
     @Override
-    protected void applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
+    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
         if (profile.kind() == GroundRippleKind.STANDARD) {
-            super.applyGroundRippleHit(target, hit, profile);
-            return;
+            return super.applyGroundRippleHit(target, hit, profile);
+        }
+        if (profile.kind() == GroundRippleKind.KING_STOMP_WAVE) {
+            // Neighbouring pulses overlap, so make sure a target only takes the wave once.
+            return stompWaveHitTargets.add(target.getUUID())
+                    && super.applyGroundRippleHit(target, hit, profile);
         }
 
         float damageMultiplier;
@@ -2229,17 +3749,20 @@ public class OgreLord extends OgreGrunt {
         if (profile.kind() == GroundRippleKind.KING_CLUB_DOUBLE) {
             damageMultiplier = CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER * 0.5F;
             bonusDamage = Config.OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE.get().floatValue() * 0.5F;
-        } else if (profile.kind() == GroundRippleKind.KING_CLUB_SINGLE) {
-            damageMultiplier = SINGLE_OVERHEAD_DAMAGE_MULTIPLIER * 0.5F;
-            bonusDamage = Config.OGRE_LORD_SINGLE_OVERHEAD_BONUS_DAMAGE.get().floatValue() * 0.5F;
         } else {
             damageMultiplier = PULL_OUT_DAMAGE_MULTIPLIER * 0.5F;
             bonusDamage = Config.OGRE_LORD_PULL_OUT_BONUS_DAMAGE.get().floatValue() * 0.5F;
         }
+        if (isTribeAlly(target)) {
+            // Tamed army ogres and ogre-ridden boars take the same halved ripple damage other ogres deal them.
+            damageMultiplier *= 0.5F;
+            bonusDamage *= 0.5F;
+        }
         if (dealClubDamage(target, damageMultiplier, bonusDamage)) {
             applyHeavyClubHitEffects(target);
-            applyVerticalShockwaveLaunch(target, hit.verticalKnockbackStrength());
+            return true;
         }
+        return false;
     }
 
     @Override
@@ -2256,11 +3779,9 @@ public class OgreLord extends OgreGrunt {
             spawnDenseDustCloud(serverLevel, areaCenter, DOUBLE_OVERHEAD_SLAM_AREA_RADIUS);
         }
 
-        // Double Stomp's radius (11.25) is large enough that the shared shockwave call's center
-        // burst and edge ring leave a visible gap between them — Single Leg Stomp's smaller radius
-        // (6.5) doesn't show this gap, which is why only it currently reads as a dense-center,
-        // spread-to-the-edge cloud. This layers extra fill bands into that gap per impact without
-        // touching the existing edge ring/its radius.
+        // Double Stomp's radius (11.25) leaves a visible gap between the shared shockwave's center
+        // burst and edge ring; Single Leg Stomp's smaller radius (6.5) doesn't. This adds fill
+        // bands into the gap per impact without touching the edge ring or its radius.
         if (activeLordAttackId == 2 && level() instanceof ServerLevel serverLevel) {
             spawnGraduatedDustFill(serverLevel, areaCenter, DOUBLE_STOMP_AREA_RADIUS);
         }
@@ -2283,7 +3804,7 @@ public class OgreLord extends OgreGrunt {
                 continue;
             }
 
-            float damageMultiplier = target instanceof OgreGrunt
+            float damageMultiplier = isTribeAlly(target)
                     ? hit.damageMultiplier() * 0.5F
                     : hit.damageMultiplier();
             if (doScaledHurtTarget(target, damageMultiplier, hit.armorPierceFraction())) {
@@ -2293,20 +3814,31 @@ public class OgreLord extends OgreGrunt {
     }
 
     @Override
+    protected boolean showsAreaRing() {
+        // The one-arm and double-arm upswings are quick swings, not slams: no ring for them.
+        return activeLordAttackId != 1 && activeLordAttackId != 6;
+    }
+
+    /** His slams already break blocks through destroyNearbyBlocks; the shared shockwave hook adds nothing. */
+    @Override
+    protected void onGroundShockwave(Vec3 center, float radius) {
+    }
+
+    @Override
     protected boolean shouldDodgeRippleHit(LivingEntity target) {
-        if (!isPhaseTransitioning() && activeLordAttackId != 2 && activeLordAttackId != 3 && activeLordAttackId != 8
-                && activeLordAttackId != 10 && activeLordAttackId != 11) {
+        if (!isPhaseTransitioning() && stompWaveElapsedTicks < 0
+                && activeLordAttackId != 2 && activeLordAttackId != 3 && activeLordAttackId != 8
+                && activeLordAttackId != 10 && tickCount >= jumpableRippleUntilTick) {
             return false;
         }
 
-        // Stomps and both unarmed/club overhead slams are ground shockwaves.
+        // Stomps and the double overhead slams are ground shockwaves.
         // Jumping at the right moment so the ripple passes underneath is the intended dodge.
         // Either half of the jump counts as long as the target is airborne when the wave arrives.
         return directShockwaveWeaponHitTargets.contains(target.getUUID())
                 || isAirborneShockwaveDodge(target)
                 || hasRecentIntentionalJump(target, 2);
     }
-
 
     @Override
     protected double getMeleePursuitSpeedModifier() {
@@ -2326,13 +3858,13 @@ public class OgreLord extends OgreGrunt {
         double dx = target.getX() - getX();
         double dz = target.getZ() - getZ();
         float desiredYaw = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
-        float yaw = Mth.rotateIfNecessary(getYRot(), desiredYaw, SNAP_FACE_MAX_TURN_DEGREES);
+        // A share of the remaining angle each call, not a fixed step: a fixed step is a hard stop at the end of
+        // every turn, and a proportional one eases in and out like the rest of his heading changes.
+        float yaw = easeFacing(getYRot(), desiredYaw, FACING_EASE_FRACTION);
+        // Old rotations are left alone so the renderer blends across the tick instead of popping.
         setYRot(yaw);
         setYBodyRot(yaw);
         setYHeadRot(yaw);
-        yRotO = yaw;
-        yBodyRotO = yaw;
-        yHeadRotO = yaw;
     }
 
     @Override
@@ -2349,8 +3881,22 @@ public class OgreLord extends OgreGrunt {
     }
 
     @Override
+    protected SoundEvent getAmbientSound() {
+        return ModSoundEvents.OGRE_LORD_HUFF.get();
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return ModSoundEvents.OGRE_LORD_DEATH.get();
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
         if (isFortEncounterDormant() || isDyingAnimation()) {
+            // Striking the King while he is holding court is as good as challenging him.
+            if (isSeatedInFort() && !royalDefenceStarted && source.getEntity() instanceof ServerPlayer attacker) {
+                challenge(attacker);
+            }
             return false;
         }
         if (isPhaseTransitioning()) {
@@ -2358,6 +3904,13 @@ public class OgreLord extends OgreGrunt {
         }
         if (source.getDirectEntity() instanceof AbstractArrow) {
             amount *= 0.5F;
+        }
+        // A duel is fought to a yield, not to the death: the blow that would drop him this low ends it.
+        if (duelistId != null && getHealth() - amount <= getMaxHealth() * DUEL_YIELD_FRACTION) {
+            if (source.getEntity() instanceof ServerPlayer duelist && isDuelist(duelist)) {
+                yieldDuel(duelist);
+            }
+            return false;
         }
 
         boolean hurt = super.hurt(source, amount);
@@ -2438,14 +3991,55 @@ public class OgreLord extends OgreGrunt {
 
     @Override
     public float getVoicePitch() {
-        // Was pinned to a flat 1.0F, which made every hurt grunt sound identical. Vary it a bit
-        // (and skew a little deeper, to suit his size) instead of using vanilla's default 1.0-centered range.
-        return 0.85F + getRandom().nextFloat() * 0.2F;
+        // The new pools provide natural variation and are timed final performances.
+        return 1.0F;
     }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new SynchronizedAnimationController<>(this, "Lord Movement", 5, this::animateLord));
+        controllers.add(new SynchronizedAnimationController<>(this, "Lord Movement", 5, this::animateLord)
+                .withFootfalls(FOOT_CONTACTS, this::playFootfall));
+        // Registered second so it is applied after the walk: the attacks he throws while walking
+        // only key his upper body, and this controller blends them in from whatever pose the walk
+        // has him in. See OgreLordModel for the matching blend back out.
+        // Same 5-tick blend-in as the movement controller, so the hit timings calibrated against it
+        // (ATTACK_SYNC_DELAY_TICKS) hold for these attacks too.
+        controllers.add(new SynchronizedAnimationController<>(this, "Lord Attack Overlay", 5,
+                this::animateAttackOverlay));
+    }
+
+    /** True on the client while an attack is playing over the walk. */
+    public boolean isAttackOverlayVisible() {
+        return attackOverlayVisible;
+    }
+
+    @Override
+    public double getBoneResetTime() {
+        // Bones an animation stops keying (the legs when a planted attack takes over) ease back to
+        // rest over a few ticks instead of snapping there.
+        return 6.0;
+    }
+
+    private PlayState animateAttackOverlay(AnimationState<OgreLord> state) {
+        state.setControllerSpeed(1.0F);
+        boolean blocked = isDyingAnimation()
+                || entityData.get(DATA_LORD_TRANSITIONING)
+                || entityData.get(DATA_FORT_ENCOUNTER_STATE) != FORT_ENCOUNTER_NORMAL;
+        if (blocked) {
+            // Death, the pull-out and the throne scenes own the whole body.
+            visualOverlayOneShot.clear();
+            attackOverlayVisible = false;
+            return PlayState.STOP;
+        }
+
+        int syncedAttackId = entityData.get(DATA_LORD_ATTACK_ID);
+        boolean overlayAttack = isWalkingAttack(syncedAttackId);
+        int visualAttackId = visualOverlayOneShot.update(state.getController(),
+                overlayAttack ? syncedAttackId : 0,
+                overlayAttack ? entityData.get(DATA_LORD_ATTACK_START_TICK) : 0L,
+                this::getAttackAnimationTicks, level().getGameTime());
+        attackOverlayVisible = visualAttackId > 0;
+        return attackOverlayVisible ? state.setAndContinue(getAttackAnimation(visualAttackId)) : PlayState.STOP;
     }
 
     private PlayState animateLord(AnimationState<OgreLord> state) {
@@ -2470,33 +4064,48 @@ public class OgreLord extends OgreGrunt {
         int syncedAttackId = entityData.get(DATA_LORD_ATTACK_ID);
         long syncedAttackStartTick = entityData.get(DATA_LORD_ATTACK_START_TICK);
         int visualAttackId;
+        // A catch-up seek after looking away reads the controller's speed, so make sure it is 1.0
+        // before the one-shot is reconciled; locomotion in water leaves a scaled value behind.
+        state.setControllerSpeed(1.0F);
         if (entityData.get(DATA_LORD_TRANSITIONING) && syncedAttackId == 9) {
-            // Pull-Out is a forced phase-transition override, exactly like death: it must cut off
-            // whatever attack animation was already playing rather than wait for that animation's
-            // own natural duration to elapse (the normal update() immutability rule that protects
-            // every other attack from being preempted early). Same escape hatch death already uses.
+            // Pull-Out is a forced phase transition, like death: it has to cut off whatever attack
+            // animation is playing instead of waiting for it to finish (update() normally protects
+            // attacks from being preempted). Same escape hatch death uses.
             visualAttackId = visualOneShot.updateTerminal(state.getController(), 9, syncedAttackStartTick,
                     getAttackAnimationTicks(9), level().getGameTime());
+        } else if (fortEncounterState == FORT_ENCOUNTER_WAKING && syncedAttackId == 14) {
+            // The stand-up also has to cut off a startle or seated point that is still playing,
+            // otherwise it waits for that clip to finish and can be skipped or start half-way.
+            visualAttackId = visualOneShot.updateTerminal(state.getController(), 14, syncedAttackStartTick,
+                    getAttackAnimationTicks(14), level().getGameTime());
         } else {
-            visualAttackId = visualOneShot.update(state.getController(), syncedAttackId, syncedAttackStartTick,
+            // The attacks thrown while walking belong to the overlay controller; this one keeps
+            // playing the walk underneath them.
+            boolean overlayAttack = isWalkingAttack(syncedAttackId);
+            visualAttackId = visualOneShot.update(state.getController(),
+                    overlayAttack ? 0 : syncedAttackId, overlayAttack ? 0L : syncedAttackStartTick,
                     this::getAttackAnimationTicks, level().getGameTime());
         }
         if (visualAttackId > 0) {
             state.setControllerSpeed(1.0F);
             return state.setAndContinue(getAttackAnimation(visualAttackId));
         }
+        if (fortEncounterState == FORT_ENCOUNTER_STARTLED || fortEncounterState == FORT_ENCOUNTER_SEATED) {
+            // Between the startle and the commands he sits on the throne, watching.
+            state.setControllerSpeed(1.0F);
+            return state.setAndContinue(SITTING_IDLE);
+        }
 
         int locomotion = entityData.get(DATA_LORD_LOCOMOTION);
-        if (locomotion == LOCOMOTION_RUN || locomotion == LOCOMOTION_COMBAT_WALK) {
+        if (locomotion == LOCOMOTION_COMBAT_WALK) {
             idleAnimationTicks = 0;
             idleVariantTicks = 0;
             if (isMovingForAnimation(state)) {
                 // Only scale playback speed in water — on dry land this must stay a flat 1.0F, since
                 // the ratio against Attributes.MOVEMENT_SPEED doesn't land cleanly at 1.0 for his
-                // normal run pace and was quietly slowing down every land chase.
+                // normal pace and was quietly slowing down every land chase.
                 state.setControllerSpeed(isInWater() ? computeMovementAnimSpeed() : 1.0F);
-                return state.setAndContinue(
-                        locomotion == LOCOMOTION_COMBAT_WALK ? COMBAT_WALK : RUN);
+                return state.setAndContinue(COMBAT_WALK);
             }
             state.setControllerSpeed(1.0F);
             return state.setAndContinue(IDLE);
@@ -2519,31 +4128,22 @@ public class OgreLord extends OgreGrunt {
 
     private boolean isMovingForAnimation(AnimationState<OgreLord> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
+        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
+        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        long now = level().getGameTime();
         if (moving) {
-            movementAnimationGraceTicks = 4;
+            lastMovingAnimationTick = now;
             return true;
         }
-        if (movementAnimationGraceTicks > 0) {
-            movementAnimationGraceTicks--;
-            return true;
-        }
-        return false;
+        return now - lastMovingAnimationTick <= MOVEMENT_ANIMATION_GRACE_TICKS;
     }
 
     @Override
     protected void onMeleeAttackPlanFinished() {
-        boolean completedOpeningAttack = !level().isClientSide
-                && activeLordAttackId != 0
-                && !isRoaring()
-                && !isPhaseTransitioning()
-                && !isDyingAnimation();
         if (!isRoaring() && !isPhaseTransitioning() && !isDyingAnimation()) {
             activeLordAttackId = 0;
         }
         super.onMeleeAttackPlanFinished();
-        if (completedOpeningAttack) {
-            openingRunAttackCompleted = true;
-        }
         if (!level().isClientSide && !isPhaseTransitioning() && !isDyingAnimation()) {
             clearLordAttackSync();
         }
@@ -2552,7 +4152,8 @@ public class OgreLord extends OgreGrunt {
     private void playAttackAnimation(int attackId) {
         directShockwaveWeaponHitTargets.clear();
         if (!level().isClientSide) {
-            if (attackId >= 1 && attackId <= 11) {
+            if (attackId >= 1 && attackId <= 11
+                    || attackId == ATTACK_ID_REGULAR_ATTACK || attackId == ATTACK_ID_REGULAR_ATTACK_2) {
                 secondLastSelectedAttackId = lastSelectedAttackId;
                 lastSelectedAttackId = attackId;
             }
@@ -2579,6 +4180,9 @@ public class OgreLord extends OgreGrunt {
             case 12 -> DEATH;
             case 13 -> SUMMON_POINT;
             case 14 -> WAKE_UP;
+            case ATTACK_ID_STARTLE -> STARTLE_AWAKE;
+            case ATTACK_ID_REGULAR_ATTACK -> REGULAR_ATTACK;
+            case ATTACK_ID_REGULAR_ATTACK_2 -> REGULAR_ATTACK_2;
             default -> ONE_ARM_UPSWING;
         };
     }
@@ -2598,6 +4202,8 @@ public class OgreLord extends OgreGrunt {
             case 12 -> DEATH_ANIMATION_TICKS;
             case 13 -> SUMMON_POINT_ANIMATION_TICKS;
             case 14 -> WAKE_UP_ANIMATION_TICKS;
+            case ATTACK_ID_STARTLE -> STARTLE_ANIMATION_TICKS;
+            case ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2 -> REGULAR_ATTACK_ANIMATION_TICKS;
             default -> ONE_ARM_UPSWING_ANIMATION_TICKS;
         };
     }

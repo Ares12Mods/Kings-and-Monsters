@@ -4,6 +4,7 @@ import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -35,6 +36,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -42,6 +44,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -56,8 +59,10 @@ import java.util.List;
 public class OgreArcher extends OgreGrunt {
     private static final EntityDataAccessor<Long> DATA_ARCHER_SHOT_START_TICK =
             SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.LONG);
-    private static final EntityDataAccessor<Long> DATA_ARCHER_PUNCH_START_TICK =
+    private static final EntityDataAccessor<Long> DATA_ARCHER_SWING_START_TICK =
             SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Integer> DATA_ARCHER_SWING_ID =
+            SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_ARCHER_AIMING =
             SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_ARCHER_COMBAT_MOVING =
@@ -67,44 +72,77 @@ public class OgreArcher extends OgreGrunt {
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
     private static final RawAnimation RARE_IDLE = RawAnimation.begin().then("idle2", software.bernie.geckolib.animation.Animation.LoopType.PLAY_ONCE);
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
-    private static final RawAnimation RUN = RawAnimation.begin().thenLoop("Run");
+    private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("Combat walk");
     private static final RawAnimation SHOOT = RawAnimation.begin().thenPlay("Shoot");
-    private static final RawAnimation PUNCH = RawAnimation.begin().thenPlay("Punch");
+    private static final RawAnimation MOUNTED_IDLE = RawAnimation.begin().thenLoop("Mounted Idle");
+    private static final RawAnimation MOUNTED_SHOOT = RawAnimation.begin().thenPlay("Mounted_Shoot");
+    // The mounted shot is a 2.6s clip: the bow is drawn from 0.5s, held to 1.8s, and loosed at 2.0s
+    // (tick 40, plus 2 ticks for the synced start reaching clients).
+    private static final int MOUNTED_SHOOT_ANIMATION_TICKS = 52;
+    private static final int MOUNTED_BOW_DRAW_START_TICKS = 10;
+    private static final int MOUNTED_ARROW_RELEASE_TICKS = 42;
+    /** How far to either side of the boar's facing a jockey can twist to aim, in degrees. */
+    public static final float MOUNTED_AIM_CONE_DEGREES = 60.0F;
+    private static final float MOUNTED_AIM_TURN_SPEED = 0.2F;
+    private static final RawAnimation SWEEP = RawAnimation.begin().thenPlay("Regular attack 1");
+    private static final RawAnimation HEAVY_SWING = RawAnimation.begin().thenPlay("regular attack 2");
     // The authored "Shoot" clip is 2.5s (50 ticks) — this used to be set to 40, cutting the
     // animation's last half-second short every time.
     private static final int SHOOT_ANIMATION_TICKS = 50;
     private static final int BOW_DRAW_START_TICKS = 5;
     // 1.88s into the (now correctly full-length) animation.
     private static final int ARROW_RELEASE_TICKS = 38;
-    // Idle beat held after a shot's animation fully finishes, before the next draw can begin —
-    // without this, the short inter-shot cooldown (MIN_SHOT_COOLDOWN_TICKS) had already ticked
-    // down to 0 while the previous shot's own animation was still playing, so the next draw began
-    // the instant this one ended, chaining shots with no breather and reading as jittery.
+    // Idle beat after a shot's animation finishes, before the next draw can start. Without it the
+    // short inter-shot cooldown had already run out during the animation, so shots chained with no
+    // breather and looked jittery.
     private static final int POST_SHOT_IDLE_TICKS = 16;
-    private static final int PUNCH_ANIMATION_TICKS = 20;
-    private static final int PUNCH_IMPACT_TICKS = 12;
-    private static final int PUNCH_SOUND_LEAD_TICKS = 2;
-    private static final int PUNCH_COOLDOWN_TICKS = 44;
+    public static final float ATTACK_OVERLAY_FADE_OUT_TICKS = 4.0F;
+    private static final int SWEEP_ID = 1;
+    private static final int HEAVY_SWING_ID = 2;
+    // Both clips run 2.25s and land at 1.0s; the extra 2 ticks cover the synced start reaching clients.
+    private static final int SWING_ANIMATION_TICKS = 45;
+    private static final int SWING_IMPACT_TICKS = 22;
+    // Tick marks of the foot landings in each walk clip, so steps sound with the visible foot.
+    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+            "walk", new double[]{0.0, 18.84},
+            "Combat walk", new double[]{0.0, 10.64});
+    private static final int SWING_SOUND_LEAD_TICKS = 2;
+    private static final int SWING_COOLDOWN_TICKS = 70;
+    private static final double SWEEP_REACH = 3.4;
+    private static final double SWEEP_HALF_WIDTH = 2.2;
+    private static final double SWING_START_RANGE = 3.0;
+    private static final float HEAVY_SWING_CHANCE = 0.35F;
     private static final int MIN_SHOT_COOLDOWN_TICKS = 6;
     private static final int SHOT_COOLDOWN_RANDOM_TICKS = 5;
     private static final double SHOOT_RANGE = 22.0;
+    // He keeps walking in until he is this close, swinging on the way.
     private static final double PUNCH_RANGE = 2.35;
-    private static final double PUNCH_HIT_RANGE = 3.5;
+    private static final double HEAVY_HIT_RANGE = 3.5;
     private static final double RETREAT_RANGE = 6.0;
     private static final double RETREAT_DISTANCE = 7.0;
-    // Match retreat movement to the normal punch-engage pace; both use the run animation.
+    // Retreat and approach share one pace, played with the combat walk.
+    // The Archer's whole pace (chase, strafe and retreat) is this share of the configured speed: about
+    // 0.2457 against the default 0.288: 3.45 blocks a second, since a mob's ground speed goes with the
+    // square of its speed setting.
+    /** The Archer's Buckler is their kit: the same 25% chance to turn an arrow aside that it gives a player. */
+    private static final float BUCKLER_ARROW_BLOCK_CHANCE = 0.25F;
+    private static final double ARCHER_SPEED_SCALE = 0.853;
+    // Absolute wander pace, slowed to match the new combat walk.
+    private static final double ARCHER_WANDER_SPEED = 0.125;
     private static final double RETREAT_SPEED_MODIFIER = 1.0;
     private static final int RETREAT_REPATH_TICKS = 28;
     private static final int POST_MELEE_RETREAT_TICKS = 36;
     private static final double POST_MELEE_RETREAT_DISTANCE = 9.0;
     private static final double POST_MELEE_RETREAT_SPEED = 1.0;
-    private static final float PUNCH_DAMAGE = 6.5F;
-    private static final double PUNCH_KNOCKBACK_STRENGTH = 0.55;
-    private static final float PUNCH_SOUND_VOLUME = 0.75F;
-    private static final float PUNCH_SOUND_PITCH = 0.8F;
+    private static final float SWEEP_DAMAGE = OgreDamage.raw(OgreDamage.Tier.ARCHER, OgreDamage.Blow.MINOR);
+    private static final float HEAVY_SWING_DAMAGE = OgreDamage.raw(OgreDamage.Tier.ARCHER, OgreDamage.Blow.LIGHT);
+    private static final double SWEEP_KNOCKBACK_STRENGTH = 0.45;
+    private static final double HEAVY_KNOCKBACK_STRENGTH = 0.9;
+    private static final float SWING_SOUND_VOLUME = 0.75F;
+    private static final float SWING_SOUND_PITCH = 0.8F;
     private static final int MIN_CLOSE_PRESSURE_BEFORE_MELEE_TICKS = 18;
-    private static final int STAND_AND_FIGHT_MIN_PUNCHES = 3;
-    private static final int STAND_AND_FIGHT_RANDOM_PUNCHES = 2;
+    private static final int STAND_AND_FIGHT_MIN_PUNCHES = 2;
+    private static final int STAND_AND_FIGHT_RANDOM_PUNCHES = 1;
     private static final float ARROW_PROJECTILE_SPEED = 2.3F;
     private static final float ARROW_INACCURACY = 4.5F;
     private static final double ARROW_LOB_COMPENSATION = 0.14;
@@ -113,7 +151,7 @@ public class OgreArcher extends OgreGrunt {
     private static final double ARROW_SPAWN_VERTICAL_OFFSET = 0.20;
     // Calibrated against full diamond armor (~1.5 hearts effective per hit) to match the grunt/brute
     // melee tuning pass — arrows hit noticeably harder on lighter armor (~2.4 hearts vs full iron).
-    private static final double OGRE_ARROW_BASE_DAMAGE = 11.0;
+    private static final double OGRE_ARROW_BASE_DAMAGE = OgreDamage.raw(OgreDamage.Tier.ARCHER, OgreDamage.Blow.STANDARD);
     private static final int POISON_ARROW_ROLL = 15;
     private static final int SLOWNESS_ARROW_ROLL = 28;
     private static final int POISON_ARROW_DURATION_TICKS = 100;
@@ -127,29 +165,29 @@ public class OgreArcher extends OgreGrunt {
 
     private int idleAnimationTicks;
     private int rareIdleTicks;
-    private int shootAnimationTicks;
     private int activeShotTicks;
     private int arrowReleaseTicks;
-    private int punchAnimationTicks;
+    private int activeSwingId;
     private int activePunchTicks;
     private int punchImpactTicks;
     private int punchCooldownTicks;
     private int combatMovementAnimationTicks;
     private int retreatAnimationTicks;
     private int lastAnimationTick = -1;
-    private int movementAnimationGraceTicks;
+    private long lastMovingAnimationTick = Long.MIN_VALUE / 2;
+    private static final int MOVEMENT_ANIMATION_GRACE_TICKS = 4;
     private boolean arrowReleasedThisShot;
     private boolean bowDrawStartedThisShot;
     private boolean punchHitThisPunch;
     private boolean punchImpactSoundPlayed;
-    private boolean startingShootAnimation;
-    private boolean startingPunchAnimation;
+    private boolean swingOverlayVisible;
     private LivingEntity pendingShotTarget;
     private LivingEntity pendingPunchTarget;
     private double enchantedBowDamageBonus;
     private boolean enchantedBowHasFlame;
     private double configuredArrowBaseDamage = OGRE_ARROW_BASE_DAMAGE;
     private final CanonicalOneShotState visualOneShot = new CanonicalOneShotState();
+    private final CanonicalOneShotState visualSwingOneShot = new CanonicalOneShotState();
 
     public OgreArcher(EntityType<? extends OgreArcher> type, Level level) {
         super(type, level);
@@ -183,12 +221,12 @@ public class OgreArcher extends OgreGrunt {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 60.0)
+                .add(Attributes.MAX_HEALTH, 50.0)
                 .add(Attributes.ATTACK_DAMAGE, 5.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.288)
+                .add(Attributes.MOVEMENT_SPEED, 0.288 * ARCHER_SPEED_SCALE)
                 .add(Attributes.FOLLOW_RANGE, 34.0)
-                .add(Attributes.ARMOR, 9.0)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.5)
+                .add(Attributes.ARMOR, 6.0)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.3)
                 .add(Attributes.ATTACK_KNOCKBACK, 0.35)
                 .add(Attributes.STEP_HEIGHT, 1.0)
                 .add(Attributes.SAFE_FALL_DISTANCE, 4.0)
@@ -200,7 +238,32 @@ public class OgreArcher extends OgreGrunt {
 
     @Override
     protected double getWanderSpeedModifier() {
-        return 0.14 / 0.288;
+        // Wandering keeps its own pace: the multiplier is set against the scaled speed.
+        return ARCHER_WANDER_SPEED / (0.288 * ARCHER_SPEED_SCALE);
+    }
+
+    @Override
+    protected boolean usesAnimatedFootsteps() {
+        return true;
+    }
+
+    @Override
+    public boolean isAttackOverlayVisible() {
+        return swingOverlayVisible;
+    }
+
+    /** Client-side: a light step each time a foot lands; he is lanky, so lighter than the other ogres. */
+    private void playArcherFootfall() {
+        if (!onGround() || isInWater() || isSilent()) {
+            return;
+        }
+        float variation = getRandom().nextFloat() * 0.08F;
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.WARDEN_STEP, SoundSource.HOSTILE,
+                0.22F, 1.15F + variation, false);
+        BlockPos ground = getOnPos();
+        SoundType surface = level().getBlockState(ground).getSoundType(level(), ground, this);
+        level().playLocalSound(getX(), getY(), getZ(), surface.getStepSound(), SoundSource.HOSTILE,
+                0.3F, 1.0F + variation, false);
     }
 
     @Override
@@ -211,7 +274,7 @@ public class OgreArcher extends OgreGrunt {
 
         setAttributeBaseValue(Attributes.MAX_HEALTH, Config.OGRE_ARCHER_MAX_HEALTH.get());
         setAttributeBaseValue(Attributes.ATTACK_DAMAGE, Config.OGRE_ARCHER_MELEE_DAMAGE.get());
-        setAttributeBaseValue(Attributes.MOVEMENT_SPEED, Config.OGRE_ARCHER_MOVEMENT_SPEED.get());
+        setAttributeBaseValue(Attributes.MOVEMENT_SPEED, Config.OGRE_ARCHER_MOVEMENT_SPEED.get() * ARCHER_SPEED_SCALE);
         setAttributeBaseValue(Attributes.FOLLOW_RANGE, Config.OGRE_ARCHER_FOLLOW_RANGE.get());
         setAttributeBaseValue(Attributes.ARMOR, Config.OGRE_ARCHER_ARMOR.get());
         configuredArrowBaseDamage = Config.OGRE_ARCHER_ARROW_DAMAGE.get();
@@ -224,10 +287,32 @@ public class OgreArcher extends OgreGrunt {
     }
 
     @Override
+    protected SoundEvent getAmbientSound() {
+        return ModSoundEvents.OGRE_ARCHER_IDLE.get();
+    }
+
+    @Override
+    public int getAmbientSoundInterval() {
+        // Archers often patrol in pairs or ride together, so keep their chatter restrained.
+        return IDLE_SOUND_INTERVAL_TICKS;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return ModSoundEvents.OGRE_ARCHER_DEATH.get();
+    }
+
+    @Override
+    public float getVoicePitch() {
+        return 0.97F + getRandom().nextFloat() * 0.06F;
+    }
+
+    @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_ARCHER_SHOT_START_TICK, 0L);
-        builder.define(DATA_ARCHER_PUNCH_START_TICK, 0L);
+        builder.define(DATA_ARCHER_SWING_START_TICK, 0L);
+        builder.define(DATA_ARCHER_SWING_ID, 0);
         builder.define(DATA_ARCHER_AIMING, false);
         builder.define(DATA_ARCHER_COMBAT_MOVING, false);
         builder.define(DATA_ARCHER_RETREATING, false);
@@ -237,6 +322,8 @@ public class OgreArcher extends OgreGrunt {
     public void aiStep() {
         super.aiStep();
         if (!level().isClientSide) {
+            shareTargetWithBoar();
+            tickMountedFacing();
             if (combatMovementAnimationTicks > 0 && --combatMovementAnimationTicks <= 0) {
                 setCombatMoving(false);
             }
@@ -246,26 +333,112 @@ public class OgreArcher extends OgreGrunt {
         }
     }
 
+    /** True while he is riding a Mudsnout Boar: a jockey who aims and shoots but doesn't walk. */
+    public boolean isMounted() {
+        return getVehicle() instanceof MudsnoutBoar;
+    }
+
+    /** The boar keeps its own mind; he never steers it. */
+    @Override
+    public boolean canControlVehicle() {
+        return false;
+    }
+
+    @Override
+    protected boolean canGuardSuperiors() {
+        return !isMounted() && super.canGuardSuperiors();
+    }
+
+    /** The jockey and his boar go after the same enemy: whichever picks one first shares it. */
+    private void shareTargetWithBoar() {
+        if (!(getVehicle() instanceof MudsnoutBoar boar)) {
+            return;
+        }
+        LivingEntity boarTarget = boar.getTarget();
+        // The mount controls positioning, so its live target is authoritative for the rider too.
+        // Without this, two targets acquired on the same tick could remain split indefinitely.
+        if (boarTarget != null && boarTarget.isAlive() && getTarget() != boarTarget
+                && canAttack(boarTarget)) {
+            setTarget(boarTarget);
+        }
+    }
+
+    private int shootClipTicks() {
+        return isMounted() ? MOUNTED_SHOOT_ANIMATION_TICKS : SHOOT_ANIMATION_TICKS;
+    }
+
+    private float boarYaw() {
+        return getVehicle() instanceof LivingEntity boar ? boar.yBodyRot : getYRot();
+    }
+
+    private float yawToTarget(LivingEntity target) {
+        double xOffset = target.getX() - getX();
+        double zOffset = target.getZ() - getZ();
+        return (float) (Mth.atan2(zOffset, xOffset) * Mth.RAD_TO_DEG) - 90.0F;
+    }
+
+    /** Whether the target is within the twist he can manage from the boar's back. */
+    private boolean isTargetInMountedCone(LivingEntity target) {
+        return Math.abs(Mth.wrapDegrees(yawToTarget(target) - boarYaw())) <= MOUNTED_AIM_CONE_DEGREES;
+    }
+
+    /** Turns toward the target as far as the cone allows; the legs and seat stay with the boar. */
+    private void turnWithinMountedCone(LivingEntity target) {
+        float boarYaw = boarYaw();
+        float offset = Mth.clamp(Mth.wrapDegrees(yawToTarget(target) - boarYaw),
+                -MOUNTED_AIM_CONE_DEGREES, MOUNTED_AIM_CONE_DEGREES);
+        // Keep the rider's root and seated legs locked to the boar. Only the synced head yaw carries
+        // the aiming offset; OgreArcherModel applies that offset to the upper body. Rotating both the
+        // entity and the body bone made the jockey double-turn and eventually spin around the mount.
+        float aimYaw = rotlerpTurn(yHeadRot, boarYaw + offset, MOUNTED_AIM_TURN_SPEED);
+        setYRot(boarYaw);
+        yBodyRot = boarYaw;
+        yHeadRot = aimYaw;
+    }
+
+    /** Vanilla-style passenger facing: the seat follows the vehicle while only the upper body aims. */
+    private void tickMountedFacing() {
+        if (!(getVehicle() instanceof MudsnoutBoar)) {
+            return;
+        }
+        LivingEntity target = getTarget();
+        if (target != null && target.isAlive()) {
+            turnWithinMountedCone(target);
+            return;
+        }
+        float yaw = boarYaw();
+        setYRot(yaw);
+        yBodyRot = yaw;
+        yHeadRot = yaw;
+    }
+
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
+        registerBogToadWarinessGoal();
         goalSelector.addGoal(1, new OgreArcherShootGoal(this, 1.0));
         goalSelector.addGoal(4, new GuardSuperiorGoal(this));
-        goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, getWanderSpeedModifier()));
+        goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, getWanderSpeedModifier()) {
+            @Override
+            public boolean canUse() {
+                return !isMounted() && super.canUse();
+            }
+        });
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0f));
         goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
         registerTerritorialTargetGoal();
+        registerArmyGoals();
     }
 
     private void beginBowShot(LivingEntity target) {
         ensureBowEquipped();
         setBowAiming(true);
         pendingShotTarget = target;
-        activeShotTicks = SHOOT_ANIMATION_TICKS;
-        arrowReleaseTicks = ARROW_RELEASE_TICKS;
+        activeShotTicks = shootClipTicks();
+        arrowReleaseTicks = isMounted() ? MOUNTED_ARROW_RELEASE_TICKS : ARROW_RELEASE_TICKS;
         arrowReleasedThisShot = false;
         bowDrawStartedThisShot = false;
         playShootAnimation();
@@ -277,8 +450,9 @@ public class OgreArcher extends OgreGrunt {
         }
 
         activeShotTicks--;
-        int elapsedShotTicks = SHOOT_ANIMATION_TICKS - activeShotTicks;
-        if (!bowDrawStartedThisShot && elapsedShotTicks >= BOW_DRAW_START_TICKS) {
+        int elapsedShotTicks = shootClipTicks() - activeShotTicks;
+        if (!bowDrawStartedThisShot
+                && elapsedShotTicks >= (isMounted() ? MOUNTED_BOW_DRAW_START_TICKS : BOW_DRAW_START_TICKS)) {
             bowDrawStartedThisShot = true;
             startUsingItem(InteractionHand.MAIN_HAND);
         }
@@ -440,24 +614,24 @@ public class OgreArcher extends OgreGrunt {
         entityData.set(DATA_ARCHER_AIMING, aiming);
     }
 
-    private boolean isBowAiming() {
-        return entityData.get(DATA_ARCHER_AIMING);
-    }
-
     private boolean isPreparingBowShot() {
         return pendingShotTarget != null;
     }
 
+    /** Starts a swing over the combat walk: a wide sweep most of the time, now and then a heavier hit. */
     private void beginPunch(LivingEntity target) {
         cancelBowShot();
-        plantForMelee();
         pendingPunchTarget = target;
-        activePunchTicks = PUNCH_ANIMATION_TICKS;
-        punchImpactTicks = PUNCH_IMPACT_TICKS;
+        activeSwingId = getRandom().nextFloat() < HEAVY_SWING_CHANCE ? HEAVY_SWING_ID : SWEEP_ID;
+        activePunchTicks = SWING_ANIMATION_TICKS;
+        punchImpactTicks = SWING_IMPACT_TICKS;
         punchHitThisPunch = false;
         punchImpactSoundPlayed = false;
-        punchCooldownTicks = PUNCH_COOLDOWN_TICKS;
-        playPunchAnimation();
+        punchCooldownTicks = SWING_COOLDOWN_TICKS;
+        if (!level().isClientSide) {
+            entityData.set(DATA_ARCHER_SWING_ID, activeSwingId);
+            entityData.set(DATA_ARCHER_SWING_START_TICK, level().getGameTime());
+        }
     }
 
     private void tickPendingPunch() {
@@ -465,14 +639,13 @@ public class OgreArcher extends OgreGrunt {
             return;
         }
 
-        plantForMelee();
         activePunchTicks--;
         punchImpactTicks--;
-        if (!punchImpactSoundPlayed && punchImpactTicks <= PUNCH_SOUND_LEAD_TICKS) {
-            playPunchImpactSound();
+        if (!punchImpactSoundPlayed && punchImpactTicks <= SWING_SOUND_LEAD_TICKS) {
+            playSwingSound();
         }
         if (!punchHitThisPunch && punchImpactTicks <= 0) {
-            applyPunchImpact();
+            applySwingImpact();
         }
 
         if (activePunchTicks <= 0) {
@@ -480,56 +653,78 @@ public class OgreArcher extends OgreGrunt {
         }
     }
 
-    private void applyPunchImpact() {
+    private void applySwingImpact() {
         punchHitThisPunch = true;
-        if (level().isClientSide || pendingPunchTarget == null || !pendingPunchTarget.isAlive()) {
+        if (level().isClientSide) {
             return;
         }
-
-        if (distanceToSqr(pendingPunchTarget) > PUNCH_HIT_RANGE * PUNCH_HIT_RANGE
-                || !getSensing().hasLineOfSight(pendingPunchTarget)) {
-            return;
+        if (activeSwingId == HEAVY_SWING_ID) {
+            applyHeavySwing();
+        } else {
+            applySweep();
         }
-
-        if (!punchImpactSoundPlayed) {
-            playPunchImpactSound();
-        }
-        pendingPunchTarget.hurt(damageSources().mobAttack(this), PUNCH_DAMAGE);
-        pendingPunchTarget.knockback(PUNCH_KNOCKBACK_STRENGTH, getX() - pendingPunchTarget.getX(), getZ() - pendingPunchTarget.getZ());
     }
 
-    private void playPunchImpactSound() {
-        if (level().isClientSide || pendingPunchTarget == null || !pendingPunchTarget.isAlive()) {
+    /** The first swing catches everything in the arc in front of him, softer toward the edge. */
+    private void applySweep() {
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        double search = SWEEP_REACH + SWEEP_HALF_WIDTH;
+        List<LivingEntity> candidates = level().getEntitiesOfClass(
+                LivingEntity.class, getBoundingBox().inflate(search, 2.0, search),
+                target -> target != this && target.isAlive() && canAttackOgreTarget(target));
+        for (LivingEntity target : candidates) {
+            Vec3 relative = target.getBoundingBox().getCenter().subtract(position());
+            double halfWidth = target.getBbWidth() * 0.5;
+            double ahead = relative.dot(forward);
+            double across = relative.dot(right);
+            boolean inArc = ahead >= -0.3 - halfWidth && ahead <= SWEEP_REACH + halfWidth
+                    && Math.abs(across) <= SWEEP_HALF_WIDTH + halfWidth;
+            if (inArc) {
+                float falloff = areaFalloff(Math.hypot(ahead, across), search, OgreDamage.ARC_EDGE_SHARE);
+                target.hurt(damageSources().mobAttack(this), SWEEP_DAMAGE * falloff);
+                target.knockback(SWEEP_KNOCKBACK_STRENGTH, -forward.x, -forward.z);
+            }
+        }
+    }
+
+    /** The second swing is one harder blow on whoever he is fighting. */
+    private void applyHeavySwing() {
+        LivingEntity target = pendingPunchTarget;
+        if (target == null || !target.isAlive()
+                || distanceToSqr(target) > HEAVY_HIT_RANGE * HEAVY_HIT_RANGE
+                || !getSensing().hasLineOfSight(target)) {
             return;
         }
+        target.hurt(damageSources().mobAttack(this), HEAVY_SWING_DAMAGE);
+        target.knockback(HEAVY_KNOCKBACK_STRENGTH, getX() - target.getX(), getZ() - target.getZ());
+    }
 
-        if (distanceToSqr(pendingPunchTarget) > PUNCH_HIT_RANGE * PUNCH_HIT_RANGE
-                || !getSensing().hasLineOfSight(pendingPunchTarget)) {
-            return;
-        }
-
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE,
-                PUNCH_SOUND_VOLUME, PUNCH_SOUND_PITCH);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.35F, 0.75F);
+    private void playSwingSound() {
         punchImpactSoundPlayed = true;
+        if (level().isClientSide) {
+            return;
+        }
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE,
+                SWING_SOUND_VOLUME, SWING_SOUND_PITCH);
+        if (activeSwingId == HEAVY_SWING_ID) {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.HOSTILE,
+                    SWING_SOUND_VOLUME, SWING_SOUND_PITCH);
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.35F, 0.75F);
+        }
     }
 
     private void cancelPunch() {
         pendingPunchTarget = null;
+        activeSwingId = 0;
         activePunchTicks = 0;
         punchImpactTicks = 0;
         punchHitThisPunch = false;
         punchImpactSoundPlayed = false;
         if (!level().isClientSide) {
-            entityData.set(DATA_ARCHER_PUNCH_START_TICK, 0L);
+            entityData.set(DATA_ARCHER_SWING_ID, 0);
+            entityData.set(DATA_ARCHER_SWING_START_TICK, 0L);
         }
-    }
-
-    private void plantForMelee() {
-        getNavigation().stop();
-        Vec3 movement = getDeltaMovement();
-        setDeltaMovement(0.0, movement.y, 0.0);
-        setSpeed(0.0F);
     }
 
     private boolean isPreparingPunch() {
@@ -539,7 +734,7 @@ public class OgreArcher extends OgreGrunt {
     private boolean canPunch(LivingEntity target) {
         return punchCooldownTicks <= 0
                 && target.isAlive()
-                && distanceToSqr(target) <= PUNCH_RANGE * PUNCH_RANGE
+                && distanceToSqr(target) <= SWING_START_RANGE * SWING_START_RANGE
                 && getSensing().hasLineOfSight(target);
     }
 
@@ -585,35 +780,54 @@ public class OgreArcher extends OgreGrunt {
         if (!level().isClientSide) {
             entityData.set(DATA_ARCHER_SHOT_START_TICK, level().getGameTime());
         }
-
-        shootAnimationTicks = SHOOT_ANIMATION_TICKS;
-        startingShootAnimation = true;
-    }
-
-    private void playPunchAnimation() {
-        if (!level().isClientSide) {
-            entityData.set(DATA_ARCHER_PUNCH_START_TICK, level().getGameTime());
-        }
-
-        punchAnimationTicks = PUNCH_ANIMATION_TICKS;
-        startingPunchAnimation = true;
     }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new SynchronizedAnimationController<>(this, "Archer Movement", 5, this::animateMovement));
+        controllers.add(new SynchronizedAnimationController<>(this, "Archer Movement", 5, this::animateMovement)
+                .withFootfalls(FOOT_CONTACTS, this::playArcherFootfall));
+        // Registered second so the swings blend in over whatever the walk is doing; the model
+        // eases them back out (see OgreArcherModel).
+        controllers.add(new SynchronizedAnimationController<>(this, "Archer Swing Overlay", 5,
+                this::animateSwingOverlay));
+    }
+
+    private PlayState animateSwingOverlay(AnimationState<OgreArcher> state) {
+        state.setControllerSpeed(1.0F);
+        if (isDeadOrDying()) {
+            visualSwingOneShot.clear();
+            swingOverlayVisible = false;
+            return PlayState.STOP;
+        }
+        int swingId = entityData.get(DATA_ARCHER_SWING_ID);
+        int visualSwing = visualSwingOneShot.update(state.getController(), swingId,
+                swingId > 0 ? entityData.get(DATA_ARCHER_SWING_START_TICK) : 0L,
+                id -> SWING_ANIMATION_TICKS, level().getGameTime());
+        swingOverlayVisible = visualSwing > 0;
+        if (!swingOverlayVisible) {
+            return PlayState.STOP;
+        }
+        return state.setAndContinue(visualSwing == HEAVY_SWING_ID ? HEAVY_SWING : SWEEP);
     }
 
     private PlayState animateMovement(AnimationState<OgreArcher> state) {
+        if (isDeadOrDying()) {
+            // A shot or punch in progress is cancelled the moment he dies.
+            visualOneShot.clear();
+            state.setControllerSpeed(1.0F);
+            return state.setAndContinue(IDLE);
+        }
         long shotStart = entityData.get(DATA_ARCHER_SHOT_START_TICK);
-        long punchStart = entityData.get(DATA_ARCHER_PUNCH_START_TICK);
-        int observedType = punchStart > shotStart ? 2 : shotStart > 0L ? 1 : 0;
-        long observedStart = observedType == 2 ? punchStart : shotStart;
-        int visualType = visualOneShot.update(state.getController(), observedType, observedStart,
-                id -> id == 2 ? PUNCH_ANIMATION_TICKS : SHOOT_ANIMATION_TICKS,
-                level().getGameTime());
+        int visualType = visualOneShot.update(state.getController(), shotStart > 0L ? 1 : 0, shotStart,
+                id -> shootClipTicks(), level().getGameTime());
         if (visualType > 0) {
-            return state.setAndContinue(visualType == 2 ? PUNCH : SHOOT);
+            return state.setAndContinue(isMounted() ? MOUNTED_SHOOT : SHOOT);
+        }
+        if (isMounted()) {
+            // On a boar's back he only sits; the boar carries him.
+            idleAnimationTicks = 0;
+            rareIdleTicks = 0;
+            return state.setAndContinue(MOUNTED_IDLE);
         }
 
         // Retreat and actual combat movement are synced because getTarget() is server-only.
@@ -623,21 +837,21 @@ public class OgreArcher extends OgreGrunt {
             idleAnimationTicks = 0;
             rareIdleTicks = 0;
             lastAnimationTick = tickCount;
-            return state.setAndContinue(RUN);
+            return state.setAndContinue(COMBAT_WALK);
         }
 
         if (isCombatMoving()) {
             idleAnimationTicks = 0;
             rareIdleTicks = 0;
             lastAnimationTick = tickCount;
-            return state.setAndContinue(RUN);
+            return state.setAndContinue(COMBAT_WALK);
         }
 
         if (isRunMovementState() && isMovingForAnimation(state)) {
             idleAnimationTicks = 0;
             rareIdleTicks = 0;
             lastAnimationTick = tickCount;
-            return state.setAndContinue(RUN);
+            return state.setAndContinue(COMBAT_WALK);
         }
 
         if (isMovingForAnimation(state)) {
@@ -652,38 +866,6 @@ public class OgreArcher extends OgreGrunt {
             return state.setAndContinue(RARE_IDLE);
         }
         return state.setAndContinue(IDLE);
-    }
-
-    private boolean isShootAnimationPlaying(AnimationState<OgreArcher> state) {
-        return shootAnimationTicks > 0;
-    }
-
-    private boolean isPunchAnimationPlaying(AnimationState<OgreArcher> state) {
-        return punchAnimationTicks > 0;
-    }
-
-    private void updateShootAnimationTimer(AnimationState<OgreArcher> state) {
-        if (lastAnimationTick == tickCount) {
-            return;
-        }
-
-        int tickDelta = lastAnimationTick < 0 ? 1 : Math.max(1, tickCount - lastAnimationTick);
-        lastAnimationTick = tickCount;
-        shootAnimationTicks = Math.max(0, shootAnimationTicks - tickDelta);
-        idleAnimationTicks = 0;
-        rareIdleTicks = 0;
-    }
-
-    private void updatePunchAnimationTimer(AnimationState<OgreArcher> state) {
-        if (lastAnimationTick == tickCount) {
-            return;
-        }
-
-        int tickDelta = lastAnimationTick < 0 ? 1 : Math.max(1, tickCount - lastAnimationTick);
-        lastAnimationTick = tickCount;
-        punchAnimationTicks = Math.max(0, punchAnimationTicks - tickDelta);
-        idleAnimationTicks = 0;
-        rareIdleTicks = 0;
     }
 
     private void updateIdleAnimationTimers(AnimationState<OgreArcher> state) {
@@ -709,20 +891,14 @@ public class OgreArcher extends OgreGrunt {
 
     private boolean isMovingForAnimation(AnimationState<OgreArcher> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
+        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
+        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        long now = level().getGameTime();
         if (moving) {
-            movementAnimationGraceTicks = 4;
+            lastMovingAnimationTick = now;
             return true;
         }
-        if (movementAnimationGraceTicks > 0) {
-            movementAnimationGraceTicks--;
-            return true;
-        }
-        return false;
-    }
-
-    private boolean hasActiveCombatTarget() {
-        LivingEntity target = getTarget();
-        return target != null && target.isAlive();
+        return now - lastMovingAnimationTick <= MOVEMENT_ANIMATION_GRACE_TICKS;
     }
 
     private void markCombatMovementForAnimation() {
@@ -749,6 +925,17 @@ public class OgreArcher extends OgreGrunt {
 
     private boolean isRetreating() {
         return entityData.get(DATA_ARCHER_RETREATING);
+    }
+
+    @Override
+    public boolean hurt(DamageSource source, float amount) {
+        // Thrown ogre spears are not blocked, as with the player's buckler.
+        if (!level().isClientSide && source.getDirectEntity() instanceof AbstractArrow arrow
+                && !(arrow instanceof OgreSpear) && random.nextFloat() < BUCKLER_ARROW_BLOCK_CHANCE) {
+            playSound(SoundEvents.SHIELD_BLOCK, 0.8F, 1.4F);
+            return false;
+        }
+        return super.hurt(source, amount);
     }
 
     private static class OgreArcherShootGoal extends Goal {
@@ -818,6 +1005,11 @@ public class OgreArcher extends OgreGrunt {
             LivingEntity target = archer.getTarget();
             archer.tickPunchCooldown();
 
+            if (target != null && archer.isMounted()) {
+                tickMounted(target);
+                return;
+            }
+
             if (target == null) {
                 archer.setBowAiming(false);
                 archer.setCombatMoving(false);
@@ -839,8 +1031,8 @@ public class OgreArcher extends OgreGrunt {
             if (archer.isPreparingPunch()) {
                 archer.setBowAiming(false);
                 archer.turnBodyToward(target);
-                archer.getNavigation().stop();
                 archer.tickPendingPunch();
+                walkIntoMelee(target, distanceToTargetSqr);
                 return;
             }
 
@@ -896,18 +1088,11 @@ public class OgreArcher extends OgreGrunt {
                     archer.turnBodyToward(target);
                     retreatTargetPos = null;
                     retreatCommitTicks = 0;
-                    ticksUntilNextMeleeApproachPath = Math.max(ticksUntilNextMeleeApproachPath - 1, 0);
                     if (archer.canPunch(target)) {
-                        archer.getNavigation().stop();
                         archer.beginPunch(target);
                         standAndFightPunches++;
-                    } else if (distanceToTargetSqr <= PUNCH_RANGE * PUNCH_RANGE) {
-                        archer.getNavigation().stop();
-                    } else if (ticksUntilNextMeleeApproachPath <= 0 || archer.getNavigation().isDone()) {
-                        archer.getNavigation().moveTo(target, archer.applyShallowWaterSpeedFactor(speedModifier));
-                        archer.markCombatMovementForAnimation();
-                        ticksUntilNextMeleeApproachPath = adjustedTickDelay(4);
                     }
+                    walkIntoMelee(target, distanceToTargetSqr);
 
                     ticksUntilNextShot = Math.max(ticksUntilNextShot, adjustedTickDelay(12));
                     return;
@@ -963,10 +1148,9 @@ public class OgreArcher extends OgreGrunt {
                 archer.setCombatMoving(false);
             }
 
-            // While closing distance, vanilla ground navigation must own body yaw so its turn
-            // decisions remain aligned with the current path node (especially across one-block
-            // elevation changes and passable plants). Forcing the body toward the target here
-            // made navigation and aiming fight every tick, producing patrol zigzags and spins.
+            // While closing distance, vanilla navigation must own body yaw so turns stay aligned with
+            // the current path node (one-block steps, passable plants). Forcing the body toward the
+            // target here made navigation and aiming fight every tick and caused patrol zigzags.
             boolean facingTarget = hasLineOfSight
                     && inShootRange
                     && archer.turnBodyToward(target);
@@ -980,6 +1164,53 @@ public class OgreArcher extends OgreGrunt {
                 ticksUntilNextShot = adjustedTickDelay(MIN_SHOT_COOLDOWN_TICKS + archer.getRandom().nextInt(SHOT_COOLDOWN_RANDOM_TICKS));
             } else if (ticksUntilNextShot <= 0 && hasLineOfSight && inShootRange && facingTarget) {
                 ticksUntilNextShot = adjustedTickDelay(8);
+            }
+        }
+
+        /** Keeps walking in on the target, swinging as he goes, and stops once he is close enough. */
+        private void walkIntoMelee(LivingEntity target, double distanceToTargetSqr) {
+            ticksUntilNextMeleeApproachPath = Math.max(ticksUntilNextMeleeApproachPath - 1, 0);
+            if (distanceToTargetSqr <= PUNCH_RANGE * PUNCH_RANGE) {
+                archer.getNavigation().stop();
+            } else if (ticksUntilNextMeleeApproachPath <= 0) {
+                // Timer only: an unreachable target leaves the path empty every tick, which would
+                // otherwise mean a full A* search per tick.
+                boolean pathing = archer.getNavigation().moveTo(target, archer.applyShallowWaterSpeedFactor(speedModifier));
+                ticksUntilNextMeleeApproachPath = adjustedTickDelay(pathing ? 4 : 20);
+            }
+            if (!archer.getNavigation().isDone()) {
+                archer.markCombatMovementForAnimation();
+            }
+        }
+
+        /**
+         * On a boar's back he only aims and shoots: no approaching, retreating or punching, and only at
+         * targets inside the cone ahead of the boar. The boar's own AI does the moving and the ramming.
+         */
+        private void tickMounted(LivingEntity target) {
+            archer.getNavigation().stop();
+            archer.setCombatMoving(false);
+            archer.setRetreating(false);
+            archer.getLookControl().setLookAt(target, 30.0F, 30.0F);
+
+            if (archer.isPreparingBowShot()) {
+                archer.tickPendingBowShot();
+                if (!archer.isPreparingBowShot()) {
+                    ticksUntilNextShot = Math.max(ticksUntilNextShot, adjustedTickDelay(POST_SHOT_IDLE_TICKS));
+                }
+                return;
+            }
+
+            double distanceSqr = archer.distanceToSqr(target);
+            boolean canShoot = archer.getSensing().hasLineOfSight(target)
+                    && distanceSqr <= SHOOT_RANGE * SHOOT_RANGE
+                    && archer.isTargetInMountedCone(target);
+            archer.setBowAiming(canShoot);
+            ticksUntilNextShot = Math.max(ticksUntilNextShot - 1, 0);
+            if (canShoot && ticksUntilNextShot <= 0 && archer.hasClearShotToTarget(target)) {
+                archer.beginBowShot(target);
+                ticksUntilNextShot = adjustedTickDelay(MIN_SHOT_COOLDOWN_TICKS
+                        + archer.getRandom().nextInt(SHOT_COOLDOWN_RANDOM_TICKS));
             }
         }
 

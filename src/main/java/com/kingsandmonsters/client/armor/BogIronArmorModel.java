@@ -8,8 +8,8 @@ import software.bernie.geckolib.model.GeoModel;
 public class BogIronArmorModel extends GeoModel<BogIronArmorItem> {
     private static final ResourceLocation LAYER_1_MODEL = id("geo/armor/bog_iron_layer_1.geo.json");
     private static final ResourceLocation LAYER_2_MODEL = id("geo/armor/bog_iron_layer_2.geo.json");
-    private static final ResourceLocation LAYER_1_TEXTURE = id("textures/armor/bog_iron_layer_1.png");
-    private static final ResourceLocation LAYER_2_TEXTURE = id("textures/armor/bog_iron_layer_2.png");
+    // Both layers share one 128x128 texture sheet.
+    private static final ResourceLocation TEXTURE = id("textures/armor/bog_iron.png");
     private static final ResourceLocation ANIMATION = id("animations/armor/bog_iron.animation.json");
 
     @Override
@@ -21,7 +21,7 @@ public class BogIronArmorModel extends GeoModel<BogIronArmorItem> {
     @Override
     @SuppressWarnings("deprecation")
     public ResourceLocation getTextureResource(BogIronArmorItem animatable) {
-        return animatable.usesLeggingsModel() ? LAYER_2_TEXTURE : LAYER_1_TEXTURE;
+        return TEXTURE;
     }
 
     @Override

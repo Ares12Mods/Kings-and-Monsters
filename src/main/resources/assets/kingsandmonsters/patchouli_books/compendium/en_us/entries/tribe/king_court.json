@@ -1,0 +1,26 @@
+{
+  "name": "The King's Court",
+  "category": "kingsandmonsters:tribe",
+  "icon": "kingsandmonsters:ogre_kings_banner",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Wake the Ogre King in his hall and he will hear you out. How he greets you depends on your favor: hostile, wary, or appeased.$(br2)Whatever his mood, you can:$(br)$(li)Ask for a quest.$(br)$(li)Offer tribute: coins and sealed King's Tribute Bundles, for favor.$(br)$(li)Trade, once the Tribe is appeased and you have 80 favor.$(br)$(li)Challenge him."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "A Fair Duel",
+      "text": "A player the Tribe holds in the highest regard can ask for a duel instead. No captains join, and he fights to a yield, not to the death. Win, and you keep the Tribe's favor and the bog iron opens to all, but his crown and club stay on his head. He remembers those who beat him, greets them in his own way, and will fight them fairly again after ten minutes' rest.$(br2)Challenge him any other way and the whole court answers."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The King's Relics",
+      "text": "With 80 favor, the King sells his own relics, each once to each player. His Banner costs only gold. The rest take $(item)Golden Ogre Teeth$() and a second price of coin, diamonds or netherite, or, for the axe, a pile of raw rabbit: a Hunter's Spear, the Iron Maw, a Brute's Helm, an Ogre Loincloth, Bogsteel Gauntlets, an Ogre Stomach, a Bogsteel Chestplate, and a Bog Iron Axe that carries Timber.$(br2)His Crown and Club are never sold."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The Daily Market",
+      "text": "Each day he also deals in goods. He pays a Gold Coin for sixteen of one cooked meat and sixteen of one hide, a different pair most days. He sells Ironbelly Stew and Bone Broth for gold, and swaps gold nuggets for iron.$(br2)Every deal has a daily limit for each player, and the stock turns over with the day."
+    }
+  ]
+}

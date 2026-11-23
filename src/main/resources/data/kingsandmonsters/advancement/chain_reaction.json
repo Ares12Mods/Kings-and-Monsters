@@ -1,0 +1,13 @@
+{
+  "parent": "kingsandmonsters:the_swamp_has_teeth",
+  "display": {
+    "icon": { "id": "minecraft:enchanted_book" },
+    "title": { "translate": "advancement.kingsandmonsters.chain_reaction.title" },
+    "description": { "translate": "advancement.kingsandmonsters.chain_reaction.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "spread": { "trigger": "minecraft:impossible" } }
+}

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.ClientConfig;
 
 import net.minecraft.ChatFormatting;
@@ -27,22 +28,23 @@ public class OgreHookbladeItem extends SwordItem {
                 || enchantment.is(Enchantments.BANE_OF_ARTHROPODS)
                 || enchantment.is(Enchantments.SMITE)
                 || enchantment.is(Enchantments.FIRE_ASPECT)
-                || enchantment.is(Enchantments.SWEEPING_EDGE);
+                || enchantment.is(Enchantments.SWEEPING_EDGE)
+                || enchantment.is(ModEnchantments.TYRANT);
     }
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
-        tooltip.add(Component.literal("Successful hits hook enemies toward you")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.hook")
                 .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("Applies Slowness I for 1.5 seconds")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.slowness")
                 .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("Pull cooldown: 3 seconds")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.cooldown")
                 .withStyle(ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.literal("When enchanted with Sweeping Edge, sweeps hook every enemy struck")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.sweeping")
                 .withStyle(ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.literal("Bosses and immovable targets resist the hook")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.resistance")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 }

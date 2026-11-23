@@ -4,8 +4,10 @@
   "icon": "kingsandmonsters:ogre_kings_club",
   "advancement": "kingsandmonsters:royal_defenses/usurped",
   "pages": [
-    { "type": "patchouli:text", "text": "The King is dead. The Tribe now has to decide what that makes you.$(br2)His crown changes how lesser ogres regard its wearer, though elite challengers may dispute the claim. His club carries the weight of a royal ground slam." },
-    { "type": "patchouli:spotlight", "item": "kingsandmonsters:ogre_kings_crown", "title": "Ogre King's Crown", "text": "Wear the claim. Expect the Tribe to notice." },
+    { "type": "patchouli:text", "text": "The King is dead. The Tribe now has to decide what that makes you.$(br2)His crown answers to whoever wears it, and calls the Tribe's own to fight for them. His club carries the weight of a royal ground slam." },
+    { "type": "patchouli:spotlight", "item": "kingsandmonsters:ogre_kings_crown", "title": "Ogre King's Crown", "text": "Worn, it lets you call a warband of ogres to your side. Press the $(thing)Summon Army$() key, $(bold)R$() unless you changed it." },
+    { "type": "patchouli:text", "title": "Four Warbands", "text": "Each call rolls one of four warbands at random:$(br2)$(li)$(bold)The Ranks$(): a Captain, two Archers and three Grunts.$(br)$(li)$(bold)The Vanguard$(): a Captain, a Brute, a Trapper and two Grunts.$(br)$(li)$(bold)The Riders$(): two Guards, three boar riders and a Mage.$(br)$(li)$(bold)The Spellguard$(): a Mage, a Trapper, two Grunts and two Archers." },
+    { "type": "patchouli:text", "title": "Fighting For You", "text": "The warband follows you, defends you, and goes after whatever hurts you, whatever you strike, and hostile monsters near you. It never turns on players, and it leaves no loot behind.$(br2)After a short while it leaves, and the crown must rest, five minutes by default, before it can call another. Hurting your own warband does nothing." },
     { "type": "patchouli:spotlight", "item": "kingsandmonsters:ogre_kings_club", "title": "Ogre King's Club", "text": "A royal weapon whose active slam and exact combat attributes are shown in its tooltip." }
   ]
 }

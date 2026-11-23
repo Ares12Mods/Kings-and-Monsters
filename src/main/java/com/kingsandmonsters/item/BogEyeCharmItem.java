@@ -114,11 +114,13 @@ public class BogEyeCharmItem extends Item {
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.when_used")
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Right-click to locate nearby unopened loot")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_eye_charm.use")
                 .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("Detects loot within 24 blocks")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_eye_charm.range")
                 .withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("Uses 1 durability when loot is found")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_eye_charm.durability")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_eye_charm.cooldown")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 }

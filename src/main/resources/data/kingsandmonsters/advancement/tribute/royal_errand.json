@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:tribute/audience",
+  "display": {
+    "icon": { "id": "kingsandmonsters:ogre_kings_crown" },
+    "title": { "translate": "advancement.kingsandmonsters.royal_errand.title" },
+    "description": { "translate": "advancement.kingsandmonsters.royal_errand.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 30
+  }
+}

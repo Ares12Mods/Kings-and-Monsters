@@ -1,0 +1,24 @@
+{
+  "name": "kingsandmonsters:ogre_trapper/boar_traps",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "kingsandmonsters:ogre_trapper/boar_trap_1",
+        "processors": "kingsandmonsters:boar_trap_1",
+        "projection": "rigid"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "kingsandmonsters:ogre_trapper/boar_trap_2",
+        "processors": "kingsandmonsters:boar_trap_2",
+        "projection": "rigid"
+      }
+    }
+  ]
+}

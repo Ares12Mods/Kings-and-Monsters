@@ -70,6 +70,13 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
                 || !level.setBlock(pos, crownState, Block.UPDATE_ALL_IMMEDIATE)) {
             return InteractionResult.FAIL;
         }
+        // Keep the crown's enchantments, damage and name on the block, so breaking it gives the same
+        // crown back instead of a fresh, fully repaired one.
+        var crownEntity = level.getBlockEntity(pos);
+        if (crownEntity != null) {
+            crownEntity.applyComponentsFromItemStack(context.getItemInHand());
+            crownEntity.setChanged();
+        }
 
         var soundType = crownState.getSoundType(level, pos, player);
         level.playSound(player, pos, soundType.getPlaceSound(), SoundSource.BLOCKS,
@@ -86,13 +93,13 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         super.appendHoverText(stack, context, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
-        tooltip.add(Component.literal("Ogre Sovereignty").withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.literal("When worn:").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Lesser ogres remain neutral until attacked")
-                .withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.literal("Captains, Mages, and Brutes may challenge your claim")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_crown.ability").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.when_worn").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_crown.summon",
+                Component.keybind("key.kingsandmonsters.summon_army")).withStyle(ChatFormatting.LIGHT_PURPLE));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_crown.cycle")
                 .withStyle(ChatFormatting.DARK_PURPLE));
-        tooltip.add(Component.literal("Ogre Kings always remain hostile")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_crown.rest")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 

@@ -4,7 +4,7 @@
   "icon": "kingsandmonsters:bog_iron_chestplate",
   "advancement": "kingsandmonsters:royal_defenses/usurped",
   "pages": [
-    { "type": "patchouli:text", "text": "Each worn piece of Bog Iron armor contributes a chance to prevent incoming Poison entirely. The protection stacks across the set and with a worn Bog Iron Band.$(br2)The recipes below use the same armor patterns familiar to any smith." },
+    { "type": "patchouli:text", "text": "A full set of Bog Iron armor grants Unyielding: when a hit lands hard enough, the wearer gains extra armor, toughness, knockback resistance and attack damage for ten seconds and sends out a shockwave. It then needs thirty seconds to recover.$(br2)The helmet, chestplate and leggings pair Bog Iron with $(item)green wool$() for the cloth and $(item)leather$() for the straps and belts. Only the boots are pure iron." },
     { "type": "patchouli:crafting", "recipe": "kingsandmonsters:bog_iron_helmet", "recipe2": "kingsandmonsters:bog_iron_chestplate", "title": "Helmet & Chestplate" },
     { "type": "patchouli:crafting", "recipe": "kingsandmonsters:bog_iron_leggings", "recipe2": "kingsandmonsters:bog_iron_boots", "title": "Leggings & Boots" }
   ]

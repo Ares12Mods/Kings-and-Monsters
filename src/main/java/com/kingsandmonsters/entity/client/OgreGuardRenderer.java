@@ -27,9 +27,7 @@ public class OgreGuardRenderer extends GeoEntityRenderer<OgreGuard> {
 
         @Override
         protected ItemDisplayContext getTransformTypeForStack(GeoBone bone, ItemStack stack, OgreGuard guard) {
-            // NONE gives the raw, uncentered generated-item quad instead of Mojang's built-in
-            // "held upright like a sword" hand transform — we want the spear laid through the
-            // fist with the tip trailing behind, not standing up like a sword.
+            // Use the raw item quad so the spear can lie through the fist instead of standing upright.
             return ItemDisplayContext.NONE;
         }
 
@@ -40,34 +38,26 @@ public class OgreGuardRenderer extends GeoEntityRenderer<OgreGuard> {
                 return;
             }
 
-            // right_hand_item's pivot sits at the fist, and a generated item's raw quad is
-            // centered on its own origin, so a zero translate lands the sprite's center on the
-            // hand ("through" it). Nudged slightly along local Z (bone-local depth axis, applied
-            // here before the rotations below so it shifts the already-oriented spear rigidly
-            // rather than interacting with its own rotation) to bring the hand fist onto the tan
-            // grip section of the shaft instead of sitting at dead center. Sign is a first guess —
-            // if this moves the grip further from the hand instead of onto it, flip to -0.15F.
+            // Stay neutral through the windup, then ease the spear 20% of a quarter-turn downward
+            // from 0.58s to 0.71s before returning smoothly during recovery.
+            float stabTilt = guard.getStabSpearTiltDegrees(partialTick);
+            if (stabTilt != 0.0F) {
+                poseStack.mulPose(Axis.XP.rotationDegrees(stabTilt));
+            }
+            // Facing a target within reach he holds the spear for a stab: the same pose turned half way round
+            // the hand, so the tip points forward instead of trailing behind.
+            if (guard.isSpearStabPose()) {
+                poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+            }
+            // Offset the raw quad so the authored grip sits at the hand-bone pivot.
             poseStack.translate(0.0F, 0.0F, 0.15F);
-            // The spear texture is a diagonal icon (grip bottom-left, tip top-right, ~45
-            // degrees): ZP undoes that baked diagonal so the shaft runs along local Y (straight
-            // up in the sprite's own plane), then XP tips that vertical shaft back so it runs
-            // front-to-back through the hand with the tip pointing behind the character. ZP must
-            // be +45 (not -45) here: aligning to vertical is a symmetric goal for either arm, not
-            // something that needs mirroring, and -45 was aligning the shaft to the local X axis
-            // instead of Y — X-rotation can't fix that (it never touches a vector already on the
-            // X axis), which is why it rendered as a flat horizontal line.
+            // Remove the icon's baked diagonal, then lay the shaft front-to-back through the hand.
             poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-            // Roll around the aligned shaft so the spearhead stands vertically instead of
-            // lying flat and parallel to the ground. This does not alter the shaft direction.
+            // Roll around the shaft so the spearhead remains vertical.
             poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
-            // Correct the diagonal artwork while keeping the tip posterior, trailing behind the
-            // Guard. The Y roll above still keeps the spearhead vertical.
+            // Keep the tip trailing behind the Guard.
             poseStack.mulPose(Axis.ZP.rotationDegrees(45.0F));
-            // Generated item sprites render at roughly one block long by default. Kept notably
-            // below the trident-matching 2.0 used for the flying/held-in-hand versions — at that
-            // size the spear reads as comically oversized against the guard's own body.
-            // Slim-depth extrusion matches the vanilla spear profile while retaining
-            // enough side surface to stay visible when viewed edge-on.
+            // Use a slim profile while retaining enough depth to remain visible edge-on.
             poseStack.scale(1.4F, 1.4F, 0.8F);
             super.renderStackForBone(poseStack, bone, stack, guard, bufferSource, partialTick, packedLight, packedOverlay);
         }

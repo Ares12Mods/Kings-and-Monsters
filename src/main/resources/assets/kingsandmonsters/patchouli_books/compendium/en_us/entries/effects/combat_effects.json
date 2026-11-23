@@ -16,7 +16,7 @@
     {
       "type": "patchouli:text",
       "title": "Bleeding",
-      "text": "Bleeding deals periodic damage and releases red particles. Hunter's Spears enchanted with Barbed can apply it in melee or when thrown.$(br2)Higher Barbed levels increase its damage. Bleeding cannot be refreshed while already active."
+      "text": "Bleeding comes in three severities: Lesser, normal and Greater. Each deals periodic damage, drains hunger and drips blood, more freely the worse it is.$(br2)Every hit from a Hunter's Spear opens a Lesser wound. Barbed I makes it Bleeding and Barbed II Greater. A worse wound is never replaced by a lighter one, and creatures with no blood, such as skeletons, slimes and golems, cannot bleed."
     },
     {
       "type": "patchouli:text",

@@ -34,7 +34,6 @@ import net.minecraft.core.registries.Registries;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.tribute.OutpostCaptainType;
-import com.kingsandmonsters.tribute.TributeManager;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
@@ -137,14 +136,66 @@ public class OgreOutpostStructure extends Structure {
         if (!context.validBiome().test(biome)) {
             return Optional.empty();
         }
-        if (!swamp && !isSuitablePlainsSite(context, chunk.getMiddleBlockX(), chunk.getMiddleBlockZ())) {
+        if (!swamp && !isSuitableOutpostSite(context, chunk.getMiddleBlockX(), chunk.getMiddleBlockZ())) {
             return Optional.empty();
         }
         return super.findValidGenerationPoint(context);
     }
 
+    // The outpost is about 40 blocks across; the check covers a little more than that.
+    private static final int SITE_RADIUS = 24;
+    private static final int SITE_SPACING = 8;
+    private static final int SITE_MAX_VARIATION = 6;
+    // Shore and riverbank sit right at sea level, so anything this close to it is wet ground.
+    private static final int SITE_MIN_ABOVE_SEA_LEVEL = 2;
+
+    /**
+     * Rejects candidates on steep ground or near water. A grid across the whole footprint and a margin
+     * around it must be dry, clear of the shoreline and within a few blocks of the same height, so an
+     * outpost never ends up clinging to a hillside or hanging over a river.
+     */
+    static boolean isSuitableOutpostSite(GenerationContext context, int centerX, int centerZ) {
+        return isSuitableOutpostSite(context, centerX, centerZ, SITE_MAX_VARIATION);
+    }
+
+    /** Full-footprint outpost check with a caller-selected slope tolerance. */
+    static boolean isSuitableOutpostSite(
+            GenerationContext context, int centerX, int centerZ, int maxVariation) {
+        int seaLevel = context.chunkGenerator().getSeaLevel();
+        int minimum = Integer.MAX_VALUE;
+        int maximum = Integer.MIN_VALUE;
+        for (int dx = -SITE_RADIUS; dx <= SITE_RADIUS; dx += SITE_SPACING) {
+            for (int dz = -SITE_RADIUS; dz <= SITE_RADIUS; dz += SITE_SPACING) {
+                int x = centerX + dx;
+                int z = centerZ + dz;
+                int ground = context.chunkGenerator().getFirstFreeHeight(
+                        x, z, Heightmap.Types.OCEAN_FLOOR_WG, context.heightAccessor(), context.randomState());
+                int surface = context.chunkGenerator().getFirstFreeHeight(
+                        x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+                // A surface above the ground is water, and low ground is shoreline.
+                if (surface > ground || ground < seaLevel + SITE_MIN_ABOVE_SEA_LEVEL) {
+                    return false;
+                }
+                // Only the footprint itself has to be level; the margin only has to be dry.
+                if (Math.abs(dx) <= SITE_RADIUS - SITE_SPACING && Math.abs(dz) <= SITE_RADIUS - SITE_SPACING) {
+                    minimum = Math.min(minimum, ground);
+                    maximum = Math.max(maximum, ground);
+                    if (maximum - minimum > maxVariation) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     /** Preserves the existing permissive rolling-plains candidate check. */
-    private static boolean isSuitablePlainsSite(GenerationContext context, int centerX, int centerZ) {
+    static boolean isSuitablePlainsSite(GenerationContext context, int centerX, int centerZ) {
+        return isSuitablePlainsSite(context, centerX, centerZ, 4);
+    }
+
+    /** {@code maxVariation} is how far the sampled ground may vary, in blocks, across the site. */
+    static boolean isSuitablePlainsSite(GenerationContext context, int centerX, int centerZ, int maxVariation) {
         int[][] offsets = {
                 {0, 0}, {-10, 0}, {10, 0}, {0, -10}, {0, 10},
                 {-10, -10}, {-10, 10}, {10, -10}, {10, 10}
@@ -158,7 +209,7 @@ public class OgreOutpostStructure extends Structure {
                     context.heightAccessor(), context.randomState());
             minimum = Math.min(minimum, height);
             maximum = Math.max(maximum, height);
-            if (maximum - minimum > 4) return false;
+            if (maximum - minimum > maxVariation) return false;
         }
         return true;
     }
@@ -189,6 +240,15 @@ public class OgreOutpostStructure extends Structure {
      */
     private static void alignPlainsToFootprintMedian(
             GenerationContext context, StructurePiecesBuilder piecesBuilder) {
+        alignToFootprintMedian(context, piecesBuilder, 0, 0);
+    }
+
+    /**
+     * Same median anchor, for templates whose ground layer isn't at template y=0. {@code groundY} is
+     * the template-local layer that should land on the sampled ground, {@code lift} raises it further.
+     */
+    static void alignToFootprintMedian(
+            GenerationContext context, StructurePiecesBuilder piecesBuilder, int groundY, int lift) {
         PiecesContainer pieces = piecesBuilder.build();
         BoundingBox box = pieces.calculateBoundingBox();
         if (pieces.pieces().isEmpty()) {
@@ -215,7 +275,7 @@ public class OgreOutpostStructure extends Structure {
                 .mapToInt(piece -> piece.getPosition().getY())
                 .findFirst()
                 .orElse(box.minY());
-        int verticalOffset = representativeGroundY - currentAnchorY;
+        int verticalOffset = representativeGroundY + lift - groundY - currentAnchorY;
         if (verticalOffset != 0) {
             for (var piece : pieces.pieces()) {
                 piece.move(0, verticalOffset, 0);
@@ -268,11 +328,10 @@ public class OgreOutpostStructure extends Structure {
     }
 
     /**
-     * The four Outpost templates each now run through their own dedicated
-     * {@link OutpostMobLootProcessor} instance (see {@code worldgen/processor_list/ogre_outpost_*.json}),
-     * so the processor itself knows exactly which template is being placed — no guessing required.
-     * That capture is authoritative; the old {@link #captainTypeFor} string-parse is kept only as a
-     * defensive fallback for older development-world templates.
+     * Each of the four Outpost templates runs through its own {@link OutpostMobLootProcessor}
+     * instance (see {@code worldgen/processor_list/ogre_outpost_*.json}), so the processor knows
+     * exactly which template is placed. That capture is authoritative; {@link #captainTypeFor}'s
+     * string parse stays only as a fallback for older development-world templates.
      */
     private static OutpostCaptainType resolveCaptainType(PiecesContainer pieces) {
         String capturedVariant = OutpostMobLootProcessor.takeCapturedVariant();
@@ -338,11 +397,10 @@ public class OgreOutpostStructure extends Structure {
                         chest.setLootTableSeed(hash ^ pos.asLong());
                         chest.setChanged();
                         if (includeMap) {
-                            // This roll intentionally carries the guaranteed map pool — track it
-                            // the same way Plains does so FortMapDeliveryService can help if this
-                            // chest opens before the Fort target resolves. A Swamp Outpost whose
-                            // roll excluded the map is never registered here, matching the design:
-                            // the map is chance-gated for Swamp, not guaranteed (see Config).
+                            // This roll carries the guaranteed map pool, so track it the way Plains does
+                            // and FortMapDeliveryService can help if the chest opens before the Fort
+                            // target resolves. A Swamp Outpost whose roll left the map out is never
+                            // registered: for Swamp the map is chance-gated, not guaranteed (see Config).
                             WorldgenSavedDataQueue.registerMapChest(level.getLevel(), campOrigin, pos.immutable());
                         }
                     }

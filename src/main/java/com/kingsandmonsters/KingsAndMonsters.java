@@ -16,12 +16,11 @@ import com.kingsandmonsters.item.WarcallerBellEvents;
 import com.kingsandmonsters.item.OgreHookbladeEvents;
 import com.kingsandmonsters.item.OgrebloodTotemEvents;
 import com.kingsandmonsters.item.CreativeDestroyerEvents;
-import com.kingsandmonsters.entity.OgreArcher;
+import com.kingsandmonsters.entity.BogPoleSwampSpawner;
 import com.kingsandmonsters.entity.OgreBrute;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.entity.OgreBruteCombatEvents;
 import com.kingsandmonsters.entity.OgreDamageCapEvents;
-import com.kingsandmonsters.entity.OgreLord;
 import com.kingsandmonsters.entity.OgreLordCombatEvents;
 import com.kingsandmonsters.entity.OgreMage;
 import com.kingsandmonsters.network.ModNetwork;
@@ -30,6 +29,8 @@ import com.kingsandmonsters.tribute.BogIronProgression;
 import com.kingsandmonsters.tribute.AngerHudSync;
 import com.kingsandmonsters.tribute.OutpostEvents;
 import com.kingsandmonsters.tribute.OutpostPopulationManager;
+import com.kingsandmonsters.tribute.StructureJockeyPopulationManager;
+import com.kingsandmonsters.tribute.OutpostPlagueSpawner;
 import com.kingsandmonsters.tribute.PatrolManager;
 import com.kingsandmonsters.tribute.TributeManager;
 import com.kingsandmonsters.world.ModFeatures;
@@ -80,54 +81,8 @@ public class KingsAndMonsters {
                             .title(Component.translatable("itemGroup.kingsandmonsters"))
                             .withTabsBefore(CreativeModeTabs.COMBAT)
                             .icon(() -> ModItems.OGRE_KINGS_CROWN.get().getDefaultInstance())
-                            .displayItems((parameters, output) -> {
-                                // Materials
-                                output.accept(ModItems.BOG_IRON_INGOT.get());
-                                output.accept(ModItems.RAW_BOG_IRON.get());
-                                // Ogre merchant stock
-                                output.accept(ModItems.IRONBELLY_STEW.get());
-                                output.accept(ModItems.GOLDEN_OGRE_TOOTH.get());
-                                output.accept(ModItems.OGREBLOOD_TOTEM.get());
-                                output.accept(ModItems.OGRE_MERCHANT_BACKPACK.get());
-                                output.accept(ModItems.KINGS_TRIBUTE_BUNDLE.get());
-                                output.accept(ModItems.BOG_EYE_CHARM.get());
-                                // Armor
-                                output.accept(ModItems.BOG_IRON_HELMET.get());
-                                output.accept(ModItems.BOG_IRON_CHESTPLATE.get());
-                                output.accept(ModItems.BOG_IRON_LEGGINGS.get());
-                                output.accept(ModItems.BOG_IRON_BOOTS.get());
-                                // Tools
-                                output.accept(ModItems.BOG_IRON_SWORD.get());
-                                output.accept(ModItems.BOG_IRON_PICKAXE.get());
-                                output.accept(ModItems.BOG_IRON_AXE.get());
-                                output.accept(ModItems.BOG_IRON_SHOVEL.get());
-                                output.accept(ModItems.BOG_IRON_HOE.get());
-                                output.accept(ModItems.HUNTERS_SPEAR.get());
-                                output.accept(ModItems.OGRE_KINGS_CROWN.get());
-                                output.accept(ModItems.OGRE_KINGS_CLUB.get());
-                                output.accept(ModItems.KINGS_CLEAVER.get());
-                                output.accept(ModItems.OGRE_HOOKBLADE.get());
-                                output.accept(ModItems.OGRE_BRUTE_BANNER.get());
-                                output.accept(ModItems.GRUNT_CAPTAIN_BANNER.get());
-                                output.accept(ModItems.OGRE_KINGS_BANNER.get());
-                                output.accept(ModItems.OGRE_MAGE_BANNER.get());
-                                // Blocks
-                                output.accept(ModBlocks.BOG_IRON_ORE_ITEM.get());
-                                output.accept(ModBlocks.DEEPSLATE_BOG_IRON_ORE_ITEM.get());
-                                output.accept(ModBlocks.BOG_IRON_BLOCK_ITEM.get());
-                                output.accept(ModBlocks.RAW_BOG_IRON_BLOCK_ITEM.get());
-                                // Spawn Eggs
-                                output.accept(ModItems.OGRE_GRUNT_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_GRUNT_CAPTAIN_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_MAGE_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_BRUTE_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_ARCHER_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_GUARD_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_MERCHANT_SPAWN_EGG.get());
-                                output.accept(ModItems.OGRE_LORD_SPAWN_EGG.get());
-                                // Dev tools
-                                output.accept(ModItems.CREATIVE_DESTROYER.get());
-                            })
+                            .displayItems((parameters, output) ->
+                                    ContentDisplayOrder.mainCreativeItems().forEach(output::accept))
                             .build());
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> KINGS_AND_MONSTERS_ARTIFACTS_TAB =
@@ -136,15 +91,8 @@ public class KingsAndMonsters {
                             .title(Component.translatable("itemGroup.kingsandmonsters.artifacts"))
                             .withTabsBefore(KINGS_AND_MONSTERS_TAB.getKey())
                             .icon(() -> ModItems.OGRE_TOOTH_NECKLACE.get().getDefaultInstance())
-                            .displayItems((parameters, output) -> {
-                                output.accept(ModItems.OGRE_TOOTH_NECKLACE.get());
-                                output.accept(ModItems.BRUTE_HEART.get());
-                                output.accept(ModItems.BOG_IRON_BAND.get());
-                                output.accept(ModItems.BOGFUME_CHARM.get());
-                                output.accept(ModItems.BUCKLER.get());
-                                output.accept(ModItems.WARCALLER_BELL.get());
-                                output.accept(ModItems.RATTLEBONE_RING.get());
-                            })
+                            .displayItems((parameters, output) ->
+                                    ContentDisplayOrder.artifactCreativeItems().forEach(output::accept))
                             .build());
 
     public KingsAndMonsters(IEventBus modEventBus, ModContainer modContainer) {
@@ -156,6 +104,7 @@ public class KingsAndMonsters {
                 ClientEvents.registerClientRuntimeEvents();
             });
             modEventBus.addListener(ClientEvents::registerRenderers);
+            modEventBus.addListener(ClientEvents::registerParticleProviders);
             modEventBus.addListener(ClientEvents::registerLayerDefinitions);
             modEventBus.addListener(ClientEvents::registerGuiLayers);
             modEventBus.addListener(ClientEvents::registerKeyMappings);
@@ -169,61 +118,122 @@ public class KingsAndMonsters {
         ModMenus.MENUS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModMobEffects.MOB_EFFECTS.register(modEventBus);
+        ModPotions.POTIONS.register(modEventBus);
         ModSoundEvents.SOUND_EVENTS.register(modEventBus);
+        ModParticles.PARTICLE_TYPES.register(modEventBus);
         ModLootFunctions.LOOT_FUNCTIONS.register(modEventBus);
         ModFeatures.FEATURES.register(modEventBus);
         ModStructures.STRUCTURE_TYPES.register(modEventBus);
+        ModStructures.STRUCTURE_PIECE_TYPES.register(modEventBus);
         ModStructures.STRUCTURE_PROCESSOR_TYPES.register(modEventBus);
         ModStructures.STRUCTURE_PLACEMENT_TYPES.register(modEventBus);
         modEventBus.addListener(ModEntities::registerAttributes);
+        modEventBus.addListener(ModEntities::registerSpawnPlacements);
         CREATIVE_MODE_TABS.register(modEventBus);
         IronsSpellbooksCompat.registerIfPresent();
+        com.kingsandmonsters.compat.spell_power.SpellPowerCompat.registerIfPresent();
 
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.addListener(BogIronArmorEffects::onMobEffectApplicable);
+        NeoForge.EVENT_BUS.addListener(BogIronArmorEffects::onLivingDamagePost);
+        NeoForge.EVENT_BUS.addListener(BogIronArmorEffects::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogIronEquipmentEvents::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(BogIronProgression::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(BogIronProgression::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,
+                com.kingsandmonsters.item.BogIronEquipmentEvents::onRightClickBlock);
+        NeoForge.EVENT_BUS.addListener(CompendiumGrant::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(BogfumeRageEvents::onIncomingDamage);
         NeoForge.EVENT_BUS.addListener(CombatEffectEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(CombatEffectEvents::onLivingHeal);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.FreshMeatEvents::onLivingDrops);
+        NeoForge.EVENT_BUS.addListener(CombatEffectEvents::onEffectApplicable);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectAdded);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectRemoved);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectExpired);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEntityTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onStartTracking);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectAdded);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectRemoved);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectExpired);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEntityTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onStartTracking);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingJump);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingDamagePre);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingDamagePost);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onCriticalHit);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onDamagePost);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ServerStateReset::onServerStopped);
+        NeoForge.EVENT_BUS.addListener(ModPotions::registerBrewingRecipes);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.SwampPotionEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.SwampPotionEvents::onBreakSpeed);
         NeoForge.EVENT_BUS.addListener(ModEnchantmentEffects::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onItemAttributes);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onUseStart);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onRightClickItem);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(ArtifactEvents::onKnockBack);
         NeoForge.EVENT_BUS.addListener(ArtifactEvents::onEntityJoinLevel);
         NeoForge.EVENT_BUS.addListener(ArtifactEvents::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogsteelChestplateEvents::onIncomingDamage);
         NeoForge.EVENT_BUS.addListener(ArtifactEvents::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(ArtifactEvents::onMobEffectAdded);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onMobEffectAdded);
         NeoForge.EVENT_BUS.addListener(KingsCleaverEvents::onPlayerTick);
         NeoForge.EVENT_BUS.addListener(KingsCleaverEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(RoyalAdvancementEvents::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(RoyalAdvancementEvents::onBabySpawn);
         NeoForge.EVENT_BUS.addListener(OgreKingsClubEvents::onPlayerTick);
         NeoForge.EVENT_BUS.addListener(OgreKingBannerEvents::onBlockDrops);
         NeoForge.EVENT_BUS.addListener(RattleboneRingEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(RattleboneRingEvents::onServerTick);
         NeoForge.EVENT_BUS.addListener(OgrebloodTotemEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(OgrebloodTotemEvents::onServerTick);
+        NeoForge.EVENT_BUS.addListener(BogPoleSwampSpawner::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.MudsnoutRecallTracker::onServerTick);
         NeoForge.EVENT_BUS.addListener(WarcallerBellEvents::onPlayerTick);
         NeoForge.EVENT_BUS.addListener(OgreHookbladeEvents::onLivingDamagePost);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onCriticalHit);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(CreativeDestroyerEvents::onAttackEntity);
         NeoForge.EVENT_BUS.addListener(PatrolManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.command.TestingCommands::register);
         NeoForge.EVENT_BUS.addListener(OutpostPopulationManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(StructureJockeyPopulationManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(OutpostPlagueSpawner::onServerTick);
         NeoForge.EVENT_BUS.addListener(FortVegetationCleaner::onServerTick);
         NeoForge.EVENT_BUS.addListener(FortPopulationSpawner::onServerTick);
         NeoForge.EVENT_BUS.addListener(OutpostVegetationCleaner::onServerTick);
         NeoForge.EVENT_BUS.addListener(OgreMerchantSpawnManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(ArcherTrialSpawnerActivation::onChunkLoad);
         NeoForge.EVENT_BUS.addListener(OutpostEvents::onTributeChestOpened);
+        NeoForge.EVENT_BUS.addListener(OutpostEvents::onItemFrameTaken);
         NeoForge.EVENT_BUS.addListener(OutpostEvents::onOgreKilled);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(OutpostEvents::onOgreHurt);
         NeoForge.EVENT_BUS.addListener(FortMapTrades::onVillagerTrades);
         NeoForge.EVENT_BUS.addListener(OgreBruteCombatEvents::onShieldBlock);
         NeoForge.EVENT_BUS.addListener(OgreLordCombatEvents::onShieldBlock);
         NeoForge.EVENT_BUS.addListener(OgreDamageCapEvents::onLivingDamagePre);
         NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreRallyEvents::onLivingDamagePost);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreVanillaHostilityEvents::onEntityTick);
         NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.RippleJumpTracker::onLivingJump);
-        NeoForge.EVENT_BUS.addListener(HunterSpearEvents::onLivingDamagePre);
         NeoForge.EVENT_BUS.addListener(HunterSpearEvents::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(AngerHudSync::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.StructureDiscoveryManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(AngerHudSync::onPlayerLoggedOut);
+        com.kingsandmonsters.light.CandleHelmetLight.register(NeoForge.EVENT_BUS);
 
         // Some values are needed while server resources and villager trades are
         // assembled, before per-world SERVER configs become available. Load the
@@ -246,6 +256,7 @@ public class KingsAndMonsters {
     public void onServerStopping(ServerStoppingEvent event) {
         TributeManager.detach();
         AngerHudSync.reset();
+        com.kingsandmonsters.tribute.QuestManager.resetSync();
         OgreKingsClubEvents.reset();
         OgrebloodTotemEvents.reset();
         FortPopulationSpawner.reset();
@@ -267,25 +278,21 @@ public class KingsAndMonsters {
     }
 
     private void playOgreEntranceHuff(OgreGrunt ogre) {
-        if (!(ogre instanceof OgreMage) && !(ogre instanceof OgreBrute) && !(ogre instanceof OgreLord)) {
+        if (!(ogre instanceof OgreMage) && !(ogre instanceof OgreBrute)) {
             return;
         }
 
-        SoundEvent sound = ModSoundEvents.OGRE_GRUNT_HUFF.get();
+        SoundEvent sound = ModSoundEvents.OGRE_BRUTE_IDLE.get();
         float volume = 0.85F;
         float pitch = 0.9F;
 
         if (ogre instanceof OgreMage) {
             sound = ModSoundEvents.OGRE_MAGE_HUFF.get();
             volume = 0.8F;
-            pitch = 0.82F;
+            pitch = 1.0F;
         } else if (ogre instanceof OgreBrute) {
             volume = 1.0F;
             pitch = 0.68F;
-        } else if (ogre instanceof OgreLord) {
-            sound = ModSoundEvents.OGRE_LORD_HUFF.get();
-            volume = 1.15F;
-            pitch = 1.0F;
         }
 
         ogre.level().playSound(null, ogre.getX(), ogre.getY(), ogre.getZ(), sound, SoundSource.HOSTILE, volume, pitch);

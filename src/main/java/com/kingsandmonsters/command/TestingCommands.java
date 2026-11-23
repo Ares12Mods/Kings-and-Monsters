@@ -26,6 +26,14 @@ public final class TestingCommands {
                                         .executes(context -> setAnger(
                                                 context.getSource().getPlayerOrException(),
                                                 IntegerArgumentType.getInteger(context, "value"))))))
+                .then(Commands.literal("favor")
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("value", IntegerArgumentType.integer(0, 100))
+                                        .executes(context -> setFavor(
+                                                context.getSource().getPlayerOrException(),
+                                                IntegerArgumentType.getInteger(context, "value"))))))
+                .then(Commands.literal("boar")
+                        .executes(context -> describeBoars(context.getSource().getPlayerOrException())))
                 .then(Commands.literal("patrol")
                         .then(Commands.literal("spawn")
                                 .executes(context -> spawnPatrol(
@@ -33,6 +41,30 @@ public final class TestingCommands {
                         .then(Commands.literal("retaliation")
                                 .executes(context -> spawnPatrol(
                                         context.getSource().getPlayerOrException(), true)))));
+    }
+
+    /** Lists the nearest boars and why each would or would not attack this player. */
+    private static int describeBoars(ServerPlayer player) {
+        var boars = player.serverLevel().getEntitiesOfClass(
+                com.kingsandmonsters.entity.MudsnoutBoar.class, player.getBoundingBox().inflate(32.0));
+        boars.sort(java.util.Comparator.comparingDouble(boar -> boar.distanceToSqr(player)));
+        if (boars.isEmpty()) {
+            player.sendSystemMessage(Component.literal("No Mudsnout Boars within 32 blocks."));
+            return 0;
+        }
+        player.sendSystemMessage(Component.literal("Nearest boars (" + boars.size() + " within 32 blocks):"));
+        for (var boar : boars.subList(0, Math.min(6, boars.size()))) {
+            player.sendSystemMessage(Component.literal(" - " + boar.describeAggroFor(player)));
+        }
+        return boars.size();
+    }
+
+    private static int setFavor(ServerPlayer player, int favor) {
+        ServerLevel level = player.serverLevel();
+        TributeManager.addFavor(level, player, favor - TributeManager.getFavor(level, player.getUUID()));
+        player.sendSystemMessage(Component.literal("Ogre Tribe favor set to " + favor + "/100 (anger now "
+                + TributeManager.getFactionAngerLevel(level) + "/30)."));
+        return 1;
     }
 
     private static int setAnger(ServerPlayer player, int anger) {

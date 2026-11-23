@@ -1,5 +1,6 @@
 package com.kingsandmonsters.entity.client;
 
+import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.entity.OgreGruntCaptain;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -13,6 +14,8 @@ import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
 
 public class OgreGruntCaptainRenderer extends GeoEntityRenderer<OgreGruntCaptain> {
     private static final float CAPTAIN_SCALE = 1.05F;
+    private static final float IRON_SWORD_SCALE = 1.75F;
+    private static final float BOG_IRON_SWORD_SCALE = 1.85F;
 
     public OgreGruntCaptainRenderer(EntityRendererProvider.Context context) {
         super(context, new OgreGruntCaptainModel());
@@ -53,9 +56,14 @@ public class OgreGruntCaptainRenderer extends GeoEntityRenderer<OgreGruntCaptain
 
             // The vanilla hand transform points the blade down this model's long forearm.
             // Roll it forward at the wrist so the sword projects anteriorly instead.
-            poseStack.translate(0.0F, 0.0F, -0.12F);
+            boolean bogIronSword = stack.is(ModItems.BOG_IRON_SWORD.get());
+            poseStack.translate(0.0F, 0.0F, bogIronSword ? -0.15F : -0.12F);
             poseStack.mulPose(Axis.XP.rotationDegrees(-80.0F));
-            poseStack.scale(1.75F, 1.75F, 1.75F);
+            // The Bog Iron Sword's painted silhouette is smaller than vanilla's Iron Sword.
+            // Give only that variant a modest boost so its handguard clears the captain's fist
+            // while preserving the exact same hand anchor and rotation.
+            float swordScale = bogIronSword ? BOG_IRON_SWORD_SCALE : IRON_SWORD_SCALE;
+            poseStack.scale(swordScale, swordScale, swordScale);
             super.renderStackForBone(poseStack, bone, stack, captain, bufferSource,
                     partialTick, packedLight, packedOverlay);
         }

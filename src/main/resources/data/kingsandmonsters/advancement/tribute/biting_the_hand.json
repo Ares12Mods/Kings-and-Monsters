@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:tribute/audience",
+  "display": {
+    "icon": { "id": "kingsandmonsters:kings_cleaver" },
+    "title": { "translate": "advancement.kingsandmonsters.biting_the_hand.title" },
+    "description": { "translate": "advancement.kingsandmonsters.biting_the_hand.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 30
+  }
+}

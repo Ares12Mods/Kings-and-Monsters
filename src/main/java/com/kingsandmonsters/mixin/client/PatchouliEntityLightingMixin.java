@@ -7,9 +7,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import vazkii.patchouli.client.book.page.PageEntity;
+import org.spongepowered.asm.mixin.Pseudo;
 
-@Mixin(value = PageEntity.class, remap = false)
+// Patchouli is optional: @Pseudo with a string target lets this load cleanly when it is absent.
+@Pseudo
+@Mixin(targets = "vazkii.patchouli.client.book.page.PageEntity", remap = false)
 public abstract class PatchouliEntityLightingMixin {
     @Inject(method = "renderEntity", at = @At("HEAD"), remap = false)
     private static void kingsandmonsters$useInventoryEntityLighting(

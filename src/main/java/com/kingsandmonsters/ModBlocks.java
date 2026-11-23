@@ -1,6 +1,8 @@
 package com.kingsandmonsters;
 
 import com.kingsandmonsters.block.OgreKingsCrownBlock;
+import com.kingsandmonsters.block.BogToadEggBlock;
+import com.kingsandmonsters.block.AcornBlock;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -56,6 +58,24 @@ public class ModBlocks {
                     .sound(SoundType.WOOD)
                             .ignitedByLava()));
 
+    public static final DeferredBlock<BogToadEggBlock> BOG_TOAD_EGG = BLOCKS.register("bog_toad_egg",
+            () -> new BogToadEggBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_LIGHT_GRAY)
+                    .instabreak()
+                    .noCollission()
+                    .noOcclusion()
+                    .sound(SoundType.FROGSPAWN)
+                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
+
+    public static final DeferredBlock<AcornBlock> ACORN = BLOCKS.register("acorn",
+            () -> new AcornBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BROWN)
+                    .instabreak()
+                    .noCollission()
+                    .noOcclusion()
+                    .sound(SoundType.WOOD)
+                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
+
     public static final DeferredBlock<OgreKingsCrownBlock> OGRE_KINGS_CROWN_DISPLAY = BLOCKS.register(
             "ogre_kings_crown_display",
             () -> new OgreKingsCrownBlock(BlockBehaviour.Properties.of()
@@ -63,6 +83,25 @@ public class ModBlocks {
                     .strength(0.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()));
+
+    public static final DeferredBlock<com.kingsandmonsters.block.CandleHelmetBlock> CANDLE_HELMET_BLOCK = BLOCKS.register(
+            "candle_helmet",
+            () -> new com.kingsandmonsters.block.CandleHelmetBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(0.5F)
+                    .sound(SoundType.LANTERN)
+                    .noOcclusion()
+                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)
+                    .lightLevel(state -> state.getValue(com.kingsandmonsters.block.CandleHelmetBlock.LIGHT))));
+
+    public static final DeferredBlock<com.kingsandmonsters.block.HaunchPlatterBlock> HAUNCH_PLATTER = BLOCKS.register(
+            "haunch_platter",
+            () -> new com.kingsandmonsters.block.HaunchPlatterBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BROWN)
+                    .strength(0.5F)
+                    .sound(SoundType.WOOD)
+                    .noOcclusion()
+                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
 
     public static final DeferredItem<BlockItem> BOG_IRON_ORE_ITEM =
             ModItems.ITEMS.registerSimpleBlockItem(BOG_IRON_ORE);
@@ -78,4 +117,19 @@ public class ModBlocks {
 
     public static final DeferredItem<BlockItem> BOG_OAK_LOG_ITEM =
             ModItems.ITEMS.registerSimpleBlockItem(BOG_OAK_LOG);
+
+    public static final DeferredItem<BlockItem> BOG_TOAD_EGG_ITEM =
+            ModItems.ITEMS.registerSimpleBlockItem(BOG_TOAD_EGG);
+    public static final DeferredItem<BlockItem> HAUNCH_PLATTER_ITEM = ModItems.ITEMS.register("haunch_platter",
+            () -> new com.kingsandmonsters.item.HaunchPlatterBlockItem(HAUNCH_PLATTER.get(),
+                    new net.minecraft.world.item.Item.Properties().stacksTo(1)
+                            // One serving's values, for AppleSkin and other food-information mods.
+                            .food(new net.minecraft.world.food.FoodProperties.Builder()
+                                    .nutrition(10).saturationModifier(0.9F)
+                                    .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
+                                            net.minecraft.world.effect.MobEffects.REGENERATION, 160), 1.0F)
+                                    .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
+                                            net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
+                                    .build())));
+
 }

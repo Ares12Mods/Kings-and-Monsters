@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "kingsandmonsters:item/haunch_platter_serving" }
+}

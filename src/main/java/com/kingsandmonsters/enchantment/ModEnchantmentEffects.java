@@ -1,14 +1,16 @@
 package com.kingsandmonsters.enchantment;
 
 import com.kingsandmonsters.Config;
-import com.kingsandmonsters.ModItems;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -16,6 +18,8 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
 /** Java-side mechanics for effects that cannot be expressed by vanilla enchantment components. */
 public final class ModEnchantmentEffects {
+    private static final TagKey<Item> TYRANT_WEAPONS = TagKey.create(Registries.ITEM,
+            ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "enchantable/tyrant_weapons"));
     private ModEnchantmentEffects() {}
 
     public static int level(Level level, ItemStack stack, ResourceKey<Enchantment> key) {
@@ -44,17 +48,22 @@ public final class ModEnchantmentEffects {
 
         ItemStack weapon = attacker.getMainHandItem();
         LivingEntity target = event.getEntity();
-        if (weapon.is(ModItems.KINGS_CLEAVER.get()) || weapon.is(ModItems.OGRE_KINGS_CLUB.get())) {
+        if (weapon.is(TYRANT_WEAPONS)) {
             int tyrantLevel = level(attacker.level(), weapon, ModEnchantments.TYRANT);
             if (tyrantLevel > 0) {
                 double radius = Config.TYRANT_SEARCH_RADIUS.get();
                 AABB area = attacker.getBoundingBox().inflate(radius);
                 int hostiles = attacker.level().getEntitiesOfClass(Monster.class, area,
-                        mob -> mob.isAlive() && mob != target).size();
+                        // Ogres at peace with the attacker are not a crowd to fight, so they add no damage.
+                        mob -> mob.isAlive() && mob != target
+                                && !(mob instanceof com.kingsandmonsters.entity.OgreGrunt ogre
+                                        && !ogre.canAttack(attacker))).size();
+                // Fully surrounded, each level tops out at 1.6 / 2.75 / 3.75 bonus damage. Sharpness V adds 3.0,
+                // so a full crowd with Tyrant III hits a quarter harder than the best vanilla damage enchantment.
                 double damagePerHostile = switch (tyrantLevel) {
-                    case 1 -> 0.5;
-                    case 2 -> 0.75;
-                    default -> 1.0;
+                    case 1 -> 0.4;
+                    case 2 -> 0.55;
+                    default -> 0.625;
                 };
                 int hostileCap = switch (tyrantLevel) {
                     case 1 -> 4;

@@ -25,6 +25,7 @@ import java.util.UUID;
 
 public class TributeSavedData extends SavedData {
     public static final String FILE_ID = "kingsandmonsters_tribute";
+    public static final int MAX_FAVOR = 100;
 
     private final ResourceKey<Level> dimension;
     private final Map<Long, CampTributeData> camps = new HashMap<>();
@@ -33,6 +34,10 @@ public class TributeSavedData extends SavedData {
     // period overwrites this rather than queuing a second one.
     private final Map<UUID, PendingRetaliation> pendingPatrolRetaliations = new HashMap<>();
     private int factionAngerLevel;
+    private final Map<UUID, Integer> playerFavor = new HashMap<>();
+    private final Map<UUID, QuestRecord> playerQuests = new HashMap<>();
+    /** Per player: quest ordinal -> game time when it may be offered again after being finished. */
+    private final Map<UUID, Map<Integer, Long>> questLockouts = new HashMap<>();
 
     public TributeSavedData(ResourceKey<Level> dimension) {
         this.dimension = dimension;
@@ -52,9 +57,13 @@ public class TributeSavedData extends SavedData {
             camp.nextPatrolGameTime = campTag.getLong("nextPatrolGameTime");
             camp.populationManaged = campTag.getBoolean("populationManaged");
             camp.captainType = OutpostCaptainType.fromSerializedName(campTag.getString("captainType"));
+            camp.profile = OutpostProfile.byId(campTag.getString("profile"));
             camp.populationInitialized = campTag.getBoolean("populationInitialized");
             camp.nextResidentSpawnGameTime = campTag.getLong("nextResidentSpawnGameTime");
             camp.captainRespawnGameTime = campTag.getLong("captainRespawnGameTime");
+            camp.jockeyTarget = campTag.contains("jockeyTarget") ? campTag.getInt("jockeyTarget") : -1;
+            camp.jockeyPopulationInitialized = campTag.getBoolean("jockeyPopulationInitialized");
+            camp.nextJockeySpawnGameTime = campTag.getLong("nextJockeySpawnGameTime");
             camp.structureKind = StructureKind.fromSerializedName(campTag.getString("structureKind"));
             if (campTag.contains("fortMapTarget")) {
                 camp.fortMapTarget = BlockPos.of(campTag.getLong("fortMapTarget"));
@@ -69,6 +78,10 @@ public class TributeSavedData extends SavedData {
                 camp.outpostMinZ = campTag.getInt("outpostMinZ");
                 camp.outpostMaxZ = campTag.getInt("outpostMaxZ");
                 camp.outpostGroundY = campTag.getInt("outpostGroundY");
+                if (campTag.contains("pitX")) {
+                    camp.pit = new PitZone(campTag.getInt("pitX"), campTag.getInt("pitZ"),
+                            campTag.getInt("pitAvoid"), campTag.getInt("pitKeep"));
+                }
                 camp.hasOutpostBounds = true;
             }
             if (camp.structureKind == StructureKind.UNKNOWN) {
@@ -92,6 +105,30 @@ public class TributeSavedData extends SavedData {
 
         // Older saves stored anger separately on every camp. Preserve the total
         // hostility those camps generated when migrating to faction-wide anger.
+        ListTag favorTag = tag.getList("playerFavor", Tag.TAG_COMPOUND);
+        for (int i = 0; i < favorTag.size(); i++) {
+            CompoundTag entry = favorTag.getCompound(i);
+            int favor = Math.clamp(entry.getInt("favor"), 0, MAX_FAVOR);
+            if (entry.hasUUID("player") && favor > 0) {
+                data.playerFavor.put(entry.getUUID("player"), favor);
+            }
+        }
+        ListTag questTag = tag.getList("playerQuests", Tag.TAG_COMPOUND);
+        for (int i = 0; i < questTag.size(); i++) {
+            CompoundTag entry = questTag.getCompound(i);
+            if (entry.hasUUID("player")) {
+                data.playerQuests.put(entry.getUUID("player"), new QuestRecord(entry.getInt("quest"),
+                        entry.getInt("progress"), entry.getLong("cooldownUntil"), entry.getInt("completed")));
+            }
+        }
+        ListTag lockTag = tag.getList("questLockouts", Tag.TAG_COMPOUND);
+        for (int i = 0; i < lockTag.size(); i++) {
+            CompoundTag entry = lockTag.getCompound(i);
+            if (entry.hasUUID("player")) {
+                data.questLockouts.computeIfAbsent(entry.getUUID("player"), id -> new HashMap<>())
+                        .put(entry.getInt("quest"), entry.getLong("until"));
+            }
+        }
         data.factionAngerLevel = tag.contains("factionAngerLevel")
                 ? data.clampAnger(tag.getInt("factionAngerLevel"))
                 : data.clampAnger(legacyAngerTotal);
@@ -123,9 +160,13 @@ public class TributeSavedData extends SavedData {
             campTag.putLong("nextPatrolGameTime", camp.nextPatrolGameTime);
             campTag.putBoolean("populationManaged", camp.populationManaged);
             campTag.putString("captainType", camp.captainType.serializedName());
+            campTag.putString("profile", camp.profile.id());
             campTag.putBoolean("populationInitialized", camp.populationInitialized);
             campTag.putLong("nextResidentSpawnGameTime", camp.nextResidentSpawnGameTime);
             campTag.putLong("captainRespawnGameTime", camp.captainRespawnGameTime);
+            campTag.putInt("jockeyTarget", camp.jockeyTarget);
+            campTag.putBoolean("jockeyPopulationInitialized", camp.jockeyPopulationInitialized);
+            campTag.putLong("nextJockeySpawnGameTime", camp.nextJockeySpawnGameTime);
             campTag.putString("structureKind", camp.structureKind.serializedName);
             if (camp.fortMapTarget != null) {
                 campTag.putLong("fortMapTarget", camp.fortMapTarget.asLong());
@@ -140,6 +181,12 @@ public class TributeSavedData extends SavedData {
                 campTag.putInt("outpostMinZ", camp.outpostMinZ);
                 campTag.putInt("outpostMaxZ", camp.outpostMaxZ);
                 campTag.putInt("outpostGroundY", camp.outpostGroundY);
+                if (camp.pit != null) {
+                    campTag.putInt("pitX", camp.pit.x());
+                    campTag.putInt("pitZ", camp.pit.z());
+                    campTag.putInt("pitAvoid", camp.pit.avoidRadius());
+                    campTag.putInt("pitKeep", camp.pit.keepRadius());
+                }
             }
             campsTag.add(campTag);
         }
@@ -162,6 +209,34 @@ public class TributeSavedData extends SavedData {
         });
 
         tag.putInt("factionAngerLevel", factionAngerLevel);
+        ListTag favorTag = new ListTag();
+        playerFavor.forEach((playerId, favor) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putInt("favor", favor);
+            favorTag.add(entry);
+        });
+        tag.put("playerFavor", favorTag);
+        ListTag questTag = new ListTag();
+        playerQuests.forEach((playerId, record) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putInt("quest", record.quest());
+            entry.putInt("progress", record.progress());
+            entry.putLong("cooldownUntil", record.cooldownUntil());
+            entry.putInt("completed", record.completed());
+            questTag.add(entry);
+        });
+        tag.put("playerQuests", questTag);
+        ListTag lockTag = new ListTag();
+        questLockouts.forEach((playerId, locks) -> locks.forEach((quest, until) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", playerId);
+            entry.putInt("quest", quest);
+            entry.putLong("until", until);
+            lockTag.add(entry);
+        }));
+        tag.put("questLockouts", lockTag);
         tag.put("camps", campsTag);
         tag.put("structureDiscoveries", discoveriesTag);
         tag.put("patrolRetaliations", retaliationsTag);
@@ -184,7 +259,7 @@ public class TributeSavedData extends SavedData {
         return camps.values().stream()
                 .map(camp -> new CampPatrolState(
                         camp.campOrigin,
-                        factionAngerLevel,
+                        getFactionAngerLevel(),
                         camp.chiefAlive,
                         camp.nextPatrolGameTime))
                 .toList();
@@ -233,11 +308,17 @@ public class TributeSavedData extends SavedData {
                 .map(camp -> camp.fortMapTarget);
     }
 
-    /** The Outpost (if any) whose structure bounds contain {@code pos} — nearest origin wins on overlap. */
+    /** True for a camp the plague took: nothing of the tribe is left in it to be robbed. */
+    public boolean isAbandonedCamp(BlockPos campOrigin) {
+        CampTributeData camp = camps.get(campOrigin.asLong());
+        return camp != null && camp.profile == OutpostProfile.ABANDONED_CAMP;
+    }
+
     public Optional<BlockPos> findOutpostCampOrigin(BlockPos pos) {
         return findOwningOutpostCamp(pos).map(camp -> camp.campOrigin);
     }
 
+    /** The Outpost (if any) whose structure bounds contain {@code pos}; the nearest origin wins on overlap. */
     private Optional<CampTributeData> findOwningOutpostCamp(BlockPos pos) {
         return camps.values().stream()
                 .filter(camp -> camp.structureKind == StructureKind.OUTPOST
@@ -307,7 +388,62 @@ public class TributeSavedData extends SavedData {
     }
 
     public int getFactionAngerLevel() {
-        return factionAngerLevel;
+        return Math.max(factionAngerLevel, angerFloor());
+    }
+
+    public int getFavor(UUID playerId) {
+        return playerFavor.getOrDefault(playerId, 0);
+    }
+
+    /** A player's errand for the tribe: the active quest id (-1 for none), its progress, and when the next may be offered. */
+    public record QuestRecord(int quest, int progress, long cooldownUntil, int completed) {
+        public static final QuestRecord NONE = new QuestRecord(-1, 0, 0L, 0);
+    }
+
+    public QuestRecord getQuest(UUID playerId) {
+        return playerQuests.getOrDefault(playerId, QuestRecord.NONE);
+    }
+
+    public void setQuest(UUID playerId, QuestRecord record) {
+        playerQuests.put(playerId, record);
+        setDirty();
+    }
+
+    /** Game time before which this player is not offered the quest again (0 when it is free). */
+    public long questLockedUntil(UUID playerId, int quest) {
+        Map<Integer, Long> locks = questLockouts.get(playerId);
+        return locks == null ? 0L : locks.getOrDefault(quest, 0L);
+    }
+
+    public void lockQuest(UUID playerId, int quest, long until) {
+        questLockouts.computeIfAbsent(playerId, id -> new HashMap<>()).put(quest, until);
+        setDirty();
+    }
+
+    public boolean isAppeased(UUID playerId) {
+        return getFavor(playerId) >= Config.TRIBUTE_APPEASED_FAVOR.get();
+    }
+
+    /** The tribe's mood is shared and starts out angry; each player's favor is their own. */
+    private int angerFloor() {
+        return Config.TRIBUTE_BASELINE_ANGER.get();
+    }
+
+    /** Returns true when the change moved this player into or out of the appeased state. */
+    public boolean addFavor(UUID playerId, int delta) {
+        boolean wasAppeased = isAppeased(playerId);
+        int oldFavor = getFavor(playerId);
+        int newFavor = (int) Math.clamp((long) oldFavor + delta, 0L, (long) MAX_FAVOR);
+        if (newFavor == oldFavor) {
+            return false;
+        }
+        if (newFavor == 0) {
+            playerFavor.remove(playerId);
+        } else {
+            playerFavor.put(playerId, newFavor);
+        }
+        setDirty();
+        return isAppeased(playerId) != wasAppeased;
     }
 
     public void registerOutpost(
@@ -332,15 +468,60 @@ public class TributeSavedData extends SavedData {
         camp.outpostMaxZ = structureBounds.maxZ();
         camp.outpostGroundY = structureBounds.minY();
         camp.hasOutpostBounds = true;
+        if (camp.jockeyTarget < 0) camp.jockeyTarget = Math.floorMod(Long.hashCode(campOrigin.asLong()), 3);
         setDirty();
     }
 
-    public void registerFort(BlockPos fortOrigin) {
-        CampTributeData camp = (CampTributeData) getOrCreate(fortOrigin);
-        if (camp.structureKind != StructureKind.FORT) {
-            camp.structureKind = StructureKind.FORT;
+    /**
+     * Registers a camp or the quarry. Unlike {@link #registerOutpost}, {@code groundY} is the real
+     * ground height (the quarry's bounding box reaches far below it) and the roster comes from the
+     * profile. Registering them as camps is what lets their trapped chests raise anger.
+     */
+    public void registerEncounter(
+            BlockPos campOrigin, OutpostProfile profile, OutpostCaptainType captainType,
+            BoundingBox structureBounds, int groundY, @org.jetbrains.annotations.Nullable PitZone pit) {
+        CampTributeData camp = (CampTributeData) getOrCreate(campOrigin);
+        if (camp.jockeyTarget < 0) {
+            camp.jockeyTarget = encounterJockeyTarget(profile, campOrigin);
             setDirty();
         }
+        if (camp.populationManaged && camp.profile == profile
+                && camp.structureKind == StructureKind.ENCOUNTER
+                && camp.hasOutpostBounds
+                && camp.outpostGroundY == groundY
+                && java.util.Objects.equals(camp.pit, pit)) {
+            return;
+        }
+        camp.populationManaged = true;
+        camp.profile = profile;
+        camp.captainType = captainType;
+        camp.structureKind = StructureKind.ENCOUNTER;
+        camp.outpostMinX = structureBounds.minX();
+        camp.outpostMaxX = structureBounds.maxX();
+        camp.outpostMinZ = structureBounds.minZ();
+        camp.outpostMaxZ = structureBounds.maxZ();
+        camp.outpostGroundY = groundY;
+        camp.pit = pit;
+        camp.hasOutpostBounds = true;
+        setDirty();
+    }
+
+    /** The quarry keeps one or two boar riders; one supply camp in four has a single one. */
+    private static int encounterJockeyTarget(OutpostProfile profile, BlockPos origin) {
+        return profile.jockeyTarget(origin);
+    }
+
+    public void registerFort(BlockPos fortOrigin, BoundingBox structureBounds) {
+        CampTributeData camp = (CampTributeData) getOrCreate(fortOrigin);
+        camp.structureKind = StructureKind.FORT;
+        camp.outpostMinX = structureBounds.minX();
+        camp.outpostMaxX = structureBounds.maxX();
+        camp.outpostMinZ = structureBounds.minZ();
+        camp.outpostMaxZ = structureBounds.maxZ();
+        camp.outpostGroundY = structureBounds.minY();
+        camp.hasOutpostBounds = true;
+        if (camp.jockeyTarget < 0) camp.jockeyTarget = 1 + Math.floorMod(Long.hashCode(fortOrigin.asLong()), 2);
+        setDirty();
     }
 
     public void setOutpostFortMapTarget(BlockPos campOrigin, BlockPos fortTarget) {
@@ -386,8 +567,32 @@ public class TributeSavedData extends SavedData {
                         camp.outpostMaxX,
                         camp.outpostMinZ,
                         camp.outpostMaxZ,
-                        camp.outpostGroundY))
+                        camp.outpostGroundY,
+                        camp.profile,
+                        camp.pit))
                 .toList();
+    }
+
+    public List<JockeyPopulationState> getJockeyPopulationStates() {
+        return camps.values().stream()
+                .filter(camp -> (camp.structureKind == StructureKind.OUTPOST || camp.structureKind == StructureKind.FORT
+                        || camp.structureKind == StructureKind.ENCOUNTER)
+                        && camp.hasOutpostBounds && camp.jockeyTarget >= 0)
+                .map(camp -> new JockeyPopulationState(camp.campOrigin, camp.structureKind,
+                        camp.jockeyTarget, camp.jockeyPopulationInitialized, camp.nextJockeySpawnGameTime,
+                        camp.outpostMinX, camp.outpostMaxX, camp.outpostMinZ, camp.outpostMaxZ,
+                        camp.outpostGroundY,
+                        // The fort and the quarry keep their riders in any biome; other camps keep to boar country.
+                        camp.structureKind == StructureKind.FORT || camp.profile == OutpostProfile.QUARRY))
+                .toList();
+    }
+
+    public void updateJockeyPopulation(BlockPos origin, boolean initialized, long nextSpawnTime) {
+        CampTributeData camp = camps.get(origin.asLong());
+        if (camp == null) return;
+        camp.jockeyPopulationInitialized = initialized;
+        camp.nextJockeySpawnGameTime = nextSpawnTime;
+        setDirty();
     }
 
     public void markPopulationInitialized(BlockPos campOrigin, long nextResidentSpawnGameTime) {
@@ -423,11 +628,11 @@ public class TributeSavedData extends SavedData {
     }
 
     public void incrementFactionAnger(int delta, BlockPos sourceCamp) {
-        setFactionAnger(factionAngerLevel + delta, sourceCamp);
+        setFactionAnger(getFactionAngerLevel() + delta, sourceCamp);
     }
 
     private void setFactionAnger(int level, BlockPos sourceCamp) {
-        int oldAngerLevel = factionAngerLevel;
+        int oldAngerLevel = getFactionAngerLevel();
         int newAngerLevel = clampAnger(level);
 
         if (oldAngerLevel == newAngerLevel) {
@@ -482,7 +687,7 @@ public class TributeSavedData extends SavedData {
     }
 
     private int clampAnger(int angerLevel) {
-        return Math.clamp(angerLevel, 0, maxAngerLevel());
+        return Math.clamp(angerLevel, Math.min(angerFloor(), maxAngerLevel()), maxAngerLevel());
     }
 
     private final class CampTributeData implements ITributeData {
@@ -491,21 +696,23 @@ public class TributeSavedData extends SavedData {
         private long nextPatrolGameTime;
         private boolean populationManaged;
         private OutpostCaptainType captainType = OutpostCaptainType.GRUNT;
+        private OutpostProfile profile = OutpostProfile.OUTPOST;
         private boolean populationInitialized;
         private long nextResidentSpawnGameTime;
         private long captainRespawnGameTime;
+        private int jockeyTarget = -1;
+        private boolean jockeyPopulationInitialized;
+        private long nextJockeySpawnGameTime;
         private StructureKind structureKind = StructureKind.UNKNOWN;
         private BlockPos fortMapTarget;
-        // The single physical chest designated to receive this Outpost's guaranteed Fort Map,
-        // captured once in OgreOutpostStructure.afterPlace (first TRAPPED_CHEST found for the
-        // loot table that actually carries the map reward). Only used by FortMapDeliveryService
-        // for the deferred-insertion path — see mapRewardFulfilled below.
+        // The one chest chosen to receive this outpost guaranteed Fort Map: the first TRAPPED_CHEST
+        // found for the loot table that carries the map reward, captured in
+        // OgreOutpostStructure.afterPlace. Only used for deferred insertion; see mapRewardFulfilled.
         private BlockPos mapChestPos;
-        // True once a Fort Map has actually been handed to the player for this Outpost, either
-        // via the normal loot-table roll (CachedFortMapFunction) or a deferred manual insertion
-        // (FortMapDeliveryService). Prevents a second trapped chest belonging to the same Outpost
-        // (e.g. grunt_outpost.nbt has two) from independently producing a duplicate map, and
-        // prevents the deferred delivery path from re-inserting once the reward already landed.
+        // True once a Fort Map has been handed out for this outpost, by the normal loot roll
+        // (CachedFortMapFunction) or a deferred insertion (FortMapDeliveryService). Stops a second
+        // trapped chest at the same outpost (grunt_outpost.nbt has two) from producing a duplicate
+        // map, and stops deferred delivery from inserting again after the reward landed.
         private boolean mapRewardFulfilled;
         private boolean hasOutpostBounds;
         private int outpostMinX;
@@ -513,6 +720,7 @@ public class TributeSavedData extends SavedData {
         private int outpostMinZ;
         private int outpostMaxZ;
         private int outpostGroundY;
+        private PitZone pit;
 
         private CampTributeData(BlockPos campOrigin) {
             this.campOrigin = campOrigin.immutable();
@@ -520,7 +728,7 @@ public class TributeSavedData extends SavedData {
 
         @Override
         public int getAngerLevel() {
-            return factionAngerLevel;
+            return getFactionAngerLevel();
         }
 
         @Override
@@ -574,15 +782,24 @@ public class TributeSavedData extends SavedData {
             int outpostMaxX,
             int outpostMinZ,
             int outpostMaxZ,
-            int outpostGroundY) {
+            int outpostGroundY,
+            OutpostProfile profile,
+            @org.jetbrains.annotations.Nullable PitZone pit) {
     }
 
     public record DiscoverySite(BlockPos origin, StructureKind kind) {}
 
+    public record JockeyPopulationState(BlockPos origin, StructureKind kind, int target,
+                                        boolean initialized, long nextSpawnGameTime,
+                                        int minX, int maxX, int minZ, int maxZ, int groundY,
+                                        boolean anyBiome) {}
+
     public enum StructureKind {
         UNKNOWN("unknown"),
         OUTPOST("outpost"),
-        FORT("fort");
+        FORT("fort"),
+        /** Camps and the quarry: they hold tribute and a population but aren't discovery sites. */
+        ENCOUNTER("encounter");
 
         private final String serializedName;
 

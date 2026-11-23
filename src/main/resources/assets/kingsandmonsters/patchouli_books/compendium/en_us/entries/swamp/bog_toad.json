@@ -1,0 +1,34 @@
+{
+  "name": "Bog Toad",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:bog_toad_skin",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Bog Toad is the swamp's oldest resident and its most patient predator. It lurks in shallows and on the banks of swamps and mangrove swamps, hops to close a gap, and bites with a venom that ogres have learned to dread.$(br2)Its bite inflicts $(thing)Bogrot II$() for 45 seconds."
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "kingsandmonsters:bog_toad",
+      "scale": 0.7,
+      "offset": 0.0,
+      "rotate": true,
+      "text": "Heavy hops land hard. Anyone caught beneath one is Dazed."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Territory",
+      "text": "Toads treat the mire as their own and drive off ogres that wander in. Grunts, Archers, Mages, Guards and Trappers are fair game; Brutes, Captains and the Ogre King are not.$(br2)Players are prey too, and nothing calms them: not fish, not a gift, not patience. A toad is never hostile to a Plague Ogre."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Spoils",
+      "text": "Toads drop $(item)Bog Toad Skin$(), $(item)Raw Toad Legs$() and, often, $(item)Bog Toad Venom$(). A rare $(item)Bogfang$() may be pulled from a kill; Looting improves every roll.$(br2)Raw Toad Legs come out already cooked if the toad dies burning."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Eggs",
+      "text": "Toads cannot be bred. New ones come from $(item)Bog Toad Eggs$() laid on the muddy banks. Near water an egg hatches into a $(thing)Bog Pole$(), which feeds on cod, salmon and tropical fish and grows into a toad in time. A swamp only supports so many, so eggs wait while the area is crowded."
+    }
+  ]
+}

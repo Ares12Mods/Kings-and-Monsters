@@ -19,19 +19,19 @@ public enum PatrolTier {
     /** Small patrol: a Grunt Captain leads 2 grunts and an archer. Low anger. */
     SMALL,
 
-    /** Medium patrol: a Mage leads 2 grunts and an archer. Moderate anger. */
+    /** Medium patrol: a Mage leads a trapper, a grunt and an archer. Moderate anger. */
     MEDIUM,
 
-    /** Large patrol: a Brute leads a mage, 2 grunts, and an archer. High anger. */
+    /** Large patrol: a Brute leads a mage, a trapper, a grunt, and an archer. High anger. */
     LARGE;
 
     /**
      * Returns the tier that corresponds to the given anger level.
      *
      * <ul>
-     *   <li>1–9   → {@link #SMALL}  (Low)</li>
-     *   <li>10–19 → {@link #MEDIUM} (Moderate)</li>
-     *   <li>20+   → {@link #LARGE}  (High)</li>
+     *   <li>0–14  → {@link #SMALL}  (Low)</li>
+     *   <li>15–24 → {@link #MEDIUM} (Moderate)</li>
+     *   <li>25+   → {@link #LARGE}  (High)</li>
      * </ul>
      *
      * @param angerLevel current anger value (0 or higher)
@@ -39,14 +39,14 @@ public enum PatrolTier {
      */
     public static PatrolTier fromAnger(int angerLevel) {
         int anger = Math.max(0, angerLevel);
-        if (anger <= 9) return SMALL;
-        if (anger <= 19) return MEDIUM;
+        if (anger <= 14) return SMALL;
+        if (anger <= 24) return MEDIUM;
         return LARGE;
     }
 
     /**
      * Compatibility overload. The named tiers use fixed anger values, so the
-     * maximum does not move the 10- and 20-point boundaries.
+     * maximum does not move the 15- and 25-point boundaries.
      */
     public static PatrolTier fromAnger(int angerLevel, int maxAngerLevel) {
         return fromAnger(angerLevel);

@@ -1,0 +1,84 @@
+{
+  "name": "Mudsnout Boar",
+  "category": "kingsandmonsters:creatures",
+  "icon": "kingsandmonsters:mudsnout_boar_spawn_egg",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Tribe did not always live on the plains. They came out of the swamp, where the Bog Toads had made the mire more trouble than it was worth, and went looking for open ground. They found it already occupied: hay-cart-sized boars, grey to the shoulders with dried clay, who had never met anything that did not step aside for a charge."
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "kingsandmonsters:mudsnout_boar",
+      "scale": 0.5,
+      "offset": 0.0,
+      "rotate": true,
+      "text": "Three tons of bad temper, and only one thing it will back away from."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Dangerous Ground",
+      "text": "A Mudsnout travels in a small pack of two or three, never a herd; a plain cannot feed more. A wild boar does not pick fights. It keeps its distance, shies away from you and lets you walk past.$(br2)Crowd it and it stops, faces you and snorts. That is the warning. Back away and it settles down and lets you go. Stay close for three seconds and it attacks: it butts anything it takes for a threat and tosses the victim off their feet, and if it has room it will paw the ground and charge the spot where you stood. The ram leaves its victim dazed, and anything else in the line is shoved aside. A chase that began only because you stayed too close ends after about five seconds.$(br2)A boar with nowhere to run fights at once. Strike one and the whole pack answers, and the one you hurt will not forgive you for three minutes."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Afraid of Ogres",
+      "text": "Nothing else on the plains frightens a Mudsnout. An ogre does. The first ogres to leave the swamp did not give way to a charge either, and the boars learned the difference quickly.$(br2)A pack that catches an ogre's scent bolts out of sight. If you are fighting beside the Tribe, expect the boars to keep their distance, and to turn on you instead."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The Tribe's Herds",
+      "text": "The plains are the Tribe's new home, and the Mudsnouts are the first thing the ogres learned to keep there. Grunts drive them to the clay wallows at dawn, Captains count them, and a fat boar is the nearest thing the ogres have to a feast day.$(br2)Ogres never fight their own herds, and they do not fight wild packs either. A pack that wanders too close to a camp is not hunted. It is simply left to learn the way back out."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Toad Meat",
+      "text": "The Tribe carried one habit out of the swamp: toad meat. Mudsnouts had never tasted it, and a boar that has eaten it will follow whoever carries more.$(br2)A boar will not shy from or warn someone holding toad meat, an apple or an acorn, its oldest favorite."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Winning Trust",
+      "text": "Feed it a raw leg, a cooked leg, an apple or an acorn, and each bite earns trust: one for a raw leg or an apple, two for a cooked leg, three for an acorn. Every boar has its own temper and wants between six and fifteen, and then it is yours. Go slowly, with the food in your hand, or it will remember the charge instead.$(br2)A tame boar follows you, fights whatever hurts you, and no longer runs from ogres. Feeding it again heals it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Saddled",
+      "text": "A tame boar takes a saddle like a horse. Use a saddle on it and it changes its look, then right-click it with an empty hand to mount. Sneak and use an empty hand to tell a tame boar to sit or stand. Sneak and use anything else to open its inventory, where the saddle comes off.$(br2)Steer with the camera and hold sprint to run. Swinging your arm makes it headbutt, launching whatever is in front of it up and back. Holding jump makes it charge."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The Charge",
+      "text": "Hold jump and the boar charges, the way a wild one does: it plants its feet and paws the ground with two snorts, turning with your aim.$(br2)Let go and it bursts forward in a straight line. The longer you held, the farther it runs, from about five blocks to twenty. A bar over your hotbar shows how far."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "The Ram",
+      "text": "The charge hits what you aimed at, leaves it dazed, and ends there. Anything else in the way is shoved aside. A wall two blocks tall stops it with a crash.$(br2)Every charge leaves the boar winded and crawling for a moment. If it lands on something, it also cannot sprint for five seconds. Choose your target."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Wallows and Rest",
+      "text": "Mudsnouts seek out clay wallows, lie down in the mud and rest, throwing up a splash as they settle. A resting boar is slow to rise, but anything that hurts it gets it up at once.$(br2)Wallows are rare out on the plains."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Snoutlets",
+      "text": "Some pack members are young. A Snoutlet is small, weak and does not fight. It runs from anything that hurts it.$(br2)Feed one toad meat and it grows faster; left alone, it takes about a day to become a full boar."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Breeding",
+      "text": "Every boar is born with its own speed and health. Feed a cooked toad leg or an acorn to a tame boar that is not hurt, and it goes into love. Two in love find each other and a Snoutlet is born.$(br2)The foal takes after its parents, give or take a little. Pair fast and sturdy boars again and again and the bloodline slowly climbs, past anything the wild produces, to a war boar fast and hard to kill. A pair needs ten minutes between foals.$(br2)Look at a tame boar with Jade, or mount it, to see its Speed and Health tier."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Thick Hide",
+      "text": "A full-grown boar has 18 armor and a bit under 50 health, and one arrow in five glances off its hide and flies back at the shooter. That angers a wild boar as surely as a hit would. Thrown tridents and spears pierce it.$(br2)The hide is useful once you have it: $(item)Blackhide Leather$() makes armor of the same stuff."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Boar Jockeys",
+      "text": "An Ogre Archer sometimes rides a boar, but only as the Tribe's own: a few scout around its outposts on the plains, others stand guard inside the fort and quarry or ride with a patrol. Wild boars never carry one. The boar fights as it always does while its rider shoots over its head, turning only so far to either side.$(br2)They fight for the same enemies the Archer does. Bring down the rider and the boar is only a boar again."
+    }
+  ]
+}

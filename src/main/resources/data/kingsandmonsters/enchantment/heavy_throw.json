@@ -6,8 +6,8 @@
   "max_cost": { "base": 45, "per_level_above_first": 12 },
   "max_level": 3,
   "min_cost": { "base": 10, "per_level_above_first": 10 },
-  "primary_items": "#kingsandmonsters:enchantable/hunters_spear",
+  "primary_items": "#kingsandmonsters:enchantable/heavy_throw",
   "slots": ["mainhand"],
-  "supported_items": "#kingsandmonsters:enchantable/hunters_spear",
+  "supported_items": "#kingsandmonsters:enchantable/heavy_throw",
   "weight": 5
 }

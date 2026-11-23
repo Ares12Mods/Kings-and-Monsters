@@ -1,0 +1,18 @@
+{
+  "parent": "kingsandmonsters:boars/hog_wild",
+  "display": {
+    "icon": { "id": "kingsandmonsters:boar_jockey_spawn_egg" },
+    "title": { "translate": "advancement.kingsandmonsters.unhorsed.title" },
+    "description": { "translate": "advancement.kingsandmonsters.unhorsed.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": {
+    "experience": 30
+  }
+}

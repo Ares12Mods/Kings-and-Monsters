@@ -61,6 +61,12 @@ public final class OgrebloodTotemEvents {
             return;
         }
 
+        // Like a vanilla totem, it cannot save anyone from the void or /kill: they would only die again
+        // a moment later with the totem gone.
+        if (event.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+            return;
+        }
+
         InteractionHand hand = findHeldTotem(saved);
         if (hand == null) {
             return;
@@ -168,6 +174,10 @@ public final class OgrebloodTotemEvents {
         if (target instanceof Player) {
             return target == lethalAttacker;
         }
+        // An ogre at peace with the one who was saved is not thrown across the room.
+        if (target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(saved)) {
+            return false;
+        }
         return target instanceof Enemy || target instanceof Mob mob && mob.getTarget() == saved;
     }
 
@@ -220,5 +230,10 @@ public final class OgrebloodTotemEvents {
             age++;
             return true;
         }
+    }
+
+    /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */
+    public static void resetState() {
+        ACTIVE_SHOCKWAVES.clear();
     }
 }

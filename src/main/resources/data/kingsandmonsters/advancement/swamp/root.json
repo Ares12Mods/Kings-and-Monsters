@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "id": "kingsandmonsters:bog_toad_venom" },
+    "title": { "translate": "advancement.kingsandmonsters.swamp_tab.title" },
+    "description": { "translate": "advancement.kingsandmonsters.swamp_tab.description" },
+    "background": "minecraft:textures/block/moss_block.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "joined_world": { "trigger": "minecraft:tick" }
+  }
+}

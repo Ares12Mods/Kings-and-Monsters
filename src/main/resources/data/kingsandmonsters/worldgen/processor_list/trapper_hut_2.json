@@ -1,0 +1,7 @@
+{
+  "processors": [
+    { "processor_type": "kingsandmonsters:encounter_air", "ground_y": 2, "oval": true },
+    { "processor_type": "kingsandmonsters:fort_footprint_recorder" },
+    { "processor_type": "kingsandmonsters:encounter_loot", "variant": "trapper_hut_2" }
+  ]
+}

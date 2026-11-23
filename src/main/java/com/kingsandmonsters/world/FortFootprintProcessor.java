@@ -15,15 +15,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Records, per world (x, z) column, the lowest and highest Y that actually
- * receive fort content (walls, towers, paths, foundations) as the template
- * is pasted. Must run after minecraft:block_ignore in the fort's processor
- * list so it only sees blocks that survived the air-ignore filter - those
- * are the real footprint, as opposed to the exterior/interior air baked
- * into the NBT's rectangular bounding box. FortTerrainCleaner reads this
- * back in afterPlace so grading only ever touches ground the fort actually
- * occupies, using each column's own real extent rather than a single
- * bounding-box-wide floor/roof line.
+ * Records, per world (x, z) column, the lowest and highest Y that actually receive fort content
+ * (walls, towers, paths, foundations) as the template is pasted. Must run after minecraft:block_ignore
+ * in the fort's processor list so it only sees blocks that survived the air filter, i.e. the real
+ * footprint rather than the air baked into the NBT's rectangular bounds. FortTerrainCleaner reads
+ * this back in afterPlace so grading only touches ground the fort occupies.
  */
 public final class FortFootprintProcessor extends StructureProcessor {
     public static final MapCodec<FortFootprintProcessor> CODEC = MapCodec.unit(FortFootprintProcessor::new);

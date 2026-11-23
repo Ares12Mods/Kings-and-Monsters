@@ -135,10 +135,9 @@ public final class FortVegetationCleaner {
             level.setBlock(BlockPos.of(packed), Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
         }
 
-        // Small decoration can also be placed after surface structures. Only
-        // remove it when the terrain work has actually left it unsupported;
-        // this preserves authored/naturally supported plants while catching
-        // floating carpets, propagules, roots, and vines.
+        // Small decoration can also be placed after surface structures. Only remove it when the
+        // terrain work has left it unsupported: that keeps authored and naturally supported plants
+        // and catches floating carpets, propagules, roots and vines.
         forEach(task.seedBox(), cursor, pos -> {
             // Moss carpet is surrounding biome decoration rather than fort architecture. Clear
             // it throughout the footprint and immediate exterior buffer even if overlap capture
@@ -146,7 +145,8 @@ public final class FortVegetationCleaner {
             BlockState initialState = level.getBlockState(pos);
             if (initialState.is(Blocks.MOSS_CARPET)
                     || initialState.is(Blocks.VINE)
-                    || OptionalVegetationCompat.isCutVine(initialState)) {
+                    || OptionalVegetationCompat.isCutVine(initialState)
+                    || OptionalVegetationCompat.isWildscapesPlant(initialState)) {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
                 return;
             }
@@ -162,6 +162,7 @@ public final class FortVegetationCleaner {
 
     private static boolean isTreePart(BlockState state) {
         return state.is(BlockTags.LOGS)
+                || OptionalVegetationCompat.isWildscapesTreeBlock(state)
                 || state.is(BlockTags.LEAVES)
                 || state.is(Blocks.VINE)
                 || OptionalVegetationCompat.isCutVine(state)

@@ -1,0 +1,22 @@
+{
+  "name": "Swamp Boons",
+  "category": "kingsandmonsters:effects",
+  "icon": "kingsandmonsters:toad_stew",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Ogre's Bane",
+      "text": "Granted by $(item)Toad Stew$() for 5 minutes. Your attacks deal 15% more damage to ogres of every rank, from Grunts to the Ogre King."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Bogstride",
+      "text": "Worn while swimming in $(item)Boghide Boots$(). It is a marker for the boots' real gift: faster swimming and a longer breath. It fades a moment after you leave the water."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Unyielding",
+      "text": "The full set of $(item)Bog Iron$() armor grants this when a hit lands hard enough. For 10 seconds you gain 4 armor, 2 toughness, 30% knockback resistance and 3 attack damage, and a shockwave pushes back everything within 4 blocks.$(br2)It cannot trigger again for 30 seconds."
+    }
+  ]
+}

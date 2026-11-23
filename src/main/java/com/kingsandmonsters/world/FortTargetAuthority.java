@@ -27,10 +27,9 @@ public final class FortTargetAuthority {
     }
 
     public static Optional<BlockPos> findNearestGuaranteedFort(ServerLevel level, BlockPos origin) {
-        // A default superflat world exposes only the plains biome. The Fort grid search requires
-        // a swamp candidate and would otherwise scan its entire safety radius for a target that
-        // cannot exist. Keep the normal-world targeting algorithm unchanged, but fail immediately
-        // for biome sources that can never produce a valid Fort biome.
+        // A default superflat world only has plains, and the Fort grid search needs a swamp candidate,
+        // so it would scan its whole safety radius for a target that cannot exist. Targeting is
+        // unchanged for normal worlds; this just fails immediately for biome sources with no swamp.
         if (level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes().stream()
                 .noneMatch(biome -> biome.is(Biomes.SWAMP))) {
             return Optional.empty();

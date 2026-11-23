@@ -69,9 +69,15 @@ patrol escalation, and ogre outposts to Minecraft.
 
 [[dependencies.${mod_id}]]
     modId="patchouli"
-    type="required"
+    type="optional"
     versionRange="[1.21.1-93,)"
     ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="boss_checklist"
+    type="optional"
+    ordering="NONE"
     side="BOTH"
 
 [[mixins]]

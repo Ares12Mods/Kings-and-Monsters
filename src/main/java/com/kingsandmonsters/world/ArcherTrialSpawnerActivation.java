@@ -25,11 +25,18 @@ public final class ArcherTrialSpawnerActivation {
             (level, selector, pos, maxDistance, requireLineOfSight) ->
                     selector.getPlayers(level, player ->
                                     isInActivationArea(player, pos, maxDistance)
+                                            && !isFriendOfTribe(level, player)
                                             && !player.isCreative()
                                             && !player.isSpectator())
                             .stream()
                             .map(Entity::getUUID)
                             .toList();
+
+    /** A player the tribe is at peace with (appeased, and not just provoked) does not set off its lookouts. */
+    private static boolean isFriendOfTribe(ServerLevel level, Player player) {
+        return com.kingsandmonsters.tribute.TributeManager.isAppeased(level, player.getUUID())
+                && !com.kingsandmonsters.tribute.TributeManager.isProvoked(level, player.getUUID());
+    }
 
     private ArcherTrialSpawnerActivation() {
     }

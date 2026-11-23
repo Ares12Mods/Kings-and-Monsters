@@ -1,0 +1,22 @@
+{
+    "type":  "kingsandmonsters:ogre_encounter",
+    "biomes":  "#kingsandmonsters:has_structure/ogre_kings_quarry",
+    "step":  "surface_structures",
+    "terrain_adaptation":  "none",
+    "spawn_overrides":  {
+
+                        },
+    "start_pool":  "kingsandmonsters:ogre_encounters/kings_quarry",
+    "size":  1,
+    "start_height":  {
+                         "absolute":  0
+                     },
+    "project_start_to_heightmap":  "WORLD_SURFACE_WG",
+    "max_distance_from_center":  96,
+    "use_expansion_hack":  false,
+    "encounter":  "quarry",
+    "ground_y":  36,
+    "ground_lift":  0,
+    "pit": { "x": 24, "z": 33, "avoid_radius": 11, "keep_radius": 19 },
+    "liquid_settings":  "ignore_waterlogging"
+}

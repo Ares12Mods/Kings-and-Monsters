@@ -1,0 +1,22 @@
+{
+  "structures": [
+    {
+      "structure": "kingsandmonsters:mud_wallow",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "kingsandmonsters:multi_exclusion_random_spread",
+    "spacing": 24,
+    "separation": 12,
+    "frequency": 0.85,
+    "salt": 1604823517,
+    "exclusion_zones": [
+      { "other_set": "minecraft:villages", "chunk_count": 3 },
+      { "other_set": "kingsandmonsters:ogre_outpost_plains", "chunk_count": 3 },
+      { "other_set": "kingsandmonsters:ogre_supply_camp", "chunk_count": 3 },
+      { "other_set": "kingsandmonsters:ogre_moving_camp", "chunk_count": 3 },
+      { "other_set": "kingsandmonsters:ogre_abandoned_camp", "chunk_count": 3 }
+    ]
+  }
+}

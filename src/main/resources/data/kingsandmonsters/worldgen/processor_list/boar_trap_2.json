@@ -1,0 +1,11 @@
+{
+  "processors": [
+    {
+      "processor_type": "kingsandmonsters:encounter_air",
+      "ground_y": 2,
+      "cavity": [2, 2, 15, 12]
+    },
+    { "processor_type": "kingsandmonsters:fort_footprint_recorder" },
+    { "processor_type": "kingsandmonsters:encounter_loot", "variant": "boar_trap_2" }
+  ]
+}

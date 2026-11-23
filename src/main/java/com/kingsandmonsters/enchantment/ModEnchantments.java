@@ -11,6 +11,9 @@ public final class ModEnchantments {
     public static final ResourceKey<Enchantment> BARBED = key("barbed");
     public static final ResourceKey<Enchantment> HEAVY_THROW = key("heavy_throw");
     public static final ResourceKey<Enchantment> TYRANT = key("tyrant");
+    public static final ResourceKey<Enchantment> BOGBURST = key("bogburst");
+    public static final ResourceKey<Enchantment> BRIGHTWICK = key("brightwick");
+    public static final ResourceKey<Enchantment> TIMBER = key("timber");
 
     private ModEnchantments() {}
 
@@ -19,4 +22,3 @@ public final class ModEnchantments {
                 ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path));
     }
 }
-

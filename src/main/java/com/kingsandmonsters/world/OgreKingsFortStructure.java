@@ -1,11 +1,7 @@
 package com.kingsandmonsters.world;
 
-import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.entity.OgreGrunt;
-import com.kingsandmonsters.entity.OgreGuard;
-import com.kingsandmonsters.entity.OgreLord;
-import com.kingsandmonsters.tribute.TributeManager;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -20,7 +16,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -38,7 +33,6 @@ import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasBinding
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -51,15 +45,11 @@ import java.util.Set;
  * placement; this class never rejects a candidate. Piece-aware terrain integration runs here.
  */
 public final class OgreKingsFortStructure extends Structure {
-    // Local (unrotated) offset of the main gate's walk-through level within
-    // the NBT, measured via a Load-mode structure block at the schematic's
-    // origin and the player's F3 position standing at the entrance
-    // threshold: dx = 1, dy = 3, dz = 51. Independently confirmed against
-    // the schematic's own spruce_fence_gate blocks, which sit at the same
-    // Y=3. The whole piece is shifted after placement so this point lands
-    // exactly on the sampled terrain height, instead of anchoring on the
-    // schematic's raw (0,0,0) corner the way vanilla's heightmap projection
-    // does by default.
+    // Local (unrotated) offset of the main gate walk-through level within the NBT: dx = 1, dy = 3,
+    // dz = 51. Measured with a Load-mode structure block at the schematic origin and F3 at the
+    // entrance threshold, and confirmed against the schematic own spruce_fence_gate blocks (also
+    // Y=3). The whole piece is shifted after placement so this point lands on the sampled terrain
+    // height, instead of anchoring on the raw (0,0,0) corner as vanilla heightmap projection does.
     private static final BlockPos ENTRANCE_LOCAL_POS = new BlockPos(1, 3, 51);
 
     // Authored encounter markers relative to the vanilla structure NBT origin.
@@ -170,12 +160,10 @@ public final class OgreKingsFortStructure extends Structure {
     }
 
     /**
-     * Vanilla's project_start_to_heightmap anchors on the schematic's raw
-     * (0,0,0) corner, which is nowhere near the entrance - that's what left
-     * the gate floating above the ground. This re-anchors the whole piece
-     * on the entrance's own walk-through point instead, so the gate lands
-     * flush with the terrain sampled right in front of it. FortTerrainCleaner
-     * then handles the rest of the perimeter per-column afterward.
+     * Vanilla's project_start_to_heightmap anchors on the schematic's raw (0,0,0) corner, nowhere
+     * near the entrance, which left the gate floating. This anchors the piece on the entrance's own
+     * walk-through point so the gate lands flush with the terrain in front of it; FortTerrainCleaner
+     * handles the rest of the perimeter per column.
      */
     private void alignEntranceToTerrain(GenerationContext context, StructurePiecesBuilder piecesBuilder) {
         for (StructurePiece piece : piecesBuilder.build().pieces()) {
@@ -186,23 +174,19 @@ public final class OgreKingsFortStructure extends Structure {
             BlockPos rotatedOffset = StructureTemplate.transform(ENTRANCE_LOCAL_POS, Mirror.NONE, poolPiece.getRotation(), BlockPos.ZERO);
             BlockPos entranceWorldPos = poolPiece.getPosition().offset(rotatedOffset);
 
-            // getFirstFreeHeight (== getBaseHeight) is the "stand here" surface
-            // Y - the same convention vanilla's own project_start_to_heightmap
-            // uses. getFirstOccupiedHeight is one lower, at the top of the
-            // solid ground itself; using it
-            // here sank the entrance flush with the ground surface instead of
-            // the walkable air above it, letting swamp water flood straight in.
+            // getFirstFreeHeight (== getBaseHeight) is the stand-here surface, the same convention
+            // vanilla project_start_to_heightmap uses. getFirstOccupiedHeight is one lower, at the
+            // top of the solid ground; using it sank the entrance flush with the ground and let
+            // swamp water flood in.
             int terrainY = context.chunkGenerator().getFirstFreeHeight(
                     entranceWorldPos.getX(), entranceWorldPos.getZ(),
                     Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     context.heightAccessor(), context.randomState()
             );
 
-            // The entrance is a single point; other perimeter sections sit at
-            // their own fixed relative height baked into the rigid schematic
-            // and can land right at the local swamp water table even when the
-            // entrance itself is exactly flush. A 1-block clearance keeps the
-            // entrance an easy, unnoticeable step while giving lower sections
+            // The entrance is a single point; other perimeter sections sit at their own fixed height
+            // in the rigid schematic and can land at the local water table even when the entrance is
+            // flush. A 1-block clearance keeps the entrance an easy step and gives lower sections
             // enough margin to stay above ambient water.
             poolPiece.move(0, (terrainY + ENTRANCE_CLEARANCE) - entranceWorldPos.getY(), 0);
             return;
@@ -218,14 +202,15 @@ public final class OgreKingsFortStructure extends Structure {
             BoundingBox chunkBox,
             ChunkPos chunkPos,
             PiecesContainer pieces) {
-        BlockPos fortOrigin = pieces.calculateBoundingBox().getCenter();
-        WorldgenSavedDataQueue.registerFort(level.getLevel(), fortOrigin);
+        BoundingBox fortBounds = pieces.calculateBoundingBox();
+        BlockPos fortOrigin = fortBounds.getCenter();
+        WorldgenSavedDataQueue.registerFort(level.getLevel(), fortOrigin, fortBounds);
         placeSleepingKing(level.getLevel(), chunkBox, pieces);
         placeFortResidents(level.getLevel(), chunkBox, pieces);
         Map<Long, int[]> columnExtents = FortFootprintProcessor.takeCapturedColumns();
         Set<Long> authoredBlocks = FortFootprintProcessor.takeCapturedBlocks();
         FortTerrainCleaner.grade(level, chunkBox, columnExtents, authoredBlocks);
-        FortCliffGuard.guard(level, chunkBox, columnExtents);
+        FortCliffGuard.guard(level, chunkBox, columnExtents, false, true);
         FortVegetationCleaner.captureStructureBlocks(level, chunkBox, chunkPos, pieces, authoredBlocks);
     }
 

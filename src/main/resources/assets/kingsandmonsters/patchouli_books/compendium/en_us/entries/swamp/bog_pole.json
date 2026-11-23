@@ -1,0 +1,24 @@
+{
+  "name": "Bog Pole",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:bog_toad_skin",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Bog Poles are the young of the Bog Toad. They live in the swamp's shallows and swim in small schools of one or two. A pole never fights; when something threatens it, the pole bolts for deep water, and if it is stranded on land it runs for the nearest pool."
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "kingsandmonsters:bog_pole",
+      "scale": 1.5,
+      "offset": 0.0,
+      "rotate": true,
+      "text": "Harmless, and gone the moment you reach for it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Growing Up",
+      "text": "Left alone, a pole stays a pole for about an hour before it becomes a full Bog Toad. Feeding it cod, salmon or tropical fish speeds this along.$(br2)If adult toads already crowd the area, the pole waits and tries again a minute later. A swamp only ever fills so far."
+    }
+  ]
+}

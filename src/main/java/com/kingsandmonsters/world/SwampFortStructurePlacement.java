@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
@@ -64,7 +65,8 @@ public final class SwampFortStructurePlacement extends RandomSpreadStructurePlac
                 QuartPos.fromBlock(64),
                 QuartPos.fromBlock(new ChunkPos(x, z).getMiddleBlockZ()),
                 state.randomState().sampler()).is(Biomes.SWAMP);
-        return isAuthoritativeCandidate(state.getLevelSeed(), chunkX, chunkZ, swamp);
+        return isAuthoritativeCandidate(state.getLevelSeed(), chunkX, chunkZ, swamp)
+                && WildscapesStructureCompat.isClear(state, chunkX, chunkZ, 14, 12);
     }
 
     /** Shared verbatim by worldgen, map targeting, and corpus tests. */

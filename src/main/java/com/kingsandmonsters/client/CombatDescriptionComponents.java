@@ -15,47 +15,49 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /** Builds balance-aware descriptions shared by inventory tooltips and JEI reference pages. */
 public final class CombatDescriptionComponents {
     private CombatDescriptionComponents() {}
 
     public static Component huntersSpear() {
-        return Component.translatable("tooltip.kingsandmonsters.hunters_spear",
-                percent(Config.HUNTERS_SPEAR_CRIPPLE_CHANCE.get()),
-                seconds(Config.CRIPPLED_SPEAR_DURATION_TICKS.get()),
-                percent(Config.HUNTERS_SPEAR_ARMOR_PIERCE.get()));
+        return Component.translatable("tooltip.kingsandmonsters.hunters_spear");
     }
 
-    public static Component huntersSpearArmorPierce() {
-        return Component.translatable("tooltip.kingsandmonsters.hunters_spear.armor_pierce",
-                percent(Config.HUNTERS_SPEAR_ARMOR_PIERCE.get()));
-    }
-
-    public static Component huntersSpearCripple() {
-        return Component.translatable("tooltip.kingsandmonsters.hunters_spear.cripple",
-                percent(Config.HUNTERS_SPEAR_CRIPPLE_CHANCE.get()),
-                seconds(Config.CRIPPLED_SPEAR_DURATION_TICKS.get()));
+    public static Component huntersSpearBleed() {
+        return Component.translatable("tooltip.kingsandmonsters.hunters_spear.bleed");
     }
 
     @Nullable
-    public static Component enchantment(ResourceKey<Enchantment> key) {
-        if (key.equals(ModEnchantments.BARBED)) {
-            return Component.translatable("tooltip.kingsandmonsters.enchantment.barbed",
-                    percent(Config.BARBED_BLEED_CHANCE.get()),
-                    seconds(Config.BARBED_BLEED_DURATION_TICKS.get()),
-                    number(Config.BARBED_BLEED_DAMAGE.get()),
-                    seconds(BleedingEffect.DAMAGE_INTERVAL_TICKS));
-        }
+    public static Component enchantment(ResourceKey<Enchantment> key, int level) {
         if (key.equals(ModEnchantments.HEAVY_THROW)) {
             return Component.translatable("tooltip.kingsandmonsters.enchantment.heavy_throw",
                     number(Config.HEAVY_THROW_DAMAGE_PER_LEVEL.get()),
                     number(Config.HEAVY_THROW_KNOCKBACK_PER_LEVEL.get()),
                     percent(Config.HEAVY_THROW_SPEED_PENALTY_PER_LEVEL.get()));
         }
+        if (key.equals(ModEnchantments.BARBED)) {
+            return Component.translatable(level >= 2
+                    ? "tooltip.kingsandmonsters.enchantment.barbed.2"
+                    : "tooltip.kingsandmonsters.enchantment.barbed.1");
+        }
         if (key.equals(ModEnchantments.TYRANT)) {
             return Component.translatable("tooltip.kingsandmonsters.enchantment.tyrant",
                     number(Config.TYRANT_SEARCH_RADIUS.get()));
+        }
+        if (key.equals(ModEnchantments.BOGBURST)) {
+            return Component.translatable(level >= 2
+                    ? "tooltip.kingsandmonsters.enchantment.bogburst.2"
+                    : "tooltip.kingsandmonsters.enchantment.bogburst.1");
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Component enchantmentDetail(ResourceKey<Enchantment> key) {
+        if (key.equals(ModEnchantments.TYRANT)) {
+            return Component.translatable("tooltip.kingsandmonsters.enchantment.tyrant.detail");
         }
         return null;
     }
@@ -67,6 +69,9 @@ public final class CombatDescriptionComponents {
                     percent(DazedEffect.MOVEMENT_SPEED_REDUCTION),
                     percent(DazedEffect.ATTACK_SPEED_REDUCTION));
         }
+        if (effect.equals(ModMobEffects.HAMSTRUNG)) {
+            return Component.translatable("tooltip.kingsandmonsters.effect.hamstrung");
+        }
         if (effect.equals(ModMobEffects.CRIPPLED)) {
             return Component.translatable("tooltip.kingsandmonsters.effect.crippled",
                     percent(CrippledEffect.MOVEMENT_SPEED_REDUCTION));
@@ -76,13 +81,24 @@ public final class CombatDescriptionComponents {
                     percent(BogfumeRageEvents.DAMAGE_DEALT_MULTIPLIER - 1.0F),
                     percent(1.0F - BogfumeRageEvents.DAMAGE_TAKEN_MULTIPLIER));
         }
+        if (effect.equals(ModMobEffects.LESSER_BLEEDING)) {
+            return bleeding("lesser_bleeding", BleedingEffect.Severity.LESSER);
+        }
         if (effect.equals(ModMobEffects.BLEEDING)) {
-            return Component.translatable(
-                    "tooltip.kingsandmonsters.effect.bleeding",
-                    number(Config.BARBED_BLEED_DAMAGE.get()),
-                    seconds(BleedingEffect.DAMAGE_INTERVAL_TICKS));
+            return bleeding("bleeding", BleedingEffect.Severity.NORMAL);
+        }
+        if (effect.equals(ModMobEffects.GREATER_BLEEDING)) {
+            return bleeding("greater_bleeding", BleedingEffect.Severity.GREATER);
         }
         return null;
+    }
+
+    private static Component bleeding(String id, BleedingEffect.Severity severity) {
+        return Component.translatable("tooltip.kingsandmonsters.effect." + id,
+                number(severity.damagePerTick),
+                seconds(BleedingEffect.DAMAGE_INTERVAL_TICKS),
+                seconds(severity.durationTicks),
+                percent(severity.healingReduction));
     }
 
     private static String seconds(int ticks) {
@@ -94,6 +110,9 @@ public final class CombatDescriptionComponents {
     }
 
     private static String number(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        // Gameplay constants are often floats, so promoting them to double exposes values such as
+        // 1.2000000476837158. Tooltips only use balance values precise to three decimal places.
+        return BigDecimal.valueOf(value).setScale(3, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
     }
 }

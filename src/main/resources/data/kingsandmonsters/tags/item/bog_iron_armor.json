@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "kingsandmonsters:bog_iron_helmet",
+    "kingsandmonsters:bog_iron_chestplate",
+    "kingsandmonsters:bog_iron_leggings",
+    "kingsandmonsters:bog_iron_boots"
+  ]
+}

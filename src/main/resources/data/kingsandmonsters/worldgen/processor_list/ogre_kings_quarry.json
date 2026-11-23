@@ -1,0 +1,24 @@
+{
+    "processors":  [
+                       {
+                           "processor_type":  "kingsandmonsters:encounter_air",
+                           "pit_x":  24,
+                           "pit_z":  33,
+                           "pit_radius":  7.5
+                       },
+                       {
+                           "processor_type":  "kingsandmonsters:fort_footprint_recorder"
+                       },
+                       {
+                           "processor_type":  "kingsandmonsters:encounter_loot",
+                           "variant":  "quarry"
+                       },
+                       {
+                           "processor_type":  "kingsandmonsters:encounter_spawner",
+                           "variant":  "quarry"
+                       },
+                       {
+                           "processor_type":  "kingsandmonsters:ogre_trial_spawner"
+                       }
+                   ]
+}

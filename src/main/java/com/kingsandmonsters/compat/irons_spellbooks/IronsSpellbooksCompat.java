@@ -71,6 +71,8 @@ public final class IronsSpellbooksCompat {
     private static Map<EntityType<? extends LivingEntity>, Map<ResourceLocation, Double>> profiles() {
         if (profiles == null) {
             Map<EntityType<? extends LivingEntity>, Map<ResourceLocation, Double>> values = new LinkedHashMap<>();
+            // Moderate general resistance, below the Ogre King's 1.15 profile.
+            values.put(ModEntities.BOG_TOAD.get(), profile(SPELL_RESIST, 1.10));
             values.put(ModEntities.OGRE_GRUNT.get(), profile(NATURE_RESIST, 1.15));
             values.put(ModEntities.OGRE_ARCHER.get(), profile(NATURE_RESIST, 1.10));
             values.put(ModEntities.OGRE_GUARD.get(), profile(

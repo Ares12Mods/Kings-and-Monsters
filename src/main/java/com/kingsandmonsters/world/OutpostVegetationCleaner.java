@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import com.kingsandmonsters.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -48,13 +49,69 @@ public final class OutpostVegetationCleaner {
             PiecesContainer pieces,
             Set<Long> authoredBlocks,
             boolean swamp) {
+        captureStructureBlocks(level, chunkBox, chunkPos, pieces, authoredBlocks, swamp, false, false,
+                VEGETATION_BUFFER, TREE_SEARCH_BUFFER);
+    }
+
+    /**
+     * The Boar Trap's site. As {@link #captureStructureBlocks} does, except that natural ground keeps its
+     * plants and the moss carpet the
+     * template lays over its pit stays: it hangs there only because of the log beside it, and
+     * breaking that log is what drops the cover.
+     */
+    public static void captureTrapperTrap(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            ChunkPos chunkPos,
+            PiecesContainer pieces,
+            Set<Long> authoredBlocks) {
+        captureStructureBlocks(level, chunkBox, chunkPos, pieces, authoredBlocks, false, true, true,
+                VEGETATION_BUFFER, TREE_SEARCH_BUFFER);
+    }
+
+    /**
+     * The Trapper Hut's site. Plants growing on the natural ground around and between the authored
+     * parts are left to grow, so the clearing reads as lived-in rather than mown; only plants
+     * standing on the template's own floor are cleared.
+     */
+    public static void captureTrapperHut(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            ChunkPos chunkPos,
+            PiecesContainer pieces,
+            Set<Long> authoredBlocks) {
+        captureStructureBlocks(level, chunkBox, chunkPos, pieces, authoredBlocks, false, false, true,
+                VEGETATION_BUFFER, TREE_SEARCH_BUFFER);
+    }
+
+    /** Wider connected-tree cleanup for an intentionally cleared woodland site. */
+    public static void captureForestClearing(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            ChunkPos chunkPos,
+            PiecesContainer pieces,
+            Set<Long> authoredBlocks) {
+        captureStructureBlocks(level, chunkBox, chunkPos, pieces, authoredBlocks, false, false, false, 10, 32);
+    }
+
+    private static void captureStructureBlocks(
+            WorldGenLevel level,
+            BoundingBox chunkBox,
+            ChunkPos chunkPos,
+            PiecesContainer pieces,
+            Set<Long> authoredBlocks,
+            boolean swamp,
+            boolean keepAuthoredMoss,
+            boolean keepNaturalGround,
+            int vegetationBuffer,
+            int treeSearchBuffer) {
         BoundingBox structureBox = pieces.calculateBoundingBox();
         BoundingBox seedBox = clippedHorizontal(
-                expanded(structureBox, VEGETATION_BUFFER, BELOW_CLEARANCE, CANOPY_CLEARANCE),
+                expanded(structureBox, vegetationBuffer, BELOW_CLEARANCE, CANOPY_CLEARANCE),
                 chunkBox,
                 level);
         BoundingBox searchBox = clippedHorizontal(
-                expanded(structureBox, TREE_SEARCH_BUFFER, BELOW_CLEARANCE, CANOPY_CLEARANCE),
+                expanded(structureBox, treeSearchBuffer, BELOW_CLEARANCE, CANOPY_CLEARANCE),
                 chunkBox,
                 level);
         if (seedBox == null || searchBox == null) {
@@ -62,11 +119,19 @@ public final class OutpostVegetationCleaner {
         }
 
         Set<Long> protectedBlocks = new HashSet<>(authoredBlocks);
+        Set<Long> keptCarpets = new HashSet<>();
+        if (keepAuthoredMoss) {
+            for (long packed : authoredBlocks) {
+                if (level.getBlockState(BlockPos.of(packed)).is(Blocks.MOSS_CARPET)) {
+                    keptCarpets.add(packed);
+                }
+            }
+        }
 
         CleanupKey key = new CleanupKey(level.getLevel().dimension(), chunkPos.toLong());
         PENDING.merge(
                 key,
-                new CleanupTask(seedBox, searchBox, structureBox, protectedBlocks, swamp),
+                new CleanupTask(seedBox, searchBox, structureBox, protectedBlocks, keptCarpets, keepNaturalGround, swamp),
                 CleanupTask::merge);
     }
 
@@ -97,9 +162,14 @@ public final class OutpostVegetationCleaner {
             // when terrain/template overlap caused the footprint capture to mark the position as
             // authored.
             BlockState initialState = level.getBlockState(pos);
+            // The Boar Trap's carpet over its pit is authored: it is what the pit hangs from.
+            if (initialState.is(Blocks.MOSS_CARPET) && task.keptCarpets().contains(packed)) {
+                return;
+            }
             if (initialState.is(Blocks.MOSS_CARPET)
                     || initialState.is(Blocks.VINE)
-                    || OptionalVegetationCompat.isCutVine(initialState)) {
+                    || OptionalVegetationCompat.isCutVine(initialState)
+                    || OptionalVegetationCompat.isWildscapesPlant(initialState)) {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
                 return;
             }
@@ -113,7 +183,8 @@ public final class OutpostVegetationCleaner {
                 if (removableTrees.add(packed)) {
                     open.add(pos.immutable());
                 }
-            } else if (OutpostTerrainCleaner.isSmallVegetation(state)) {
+            } else if (OutpostTerrainCleaner.isSmallVegetation(state)
+                    && !(task.keepNaturalGround() && !task.protectedBlocks().contains(pos.below().asLong()))) {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
             }
         });
@@ -139,6 +210,15 @@ public final class OutpostVegetationCleaner {
             BlockPos pos = BlockPos.of(packed);
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
         }
+
+        // Acorns are placed beneath natural oak leaves during decoration. When those leaves are
+        // removed for a clearing, clean up only the acorns that have lost their support.
+        forEach(task.searchBox(), cursor, pos -> {
+            BlockState state = level.getBlockState(pos);
+            if (state.is(ModBlocks.ACORN.get()) && !state.canSurvive(level, pos)) {
+                level.setBlock(pos, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
+            }
+        });
     }
 
     private static boolean isStructureIntrusion(BlockState state) {
@@ -147,6 +227,7 @@ public final class OutpostVegetationCleaner {
 
     private static boolean isTreePart(BlockState state, boolean swamp) {
         return state.is(BlockTags.LOGS)
+                || OptionalVegetationCompat.isWildscapesTreeBlock(state)
                 || state.is(BlockTags.LEAVES)
                 || state.is(Blocks.VINE)
                 || swamp && (OptionalVegetationCompat.isCutVine(state)
@@ -210,8 +291,12 @@ public final class OutpostVegetationCleaner {
             BoundingBox searchBox,
             BoundingBox structureBox,
             Set<Long> protectedBlocks,
+            Set<Long> keptCarpets,
+            boolean keepNaturalGround,
             boolean swamp) {
         private CleanupTask merge(CleanupTask other) {
+            Set<Long> keptCombined = new HashSet<>(keptCarpets);
+            keptCombined.addAll(other.keptCarpets);
             Set<Long> protectedCombined = new HashSet<>(protectedBlocks);
             protectedCombined.addAll(other.protectedBlocks);
             return new CleanupTask(
@@ -219,6 +304,8 @@ public final class OutpostVegetationCleaner {
                     encompass(searchBox, other.searchBox),
                     encompass(structureBox, other.structureBox),
                     protectedCombined,
+                    keptCombined,
+                    keepNaturalGround || other.keepNaturalGround,
                     swamp || other.swamp);
         }
 

@@ -4,6 +4,7 @@
   "icon": "kingsandmonsters:brute_heart",
   "pages": [
     { "type": "patchouli:text", "text": "Brutes are living siege engines with short tempers and attacks heavy enough to leave a fighter Dazed.$(br2)Watch the body, not merely the weapon. Space is safety when a Brute commits to a slam. Its heart is a valuable charm for anyone who survives collecting it." },
-    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_brute", "scale": 0.85, "offset": 0.0, "rotate": true, "text": "Large, loud, and surprisingly quick once anger wins the argument." }
+    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_brute", "scale": 0.85, "offset": 0.0, "rotate": true, "text": "Large, loud, and surprisingly quick once anger wins the argument." },
+    { "type": "patchouli:text", "title": "Armored Hide", "text": "Now and then a blow glances off a Brute's armor and does no damage at all, with a spark and a ring of steel. It cannot happen twice in a few seconds, so keep swinging." }
   ]
 }

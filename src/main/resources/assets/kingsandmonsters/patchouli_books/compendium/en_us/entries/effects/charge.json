@@ -1,0 +1,12 @@
+{
+  "name": "Charge",
+  "category": "kingsandmonsters:effects",
+  "icon": "kingsandmonsters:blackhide_helmet",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Charge",
+      "text": "Granted to a wearer of the full $(item)Blackhide$() set who has sprinted long enough to reach top speed. It marks that the next impact lands like a boar's.$(br2)Ramming a creature, or hitting it with a fist or weapon, flings it away. It lasts up to 12 seconds and ends on the second ram or on any hit."
+    }
+  ]
+}

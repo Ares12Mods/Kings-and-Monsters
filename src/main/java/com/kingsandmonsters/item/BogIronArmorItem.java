@@ -39,7 +39,21 @@ public class BogIronArmorItem extends ArmorItem implements GeoItem {
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
-        tooltip.add(Component.literal("+15% Poison Resistance").withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.empty());
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.set_bonus")
+                .withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding")
+                .withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding.trigger")
+                .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding.bonuses")
+                .withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding.bonuses_2")
+                .withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding.shockwave")
+                .withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.bog_iron_armor.unyielding.cooldown")
+                .withStyle(ChatFormatting.BLUE));
     }
 
     @Override

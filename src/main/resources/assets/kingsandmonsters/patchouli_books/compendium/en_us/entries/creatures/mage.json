@@ -4,6 +4,7 @@
   "icon": "kingsandmonsters:bogfume_charm",
   "pages": [
     { "type": "patchouli:text", "text": "Ogre Mages turn the battlefield poisonous. Their bogfume threatens intruders while empowering Grunts that remain inside it.$(br2)Do not let a crowd settle comfortably in the fog. A defeated Mage may leave behind the Bogfume Charm that shaped its craft." },
-    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_mage", "scale": 0.75, "offset": 0.0, "rotate": true, "text": "When the air turns green, reposition before the whole warband benefits." }
+    { "type": "patchouli:entity", "entity": "kingsandmonsters:ogre_mage", "scale": 0.75, "offset": 0.0, "rotate": true, "text": "When the air turns green, reposition before the whole warband benefits." },
+    { "type": "patchouli:text", "title": "Mire Jaws", "text": "The Mage slams its staff into the ground and a line of jaws snaps up out of the mire toward you, one after another. Watch the stone in the staff: it glows just before each cast. Move sideways when it does.$(br2)It also smacks nearby enemies with the staff and shoves them back with a burst of magic. Its robe hides its legs, so listen for its steps." }
   ]
 }

@@ -14,16 +14,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Purely cosmetic pass that runs after FortTerrainCleaner's footprint-based
- * grading. That grading is deliberately crisp - it only ever touches the
- * exact columns the fort occupies, which is correct for not scarring
- * terrain but leaves a clean, readable silhouette of the schematic visible
- * from above. This softens that silhouette without touching any placement,
- * carving or fill logic: for a noise-varying band just outside the real
- * footprint, it sparsely swaps surface blocks for blend-compatible swamp
- * textures and occasionally lets a shallow puddle reach toward the wall.
- * Most cells in the band are left completely untouched on purpose, so
- * existing vegetation and terrain survive right up to the walls in places.
+ * Cosmetic pass after FortTerrainCleaner's footprint grading. That grading is crisp on purpose
+ * (it only touches the fort's own columns), which leaves a clean schematic silhouette visible from
+ * above. This softens it without touching placement, carving or fill: in a noise-varying band just
+ * outside the footprint it sparsely swaps surface blocks for swamp-compatible textures and
+ * occasionally lets a shallow puddle reach toward the wall. Most cells are left alone on purpose,
+ * so vegetation and terrain survive right up to the walls in places.
  */
 public final class FortPerimeterBlender {
     private static final int UPDATE_FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;

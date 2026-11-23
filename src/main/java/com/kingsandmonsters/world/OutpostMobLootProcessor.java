@@ -15,16 +15,15 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
- * Assigns hut loot using template-local coordinates. Only storage containers
- * intentionally placed for players are listed here; the many barrels used as
- * roof, wall, and tower detailing remain untouched.
+ * Assigns hut loot using template-local coordinates. Only storage containers placed for players are
+ * listed; the many barrels used as roof, wall and tower detailing are left alone.
  *
  * <p>{@link StructureTemplate}/{@link StructurePlaceSettings} carry no identity info inside
- * {@link #process}, so a single shared coordinate map cannot tell the four outpost templates
- * apart (their local coordinates collide). Instead each of the four templates gets its own
- * processor instance, parameterized by {@link #variant} and wired to a dedicated processor_list
- * (see {@code worldgen/processor_list/ogre_outpost_*.json} and the per-element {@code processors}
- * field in {@code worldgen/template_pool/ogre_outpost/outposts.json}).
+ * {@link #process}, so one shared coordinate map can't tell the four outpost templates apart (their
+ * local coordinates collide). Each template gets its own processor instance, parameterized by
+ * {@link #variant} and wired to a dedicated processor_list (see
+ * {@code worldgen/processor_list/ogre_outpost_*.json} and the per-element {@code processors} field
+ * in {@code worldgen/template_pool/ogre_outpost/outposts.json}).</p>
  */
 public final class OutpostMobLootProcessor extends StructureProcessor {
     public static final MapCodec<OutpostMobLootProcessor> CODEC =
@@ -68,10 +67,10 @@ public final class OutpostMobLootProcessor extends StructureProcessor {
     private static final Map<BlockPos, String> MAGE_2_BARREL_LOOT = Map.of(
             new BlockPos(5, 2, 9), MAGE_LOOT);
 
-    // Ground truth for which template is actually being placed — captured here rather than
-    // guessed later from PoolElementStructurePiece#toString() parsing, since every one of the
-    // four templates now runs through its own dedicated processor instance (see class doc). Read
-    // by OgreOutpostStructure#afterPlace once placement finishes for this chunk pass.
+    // Which template is actually being placed. Captured here instead of parsing
+    // PoolElementStructurePiece#toString() later, since each of the four templates now has its own
+    // processor instance (see class doc). Read by OgreOutpostStructure#afterPlace once the chunk
+    // placement finishes.
     private static final ThreadLocal<String> CAPTURED_VARIANT = new ThreadLocal<>();
 
     private final String variant;

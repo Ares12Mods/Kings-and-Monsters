@@ -19,9 +19,9 @@ public class GoldenOgreToothItem extends Item {
     public void appendHoverText(ItemStack stack, TooltipContext context,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
-        tooltip.add(Component.literal("A gilded ogre trophy, prized by the tribe")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.golden_ogre_tooth.flavor.1")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
-        tooltip.add(Component.literal("and accepted by its greediest merchants.")
+        tooltip.add(Component.translatable("tooltip.kingsandmonsters.golden_ogre_tooth.flavor.2")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
     }
 }

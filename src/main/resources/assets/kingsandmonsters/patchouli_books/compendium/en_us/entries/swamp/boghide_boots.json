@@ -1,0 +1,40 @@
+{
+  "name": "Boghide Armor",
+  "category": "kingsandmonsters:swamp",
+  "icon": "kingsandmonsters:boghide_chestplate",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Bog Toad Skin is tough, but smelting turns it into $(item)Boghide$(), supple and water-shedding. Sewn into a full set it lets a swamp walker move through the mire the way a toad does."
+    },
+    {
+      "type": "patchouli:smelting",
+      "recipe": "kingsandmonsters:boghide",
+      "title": "Boghide",
+      "text": "Smelt Bog Toad Skin in a furnace."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:boghide_helmet",
+      "recipe2": "kingsandmonsters:boghide_chestplate",
+      "title": "Helmet & Chestplate"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "kingsandmonsters:boghide_leggings",
+      "recipe2": "kingsandmonsters:boghide_boots",
+      "title": "Leggings & Boots",
+      "text": "Lighter than iron, but the boots are as protective as iron ones, and sturdier."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Toad's Gait",
+      "text": "In water the boots grant $(thing)Bogstride$(): you swim 35% faster and your air lasts twice as long, though they will not let you breathe underwater.$(br2)On land, jump while sprinting to leap forward like a toad. The leap has a 10 second cooldown and costs the boots a little durability. Land within ten seconds of leaping and the impact damages hostile creatures close by."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Toadskin",
+      "text": "Wear all four pieces and the hide turns the rot aside: you are $(thing)immune to Bogrot$(), and the boots' leap recovers in 8 seconds instead of 10. A leap landing also slows nearby hostiles and leaves them taking a quarter more damage from you for four seconds, while you move faster for three, and the hide takes a tenth less damage in water, mud or swamps."
+    }
+  ]
+}

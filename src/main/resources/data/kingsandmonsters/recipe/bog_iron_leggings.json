@@ -4,11 +4,17 @@
   "key": {
     "X": {
       "item": "kingsandmonsters:bog_iron"
+    },
+    "W": {
+      "item": "minecraft:green_wool"
+    },
+    "L": {
+      "item": "minecraft:leather"
     }
   },
   "pattern": [
-    "XXX",
-    "X X",
+    "XLX",
+    "W W",
     "X X"
   ],
   "result": {
