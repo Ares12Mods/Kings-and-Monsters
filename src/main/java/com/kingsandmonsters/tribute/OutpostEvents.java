@@ -80,7 +80,19 @@ public final class OutpostEvents {
         }
     }
 
-    private static final int OGRE_KILL_FAVOR_LOSS = 3;
+    private static final int OGRE_KILL_FAVOR_LOSS = 5;
+    // Ogre kills per player inside the last KILL_WINDOW_TICKS; the second one angers the whole tribe.
+    private static final long KILL_WINDOW_TICKS = 20L * 60 * 5;
+    private static final int KILLS_BEFORE_TRIBE_TURNS = 2;
+    private static final java.util.Map<java.util.UUID, java.util.ArrayDeque<Long>> RECENT_KILLS =
+            new java.util.HashMap<>();
+
+    /** Forgets recent kills when a world closes. */
+    public static void resetState() {
+        RECENT_KILLS.clear();
+    }
+    private static final int FRIENDLY_FIRE_FAVOR_LOSS = 1;
+    private static final String STRUCK_BY_FRIEND_TAG = "KingsAndMonstersStruckByFriend";
 
     /** Striking the tribe ends any peace the player had, for every ogre and not just the one hit. */
     public static void onOgreHurt(LivingDamageEvent.Post event) {
@@ -90,7 +102,16 @@ public final class OutpostEvents {
                 && ogre.level() instanceof ServerLevel level
                 && event.getSource().getEntity() instanceof ServerPlayer attacker
                 && !isDueling(level, attacker)) {
-            TributeManager.provoke(level, attacker);
+            if (TributeManager.isAppeased(level, attacker.getUUID())) {
+                // Someone in the tribe's good graces who strikes an ogre by accident answers only to that
+                // ogre, and pays a small fee for the first blow on each one, so one stray fight can't ruin them.
+                if (!ogre.getPersistentData().getBoolean(STRUCK_BY_FRIEND_TAG)) {
+                    ogre.getPersistentData().putBoolean(STRUCK_BY_FRIEND_TAG, true);
+                    TributeManager.addFavorQuietly(level, attacker, -FRIENDLY_FIRE_FAVOR_LOSS);
+                }
+            } else {
+                TributeManager.provoke(level, attacker);
+            }
         }
     }
 
@@ -136,6 +157,18 @@ public final class OutpostEvents {
         if (!ogre.isRoyalTrialOgre() && event.getSource().getEntity() instanceof ServerPlayer killer
                 && !isDueling(level, killer)) {
             TributeManager.addFavorQuietly(level, killer, -OGRE_KILL_FAVOR_LOSS);
+            // One stray death is forgiven to the appeased, but a second within the window shows intent:
+            // the whole tribe turns on them, as if they had struck the camp.
+            java.util.ArrayDeque<Long> recent = RECENT_KILLS.computeIfAbsent(
+                    killer.getUUID(), id -> new java.util.ArrayDeque<>());
+            long now = level.getGameTime();
+            while (!recent.isEmpty() && now - recent.peekFirst() > KILL_WINDOW_TICKS) {
+                recent.pollFirst();
+            }
+            recent.addLast(now);
+            if (recent.size() >= KILLS_BEFORE_TRIBE_TURNS) {
+                TributeManager.provoke(level, killer);
+            }
         }
 
         if (data.contains("PatrolCampPos")) {

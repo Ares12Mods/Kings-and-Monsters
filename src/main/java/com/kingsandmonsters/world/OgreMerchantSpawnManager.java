@@ -30,7 +30,7 @@ import java.util.Optional;
 public final class OgreMerchantSpawnManager {
     public static final int ATTEMPT_INTERVAL = 24_000;
     public static final int SUCCESS_COOLDOWN = 48_000;
-    public static final int NATURAL_LIFETIME = 72_000;
+    public static final int NATURAL_LIFETIME = 48_000;
     public static final float BASE_SUCCESS_CHANCE = 0.35F;
     public static final float OGRE_TERRITORY_SUCCESS_CHANCE = 0.50F;
     public static final int MIN_PLAYER_DISTANCE = 40;
@@ -86,6 +86,8 @@ public final class OgreMerchantSpawnManager {
                 level.random.nextFloat() * 360, 0);
         merchant.finalizeSpawn(level, level.getCurrentDifficultyAt(position), MobSpawnType.NATURAL, null);
         if (!level.addFreshEntity(merchant)) {
+            // The escort is created while the merchant is finalized, so a failed add must not strand it.
+            merchant.despawnGuards();
             return null;
         }
 

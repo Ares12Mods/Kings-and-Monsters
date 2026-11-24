@@ -123,6 +123,8 @@ public class ModSoundEvents {
             register("entity.bog_toad.hurt_deep_b");
     public static final DeferredHolder<SoundEvent, SoundEvent> BOG_TOAD_HURT_DEEP_C =
             register("entity.bog_toad.hurt_deep_c");
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOG_TOAD_DEATH_DEEP =
+            register("entity.bog_toad.death_deep");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUDSNOUT_AMBIENT =
             register("entity.mudsnout.ambient");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUDSNOUT_HURT =

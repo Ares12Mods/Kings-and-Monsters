@@ -341,7 +341,6 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
         private static final int MERCHANT_KILL_FAVOR_LOSS = 15;
     }
 
-    private static final int NIGHT_INVISIBILITY_DURATION_TICKS = 60 * 20;
 
     @Override public boolean hurt(DamageSource source, float amount) {
         boolean result = super.hurt(source, amount);
@@ -360,13 +359,6 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     @Override public void aiStep() {
         super.aiStep();
         if (!level().isClientSide) {
-            // Evaluate the current sky state instead of waiting for a sunset transition, so
-            // /time set night and merchants loaded during the night are handled immediately.
-            if (tickCount % 20 == 0 && !level().isDay() && !hasEffect(MobEffects.INVISIBILITY)) {
-                playSound(SoundEvents.GENERIC_DRINK, 1.0F, 0.9F + getRandom().nextFloat() * 0.1F);
-                addEffect(new MobEffectInstance(MobEffects.INVISIBILITY,
-                        NIGHT_INVISIBILITY_DURATION_TICKS, 0, false, false));
-            }
             long tradeUntil = entityData.get(DATA_TRADE_UNTIL);
             if (tradeUntil > 0L && level().getGameTime() >= tradeUntil) {
                 entityData.set(DATA_TRADE_UNTIL, 0L);
@@ -473,6 +465,11 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     }
 
     /** Only discards guards tied to this exact merchant (via assignMerchantGuard), never other Ogres. */
+    /** Clears this merchant's guards, for an encounter that never got off the ground. */
+    public void despawnGuards() {
+        despawnAssociatedGuards();
+    }
+
     private void despawnAssociatedGuards() {
         if (level() instanceof ServerLevel server) {
             List<OgreGrunt> guards = new ArrayList<>();

@@ -477,6 +477,14 @@
             { "name": "minecraft:mob/frog/hurt4", "pitch": 0.75 }
         ]
     },
+    "entity.bog_toad.death_deep": {
+        "subtitle": "subtitles.kingsandmonsters.bog_toad.death",
+        "sounds": [
+            "kingsandmonsters:entity/bog_toad/death_deep_1",
+            "kingsandmonsters:entity/bog_toad/death_deep_2",
+            "kingsandmonsters:entity/bog_toad/death_deep_3"
+        ]
+    },
     "entity.ogre.grunt_captain.idle": {
         "subtitle": "subtitles.kingsandmonsters.ogre.huff",
         "sounds": [

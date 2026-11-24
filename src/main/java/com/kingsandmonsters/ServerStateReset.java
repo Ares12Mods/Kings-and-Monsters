@@ -30,5 +30,6 @@ public final class ServerStateReset {
         OgreRallyEvents.resetState();
         OgreHookbladeEvents.resetState();
         PatrolManager.resetState();
+        com.kingsandmonsters.tribute.OutpostEvents.resetState();
     }
 }

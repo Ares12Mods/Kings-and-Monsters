@@ -1117,6 +1117,11 @@ public class BogToad extends Animal implements GeoEntity {
         return ModSoundEvents.BOG_TOAD_HURT_DEEP_A.get();
     }
 
+    @Override
+    protected SoundEvent getDeathSound() {
+        return ModSoundEvents.BOG_TOAD_DEATH_DEEP.get();
+    }
+
     /** Players cannot breed toads; new ones only come from hatching Bog Toad Eggs. */
     @Override
     public boolean isFood(ItemStack stack) {

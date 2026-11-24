@@ -95,7 +95,7 @@ public final class OgrebloodTotemEvents {
         level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
                 saved.getX(), saved.getY() + saved.getBbHeight() * 0.55, saved.getZ(),
                 36, 0.55, 0.7, 0.55, 0.2);
-        level.playSound(null, saved.blockPosition(), ModSoundEvents.OGREBLOOD_TOTEM_ACTIVATE.get(),
+        level.playSound(null, saved.blockPosition(), ModSoundEvents.OGRE_LORD_OVERHEAD_GRUNT.get(),
                 SoundSource.PLAYERS, 1.8F, 1.0F);
         level.playSound(null, saved.blockPosition(), SoundEvents.TOTEM_USE,
                 SoundSource.PLAYERS, 1.0F, 1.0F);

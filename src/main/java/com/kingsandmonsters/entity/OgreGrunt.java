@@ -222,7 +222,42 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
         OgreGrunt army = isArmyAlly() ? this : o;
         OgreGrunt wild = army == this ? o : this;
+        // A summoned army fights the tribe's ogres on sight, unless its summoner is in the tribe's good graces and
+        // has not picked a fight; the tribe only answers once it has been struck.
+        if (army == this) {
+            return armyMayFightTribe(wild);
+        }
         return wild.getLastHurtByMob() == army || army.getLastHurtByMob() == wild || wild.isFightingArmyOf(army);
+    }
+
+    /** A wild ogre struck by a summoned one calls the ogres around it in, so the army meets the tribe at once, not one by one. */
+    private void rallyTribeAgainst(OgreGrunt army) {
+        if (this instanceof OgreLord || royalTrialOgre) {
+            return;
+        }
+        for (OgreGrunt other : level().getEntitiesOfClass(OgreGrunt.class, getBoundingBox().inflate(24.0, 8.0, 24.0),
+                o -> o != this && !o.isArmyAlly() && !(o instanceof OgreLord) && !o.royalTrialOgre && o.isAlive())) {
+            if (other.getTarget() instanceof Player) {
+                continue;
+            }
+            other.setLastHurtByMob(army);
+            if (other.canAttack(army)) {
+                other.setTarget(army);
+            }
+        }
+    }
+
+    /** A well-liked summoner's army keeps the peace until the summoner (or the tribe) starts the fight. */
+    private boolean armyMayFightTribe(OgreGrunt wild) {
+        Player owner = armyOwner();
+        if (owner == null || !(level() instanceof ServerLevel server)) {
+            return true;
+        }
+        if (!com.kingsandmonsters.tribute.TributeManager.isAppeased(server, owner.getUUID())
+                || com.kingsandmonsters.tribute.TributeManager.isProvoked(server, owner.getUUID())) {
+            return true;
+        }
+        return wild.getLastHurtByMob() == owner || getLastHurtByMob() == wild || wild.isFightingArmyOf(this);
     }
 
     private boolean isFightingArmyOf(OgreGrunt army) {
@@ -1258,6 +1293,9 @@ public class OgreGrunt extends Monster implements GeoEntity {
             return false;
         }
         boolean hurt = super.hurt(source, amount);
+        if (hurt && armyOwnerId == null && source.getEntity() instanceof OgreGrunt striker && striker.isArmyAlly()) {
+            rallyTribeAgainst(striker);
+        }
         if (hurt && isMerchantGuard() && source.getEntity() instanceof LivingEntity attacker
                 && !(attacker instanceof OgreGrunt)) {
             defendMerchantFrom(attacker);

@@ -6,7 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Anger is the whole Tribe's mood. $(bold)Favor$() is yours alone: how well the Tribe thinks of you.$(br2)Hurting ogres costs it. Tribute and honest work earn it. Enough, and the Tribe is $(bold)appeased$(): its ogres stand aside, and the King will trade."
+      "text": "Anger is the whole Tribe's mood. $(bold)Favor$() is yours alone: how well the Tribe thinks of you.$(br2)Hurting ogres costs it: a stray blow a little, every kill 5 favor, and a second kill within five minutes turns the whole Tribe against you. Tribute and honest work earn it. Enough, and the Tribe is $(bold)appeased$(): its ogres stand aside, and the King will trade."
     },
     {
       "type": "patchouli:spotlight",
