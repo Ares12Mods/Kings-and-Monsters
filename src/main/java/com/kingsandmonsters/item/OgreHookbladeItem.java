@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.ClientConfig;
 
@@ -17,23 +18,23 @@ import java.util.List;
 
 public class OgreHookbladeItem extends SwordItem {
     public OgreHookbladeItem(Tier tier, Properties properties) {
-        super(tier, properties);
+        super(tier, 3, -2.4F, properties);
     }
 
     @Override
-    public boolean supportsEnchantment(ItemStack stack, Holder<Enchantment> enchantment) {
-        return enchantment.is(Enchantments.UNBREAKING)
-                || enchantment.is(Enchantments.MENDING)
-                || enchantment.is(Enchantments.SHARPNESS)
-                || enchantment.is(Enchantments.BANE_OF_ARTHROPODS)
-                || enchantment.is(Enchantments.SMITE)
-                || enchantment.is(Enchantments.FIRE_ASPECT)
-                || enchantment.is(Enchantments.SWEEPING_EDGE)
-                || enchantment.is(ModEnchantments.TYRANT);
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        return enchantment == Enchantments.UNBREAKING
+                || enchantment == Enchantments.MENDING
+                || enchantment == Enchantments.SHARPNESS
+                || enchantment == Enchantments.BANE_OF_ARTHROPODS
+                || enchantment == Enchantments.SMITE
+                || enchantment == Enchantments.FIRE_ASPECT
+                || enchantment == Enchantments.SWEEPING_EDGE
+                || enchantment == ModEnchantments.TYRANT.get();
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_hookblade.hook")

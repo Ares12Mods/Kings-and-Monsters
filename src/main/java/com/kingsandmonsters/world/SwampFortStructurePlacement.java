@@ -3,7 +3,6 @@ package com.kingsandmonsters.world;
 import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.Vec3i;
@@ -23,7 +22,7 @@ import java.util.Optional;
  * is permitted to reject the Fort.
  */
 public final class SwampFortStructurePlacement extends RandomSpreadStructurePlacement {
-    public static final MapCodec<SwampFortStructurePlacement> CODEC =
+    public static final Codec<SwampFortStructurePlacement> CODEC =
             RecordCodecBuilder.<SwampFortStructurePlacement>mapCodec(instance -> instance.group(
                             Codec.INT.fieldOf("salt").forGetter(SwampFortStructurePlacement::ownSalt),
                             Codec.intRange(1, 4096).fieldOf("spacing").forGetter(RandomSpreadStructurePlacement::spacing),
@@ -31,9 +30,9 @@ public final class SwampFortStructurePlacement extends RandomSpreadStructurePlac
                             Codec.intRange(0, 4096).fieldOf("spawn_exclusion_chunks").forGetter(SwampFortStructurePlacement::spawnExclusionChunks),
                             Codec.intRange(0, 4096).fieldOf("minimum_spacing_chunks").forGetter(SwampFortStructurePlacement::minimumSpacingChunks)
                     ).apply(instance, SwampFortStructurePlacement::new))
-                    .validate(value -> value.spacing() <= value.separation()
+                    .flatXmap(value -> value.spacing() <= value.separation()
                             ? DataResult.error(() -> "Spacing has to be larger than separation")
-                            : DataResult.success(value));
+                            : DataResult.success(value), DataResult::success).codec();
 
     private final int spawnExclusionChunks;
     private final int minimumSpacingChunks;

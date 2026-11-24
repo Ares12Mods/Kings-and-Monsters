@@ -3,7 +3,9 @@ package com.kingsandmonsters.loot;
 import com.kingsandmonsters.ModLootFunctions;
 import com.kingsandmonsters.tribute.TributeManager;
 import com.kingsandmonsters.world.FortMapFactory;
-import com.mojang.serialization.MapCodec;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -14,10 +16,20 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 /** Converts a blank map to a fort map without invoking Minecraft's structure locator. */
 public final class CachedFortMapFunction implements LootItemFunction {
-    public static final MapCodec<CachedFortMapFunction> CODEC = MapCodec.unit(CachedFortMapFunction::new);
+    /** The function has no settings, so its JSON form is empty. */
+    public static final class Serializer implements net.minecraft.world.level.storage.loot.Serializer<CachedFortMapFunction> {
+        @Override
+        public void serialize(JsonObject json, CachedFortMapFunction function, JsonSerializationContext context) {
+        }
+
+        @Override
+        public CachedFortMapFunction deserialize(JsonObject json, JsonDeserializationContext context) {
+            return new CachedFortMapFunction();
+        }
+    }
 
     @Override
-    public LootItemFunctionType<? extends LootItemFunction> getType() {
+    public LootItemFunctionType getType() {
         return ModLootFunctions.CACHED_FORT_MAP.get();
     }
 

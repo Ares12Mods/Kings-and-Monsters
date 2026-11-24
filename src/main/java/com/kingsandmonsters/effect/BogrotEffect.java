@@ -16,27 +16,21 @@ public final class BogrotEffect extends MobEffect {
     public BogrotEffect() {
         super(MobEffectCategory.HARMFUL, 0x536B2F);
         addAttributeModifier(Attributes.MOVEMENT_SPEED, id("bogrot_movement"), -0.10,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                AttributeModifier.Operation.MULTIPLY_TOTAL);
         addAttributeModifier(Attributes.ATTACK_SPEED, id("bogrot_attack"), -0.10,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
     @Override
-    public ParticleOptions createParticleOptions(MobEffectInstance effect) {
-        // Commands and other mods can force the built-in effect particles on; keep them on-theme.
-        return ModParticles.BOGROT_MOTE.get();
-    }
-
-    @Override
-    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
+    public boolean isDurationEffectTick(int duration, int amplifier) {
         // Damage timing lives in applyEffectTick; keying it off remaining duration made the first
         // hit land at inconsistent times.
         return true;
     }
 
     @Override
-    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
-        if (entity.level().isClientSide()) return true;
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
+        if (entity.level().isClientSide()) return;
         long now = entity.level().getGameTime();
         long next = entity.getPersistentData().getLong(NEXT_DAMAGE_TICK);
         if (next == 0L) {
@@ -47,17 +41,16 @@ public final class BogrotEffect extends MobEffect {
             entity.getPersistentData().putLong(NEXT_DAMAGE_TICK,
                     now + BogrotMechanics.damageIntervalTicks(amplifier));
         }
-        return true;
     }
 
     @Override
-    public void onEffectStarted(LivingEntity entity, int amplifier) {
-        super.onEffectStarted(entity, amplifier);
+    public void addAttributeModifiers(LivingEntity entity, net.minecraft.world.entity.ai.attributes.AttributeMap attributes, int amplifier) {
+        super.addAttributeModifiers(entity, attributes, amplifier);
         entity.getPersistentData().putLong(NEXT_DAMAGE_TICK,
                 entity.level().getGameTime() + BogrotMechanics.damageIntervalTicks(amplifier));
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+    private static String id(String path) {
+        return com.kingsandmonsters.item.ItemAttributes.uuid(path).toString();
     }
 }

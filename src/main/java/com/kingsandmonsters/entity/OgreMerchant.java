@@ -30,7 +30,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
-import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.level.Level;
@@ -38,8 +37,8 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.network.syncher.*;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
@@ -87,16 +86,24 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     private final CanonicalOneShotState visualOneShot = new CanonicalOneShotState();
     public OgreMerchant(EntityType<? extends OgreMerchant> type, Level level) { super(type, level); }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return AbstractVillager.createMobAttributes().add(Attributes.MAX_HEALTH, 30.0)
                 .add(Attributes.MOVEMENT_SPEED, BASE_MOVEMENT_SPEED)
-                .add(Attributes.FOLLOW_RANGE, 24.0)
-                .add(Attributes.STEP_HEIGHT, 1.0);
+                .add(Attributes.FOLLOW_RANGE, 24.0);
     }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder); builder.define(DATA_RUNNING, false); builder.define(DATA_WALKING, false);
-        builder.define(DATA_TRADE_UNTIL, 0L);
+    @Override protected void defineSynchedData() {
+        super.defineSynchedData(); this.entityData.define(DATA_RUNNING, false); this.entityData.define(DATA_WALKING, false);
+        this.entityData.define(DATA_TRADE_UNTIL, 0L);
     }
 
     @Override protected void registerGoals() {
@@ -202,16 +209,16 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     private MerchantOffer createBribeOffer() {
         ItemStack receipt = new ItemStack(Items.WRITABLE_BOOK);
-        receipt.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, Component.literal(BRIBE_RECEIPT_NAME));
-        receipt.set(net.minecraft.core.component.DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(List.of(
+        receipt.setHoverName(Component.literal(BRIBE_RECEIPT_NAME));
+        com.kingsandmonsters.item.ItemUtil.setLore(receipt, List.of(
                 Component.translatable("tooltip.kingsandmonsters.ogre_truce.mechanic").withStyle(net.minecraft.ChatFormatting.DARK_GRAY),
                 Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_1").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.ITALIC),
-                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_2").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.ITALIC))));
+                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_2").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.ITALIC)));
         return singleCost(ModItems.GOLDEN_OGRE_TOOTH.get(), 1, receipt, 3);
     }
 
     private static MerchantOffer singleCost(net.minecraft.world.level.ItemLike cost, int amount, ItemStack result, int uses) {
-        return new MerchantOffer(new ItemCost(cost.asItem(), amount), result, uses, 1, 0.05F);
+        return new MerchantOffer(new ItemStack(cost.asItem(), amount), result, uses, 1, 0.05F);
     }
 
     /** Gold price as a random nugget count in [minNuggets, maxNuggets], rolled per offer (max 64 = one stack). */
@@ -222,8 +229,8 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     private static MerchantOffer doubleCost(net.minecraft.world.level.ItemLike first, int firstAmount,
             net.minecraft.world.level.ItemLike second, int secondAmount, ItemStack result) {
-        return new MerchantOffer(new ItemCost(first.asItem(), firstAmount),
-                java.util.Optional.of(new ItemCost(second.asItem(), secondAmount)), result, 1, 1, 0.05F);
+        return new MerchantOffer(new ItemStack(first.asItem(), firstAmount),
+                new ItemStack(second.asItem(), secondAmount), result, 1, 1, 0.05F);
     }
 
     @Override protected void rewardTradeXp(MerchantOffer offer) { }
@@ -405,8 +412,8 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
     }
 
     @Nullable @Override public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-            MobSpawnType reason, @Nullable SpawnGroupData data) {
-        SpawnGroupData result = super.finalizeSpawn(level, difficulty, reason, data);
+            MobSpawnType reason, @Nullable SpawnGroupData data, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        SpawnGroupData result = super.finalizeSpawn(level, difficulty, reason, data, spawnTag);
         if (!level().isClientSide()) {
             getOffers();
             offersInitialized = true;

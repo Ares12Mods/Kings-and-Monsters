@@ -1,6 +1,6 @@
 package com.kingsandmonsters.entity;
 
-import net.neoforged.neoforge.event.entity.living.LivingShieldBlockEvent;
+import net.minecraftforge.event.entity.living.ShieldBlockEvent;
 
 public final class OgreBruteCombatEvents {
 
@@ -10,14 +10,14 @@ public final class OgreBruteCombatEvents {
 
     private OgreBruteCombatEvents() {}
 
-    public static void onShieldBlock(LivingShieldBlockEvent event) {
+    public static void onShieldBlock(ShieldBlockEvent event) {
         if (!(event.getDamageSource().getEntity() instanceof OgreBrute brute)) {
             return;
         }
 
         if (brute.isTemperTantrumActive()) {
             // Temper tantrum bypasses shields entirely — full damage and knockback go through.
-            event.setBlocked(false);
+            event.setCanceled(true);
             return;
         }
 

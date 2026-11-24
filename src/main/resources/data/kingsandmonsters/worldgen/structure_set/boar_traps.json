@@ -1,22 +1,59 @@
 {
   "structures": [
-    { "structure": "kingsandmonsters:boar_trap", "weight": 1 }
+    {
+      "structure": "kingsandmonsters:boar_trap",
+      "weight": 1
+    }
   ],
   "placement": {
     "type": "kingsandmonsters:trapper_paired_spread",
     "salt": 1947362811,
-    "locate_offset": [8, 0, 8],
-    "partner": { "other_set": "kingsandmonsters:trapper_hut", "chunk_count": 1 },
+    "locate_offset": [
+      8,
+      0,
+      8
+    ],
+    "partner": {
+      "other_set": "kingsandmonsters:trapper_hut",
+      "chunk_count": 1
+    },
     "exclusion_zones": [
-      { "other_set": "minecraft:villages", "chunk_count": 3 },
-      { "other_set": "minecraft:woodland_mansions", "chunk_count": 3 },
-      { "other_set": "minecraft:pillager_outposts", "chunk_count": 3 },
-      { "other_set": "kingsandmonsters:ogre_outpost_plains", "chunk_count": 2 },
-      { "other_set": "kingsandmonsters:ogre_outpost_plains_fort_region", "chunk_count": 2 },
-      { "other_set": "kingsandmonsters:ogre_supply_camp", "chunk_count": 2 },
-      { "other_set": "kingsandmonsters:ogre_moving_camp", "chunk_count": 2 },
-      { "other_set": "kingsandmonsters:ogre_abandoned_camp", "chunk_count": 2 },
-      { "other_set": "kingsandmonsters:mud_wallow", "chunk_count": 2 }
+      {
+        "other_set": "minecraft:villages",
+        "chunk_count": 3
+      },
+      {
+        "other_set": "minecraft:woodland_mansions",
+        "chunk_count": 3
+      },
+      {
+        "other_set": "minecraft:pillager_outposts",
+        "chunk_count": 3
+      },
+      {
+        "other_set": "kingsandmonsters:ogre_outpost_plains",
+        "chunk_count": 2
+      },
+      {
+        "other_set": "kingsandmonsters:ogre_outpost_plains_fort_region",
+        "chunk_count": 2
+      },
+      {
+        "other_set": "kingsandmonsters:ogre_supply_camp",
+        "chunk_count": 2
+      },
+      {
+        "other_set": "kingsandmonsters:ogre_moving_camp",
+        "chunk_count": 2
+      },
+      {
+        "other_set": "kingsandmonsters:ogre_abandoned_camp",
+        "chunk_count": 2
+      },
+      {
+        "other_set": "kingsandmonsters:mud_wallow",
+        "chunk_count": 2
+      }
     ]
   }
 }

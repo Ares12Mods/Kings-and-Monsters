@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.Arrays;
 import java.util.ArrayDeque;
@@ -309,7 +309,7 @@ public final class OutpostPopulationManager {
             return false;
         }
 
-        AABB spawnBox = entityType.getSpawnAABB(
+        AABB spawnBox = entityType.getAABB(
                 pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
         return level.noCollision(spawnBox);
     }

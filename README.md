@@ -1,7 +1,7 @@
 Kings and Monsters
 ==================
 
-Kings and Monsters is a NeoForge 1.21.1 adventure and progression mod built around
+Kings and Monsters is a Forge 1.20.1 adventure and progression mod built around
 organized monster factions. The Ogre Tribe is the first complete one: animated ogres,
 guarded outposts and a royal fort, a shared anger system, personal favor and quests,
 and an Ogre King to challenge. Version 2.0 adds a swamp, tameable boars and much more.
@@ -10,13 +10,12 @@ Current State
 -------------
 
 - Kings & Monsters version: 2.0.2
-- Minecraft: 1.21.1
-- NeoForge: 21.1.230
-- Java: 21
+- Minecraft: 1.20.1
+- Forge: 47.4.0
+- Java: 17
 - Animation library: GeckoLib 4.8.4
 - Required dependencies: GeckoLib, Curios
-- Optional integrations: Better Combat, JEI, Jade, AppleSkin, Patchouli, Boss Checklist,
-  Iron's Spells 'n Spellbooks, Spell Power (RPG Series) and Wildscapes
+- Optional integrations: Better Combat, JEI, Jade and Patchouli
 
 Version 2.0 Update
 ------------------
@@ -84,7 +83,7 @@ path nodes, and there is a lot of new content around them. The full list is in
 Building
 --------
 
-You need a JDK 21. Build the mod with:
+You need a JDK 17 or newer. Build the mod with:
 
 ```powershell
 .\gradlew.bat build
@@ -92,15 +91,6 @@ You need a JDK 21. Build the mod with:
 
 On Linux or macOS use `./gradlew build`. The jar ends up in `build/libs`. Other useful tasks are
 `runClient`, `runServer` and `runData`.
-
-Structures
-----------
-
-The development client also loads Forgematica, MaFgLib and JourneyMap for editing and checking
-structures. They are not bundled into the mod and are not required to play. `runClient` copies the
-structure templates to `run/schematics/kingsandmonsters`. After editing a template in Forgematica,
-copy it back with `.\gradlew.bat importStructureSchematics`. Only the finished `.nbt` templates are
-packaged.
 
 Project layout
 --------------

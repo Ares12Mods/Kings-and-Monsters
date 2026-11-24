@@ -1,6 +1,6 @@
 package com.kingsandmonsters.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelReader;
@@ -19,7 +19,7 @@ import java.util.Set;
  * cannot move the guaranteed Iron Maw assignment onto another chest.
  */
 public final class FortChestLootProcessor extends StructureProcessor {
-    public static final MapCodec<FortChestLootProcessor> CODEC = MapCodec.unit(FortChestLootProcessor::new);
+    public static final Codec<FortChestLootProcessor> CODEC = Codec.unit(FortChestLootProcessor::new);
     private static final BlockPos KING_CHEST = new BlockPos(50, 4, 58);
     private static final Set<BlockPos> KING_HUT_CHESTS = Set.of(
             new BlockPos(46, 4, 45),

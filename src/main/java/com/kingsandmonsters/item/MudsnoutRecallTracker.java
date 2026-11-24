@@ -8,7 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.HashMap;
 import java.util.Comparator;

@@ -6,7 +6,6 @@ import com.kingsandmonsters.client.armor.CandleHelmetRenderer;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -18,15 +17,14 @@ import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
@@ -47,17 +45,15 @@ public class CandleHelmetItem extends ArmorItem implements GeoItem {
 
     /** The wick is lit only if flint and steel was used on a placed helmet; it stays lit in the inventory. */
     public static boolean isLit(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data != null && data.getUnsafe().getBoolean(LIT_TAG);
+        return stack.hasTag() && stack.getTag().getBoolean(LIT_TAG);
     }
 
     public static void setLit(ItemStack stack, boolean lit) {
         if (lit) {
-            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(LIT_TAG, true));
-        } else if (stack.has(DataComponents.CUSTOM_DATA)) {
-            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.remove(LIT_TAG));
-            CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-            if (data != null && data.isEmpty()) stack.remove(DataComponents.CUSTOM_DATA);
+            stack.getOrCreateTag().putBoolean(LIT_TAG, true);
+        } else if (stack.hasTag()) {
+            stack.getTag().remove(LIT_TAG);
+            if (stack.getTag().isEmpty()) stack.setTag(null);
         }
     }
 
@@ -67,22 +63,19 @@ public class CandleHelmetItem extends ArmorItem implements GeoItem {
         return CandleHelmetBlock.tryPlace(context);
     }
 
-    public CandleHelmetItem(Holder<ArmorMaterial> material, Properties properties) {
+    public CandleHelmetItem(ArmorMaterial material, Properties properties) {
         super(material, Type.HELMET, properties);
     }
 
     /** 11 / 12 / 13 / 14 for Brightwick none / I / II / III. */
     public static int lightLevel(ItemStack stack, HolderLookup.Provider registries) {
-        int brightwick = registries.lookup(Registries.ENCHANTMENT)
-                .flatMap(lookup -> lookup.get(ModEnchantments.BRIGHTWICK))
-                .map(holder -> EnchantmentHelper.getItemEnchantmentLevel((Holder<Enchantment>) holder, stack))
-                .orElse(0);
+        int brightwick = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BRIGHTWICK.get(), stack);
         return BASE_LIGHT_LEVEL + Math.max(0, Math.min(MAX_BRIGHTWICK_LEVEL, brightwick));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.flavor.candle_helmet")
@@ -96,20 +89,16 @@ public class CandleHelmetItem extends ArmorItem implements GeoItem {
     }
 
     @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             private CandleHelmetRenderer renderer;
 
             @Override
-            public <T extends LivingEntity> HumanoidModel<?> getGeoArmorRenderer(
-                    @Nullable T livingEntity,
-                    ItemStack itemStack,
-                    @Nullable EquipmentSlot equipmentSlot,
-                    @Nullable HumanoidModel<T> original
-            ) {
+            public HumanoidModel<?> getHumanoidArmorModel(LivingEntity livingEntity, ItemStack itemStack, EquipmentSlot equipmentSlot, HumanoidModel<?> original) {
                 if (renderer == null) {
                     renderer = new CandleHelmetRenderer();
                 }
+                renderer.prepForRender(livingEntity, itemStack, equipmentSlot, original);
                 return renderer;
             }
         });

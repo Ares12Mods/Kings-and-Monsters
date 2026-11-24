@@ -1,5 +1,6 @@
 package com.kingsandmonsters.tribute;
 
+import net.minecraft.util.Mth;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.api.event.AngerLevelChangedEvent;
 import com.kingsandmonsters.api.tribute.ITributeData;
@@ -12,7 +13,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ public class TributeSavedData extends SavedData {
         this.dimension = dimension;
     }
 
-    public static TributeSavedData load(ResourceKey<Level> dimension, CompoundTag tag, HolderLookup.Provider registries) {
+    public static TributeSavedData load(ResourceKey<Level> dimension, CompoundTag tag) {
         TributeSavedData data = new TributeSavedData(dimension);
         ListTag campsTag = tag.getList("camps", Tag.TAG_COMPOUND);
         int legacyAngerTotal = 0;
@@ -108,7 +109,7 @@ public class TributeSavedData extends SavedData {
         ListTag favorTag = tag.getList("playerFavor", Tag.TAG_COMPOUND);
         for (int i = 0; i < favorTag.size(); i++) {
             CompoundTag entry = favorTag.getCompound(i);
-            int favor = Math.clamp(entry.getInt("favor"), 0, MAX_FAVOR);
+            int favor = Mth.clamp(entry.getInt("favor"), 0, MAX_FAVOR);
             if (entry.hasUUID("player") && favor > 0) {
                 data.playerFavor.put(entry.getUUID("player"), favor);
             }
@@ -150,7 +151,7 @@ public class TributeSavedData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         ListTag campsTag = new ListTag();
 
         for (CampTributeData camp : camps.values()) {
@@ -444,7 +445,7 @@ public class TributeSavedData extends SavedData {
     public boolean addFavor(UUID playerId, int delta) {
         boolean wasAppeased = isAppeased(playerId);
         int oldFavor = getFavor(playerId);
-        int newFavor = (int) Math.clamp((long) oldFavor + delta, 0L, (long) MAX_FAVOR);
+        int newFavor = (int) Mth.clamp((long) oldFavor + delta, 0L, (long) MAX_FAVOR);
         if (newFavor == oldFavor) {
             return false;
         }
@@ -652,7 +653,7 @@ public class TributeSavedData extends SavedData {
 
         factionAngerLevel = newAngerLevel;
         setDirty();
-        NeoForge.EVENT_BUS.post(new AngerLevelChangedEvent(
+        MinecraftForge.EVENT_BUS.post(new AngerLevelChangedEvent(
                 sourceCamp, dimension, oldAngerLevel, newAngerLevel));
     }
 
@@ -698,7 +699,7 @@ public class TributeSavedData extends SavedData {
     }
 
     private int clampAnger(int angerLevel) {
-        return Math.clamp(angerLevel, Math.min(angerFloor(), maxAngerLevel()), maxAngerLevel());
+        return Mth.clamp(angerLevel, Math.min(angerFloor(), maxAngerLevel()), maxAngerLevel());
     }
 
     private final class CampTributeData implements ITributeData {

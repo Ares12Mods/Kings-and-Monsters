@@ -20,7 +20,7 @@ import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
  * This affects looks only; it does not light the surroundings.
  */
 public class CandleHelmetFlameGlowLayer extends GeoRenderLayer<CandleHelmetItem> {
-    private static final ResourceLocation GLOW_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation GLOW_TEXTURE = new ResourceLocation(
             KingsAndMonsters.MODID, "textures/armor/candle_helmet_flame_glow.png");
 
     public CandleHelmetFlameGlowLayer(GeoRenderer<CandleHelmetItem> renderer) {
@@ -33,6 +33,6 @@ public class CandleHelmetFlameGlowLayer extends GeoRenderLayer<CandleHelmetItem>
                               int packedLight, int packedOverlay) {
         if (!"flame".equals(bone.getName())) return;
         VertexConsumer glowBuffer = bufferSource.getBuffer(RenderType.eyes(GLOW_TEXTURE));
-        getRenderer().renderCubesOfBone(poseStack, bone, glowBuffer, LightTexture.FULL_BRIGHT, packedOverlay, 0xFFFFFFFF);
+        getRenderer().renderCubesOfBone(poseStack, bone, glowBuffer, LightTexture.FULL_BRIGHT, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

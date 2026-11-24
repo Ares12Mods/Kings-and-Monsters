@@ -6,7 +6,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.EventHooks;
+import net.minecraftforge.event.ForgeEventFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,7 +56,7 @@ final class OgreGroundBreaker {
         boolean inStructure = level.structureManager().hasAnyStructureAt(pos);
         // Inside a structure even the King only breaks soft blocks.
         float limit = inStructure ? Strength.SOFT.maxHardness() : strength.maxHardness();
-        if (hardness < 0.0F || hardness > limit || !EventHooks.canEntityGrief(level, ogre)) {
+        if (hardness < 0.0F || hardness > limit || !ForgeEventFactory.getMobGriefingEvent(level, ogre)) {
             return false;
         }
         float scaled = inStructure ? chance * strength.structureChanceScale() : chance;

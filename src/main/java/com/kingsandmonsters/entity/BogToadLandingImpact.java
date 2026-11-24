@@ -20,13 +20,13 @@ public final class BogToadLandingImpact {
         BlockState surface = level.getBlockState(source.blockPosition().below());
         if (surface.isAir()) surface = Blocks.DIRT.defaultBlockState();
 
-        BlockParticleOption debris = new BlockParticleOption(ParticleTypes.DUST_PILLAR, surface);
+        BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, surface);
         BlockParticleOption chips = new BlockParticleOption(ParticleTypes.BLOCK, surface);
         level.sendParticles(chips, source.getX(), impactY, source.getZ(), 22,
                 0.40, 0.08, 0.40, 0.11);
         for (int i = 0; i < 26; i++) {
-            double angle = Math.PI * 2.0 * i / 26.0 + source.getRandom().nextDouble() * 0.12;
-            double radius = RADIUS * (0.25 + source.getRandom().nextDouble() * 0.75);
+            double angle = Math.PI * 2.0 * i / 26.0 + level.getRandom().nextDouble() * 0.12;
+            double radius = RADIUS * (0.25 + level.getRandom().nextDouble() * 0.75);
             level.sendParticles(debris,
                     source.getX() + Math.cos(angle) * radius, impactY,
                     source.getZ() + Math.sin(angle) * radius,

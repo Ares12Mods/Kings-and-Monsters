@@ -28,7 +28,7 @@ import java.util.Optional;
  *
  * <h2>Events</h2>
  * All public events are in the {@link com.kingsandmonsters.api.event} package
- * and are fired on {@link net.neoforged.neoforge.common.NeoForge#EVENT_BUS}.
+ * and are fired on {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS}.
  */
 public final class KingsAndMonstersAPI {
 

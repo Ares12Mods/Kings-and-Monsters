@@ -11,8 +11,5 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 public final class HamstrungEffect extends MobEffect {
     public HamstrungEffect() {
         super(MobEffectCategory.HARMFUL, 0x6B4A3A);
-        addAttributeModifier(Attributes.JUMP_STRENGTH,
-                ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "hamstrung_jump_strength"),
-                -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     }
 }

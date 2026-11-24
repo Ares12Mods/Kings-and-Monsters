@@ -11,9 +11,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,14 +30,14 @@ public final class BogIronProgression extends SavedData {
     private BogIronProgression() {
     }
 
-    private static BogIronProgression load(CompoundTag tag, HolderLookup.Provider registries) {
+    private static BogIronProgression load(CompoundTag tag) {
         BogIronProgression data = new BogIronProgression();
         data.unlocked = tag.getBoolean("Unlocked");
         return data;
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         tag.putBoolean("Unlocked", unlocked);
         return tag;
     }
@@ -59,7 +59,7 @@ public final class BogIronProgression extends SavedData {
         data.unlocked = true;
         data.setDirty();
         for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {
-            PacketDistributor.sendToPlayer(recipient, OgreOverlayPayload.major("THE BOG YIELDS", subtitle));
+            ModNetwork.sendToPlayer(recipient, OgreOverlayPayload.major("THE BOG YIELDS", subtitle));
         }
     }
 
@@ -79,7 +79,7 @@ public final class BogIronProgression extends SavedData {
         long last = LAST_DENIAL_MESSAGE.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2);
         if (now - last >= DENIAL_MESSAGE_COOLDOWN) {
             LAST_DENIAL_MESSAGE.put(player.getUUID(), now);
-            PacketDistributor.sendToPlayer(player, OgreOverlayPayload.major(
+            ModNetwork.sendToPlayer(player, OgreOverlayPayload.major(
                     "The bog iron rejects your claim.",
                     "Only the Ogre King can break the mire's ancient oath."));
         }
@@ -95,10 +95,7 @@ public final class BogIronProgression extends SavedData {
         if (overworld == null) {
             throw new IllegalStateException("Bog Iron progression requires an overworld");
         }
-        SavedData.Factory<BogIronProgression> factory = new SavedData.Factory<>(
-                BogIronProgression::new,
-                BogIronProgression::load);
-        return overworld.getDataStorage().computeIfAbsent(factory, FILE_ID);
+        return overworld.getDataStorage().computeIfAbsent(BogIronProgression::load, BogIronProgression::new, FILE_ID);
     }
 
     /** Drops state tied to a world that has closed, so it cannot leak into the next one opened in this session. */

@@ -3,7 +3,6 @@ package com.kingsandmonsters.world;
 import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
@@ -40,7 +39,7 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
      * same way RandomSpreadStructurePlacement's own 4-arg convenience
      * constructor does.
      */
-    public static final MapCodec<FortTerritoryStructurePlacement> CODEC =
+    public static final Codec<FortTerritoryStructurePlacement> CODEC =
             RecordCodecBuilder.<FortTerritoryStructurePlacement>mapCodec(instance -> instance.group(
                             Codec.INT.fieldOf("salt").forGetter(FortTerritoryStructurePlacement::ownSalt),
                             Codec.intRange(1, 4096).fieldOf("spacing")
@@ -61,7 +60,7 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
                             Codec.intRange(1, 2048).fieldOf("max_distance_chunks")
                                     .forGetter(FortTerritoryStructurePlacement::maxDistanceChunks)
                     ).apply(instance, FortTerritoryStructurePlacement::new))
-                    .validate(FortTerritoryStructurePlacement::validate);
+                    .flatXmap(FortTerritoryStructurePlacement::validate, DataResult::success).codec();
 
     private final int ownSalt;
     private final List<StructurePlacement.ExclusionZone> exclusionZones;
@@ -134,17 +133,14 @@ public final class FortTerritoryStructurePlacement extends RandomSpreadStructure
     }
 
     @Override
-    public boolean applyAdditionalChunkRestrictions(int chunkX, int chunkZ, long levelSeed) {
-        return super.applyAdditionalChunkRestrictions(chunkX, chunkZ, levelSeed)
-                && isWithinFortTerritory(chunkX, chunkZ, levelSeed);
-    }
-
-    @Override
-    public boolean applyInteractionsWithOtherStructures(
+    public boolean isStructureChunk(
             ChunkGeneratorStructureState structureState,
             int chunkX,
             int chunkZ) {
-        if (!super.applyInteractionsWithOtherStructures(structureState, chunkX, chunkZ)) {
+        if (!super.isStructureChunk(structureState, chunkX, chunkZ)) {
+            return false;
+        }
+        if (!isWithinFortTerritory(chunkX, chunkZ, structureState.getLevelSeed())) {
             return false;
         }
         if (!WildscapesStructureCompat.isClear(structureState, chunkX, chunkZ)) {

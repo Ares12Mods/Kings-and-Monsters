@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": {
+    "item": "kingsandmonsters:bog_toad_skin"
+  },
+  "result": "kingsandmonsters:boghide"
+}

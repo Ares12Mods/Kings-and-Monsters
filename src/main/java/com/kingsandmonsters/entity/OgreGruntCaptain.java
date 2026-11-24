@@ -34,8 +34,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
-import software.bernie.geckolib.animation.RawAnimation;
+import com.kingsandmonsters.network.ModNetwork;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import org.joml.Vector3f;
 
@@ -118,8 +118,8 @@ public class OgreGruntCaptain extends OgreGrunt {
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 spawn initialization hook.
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, SpawnGroupData spawnData) {
-        SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData);
+                                        MobSpawnType spawnType, SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData, spawnTag);
         // Roll once when the captain enters the world. Equipment serialization preserves the
         // variant on save/load; the existing renderer uses this same hand slot and transform.
         if (getRandom().nextFloat() < BOG_IRON_SWORD_SPAWN_CHANCE) {
@@ -509,7 +509,7 @@ public class OgreGruntCaptain extends OgreGrunt {
 
     private void shake(Vec3 at, float intensity) {
         if (level() instanceof ServerLevel serverLevel) {
-            PacketDistributor.sendToPlayersNear(serverLevel, null, at.x, at.y, at.z, 20.0,
+            ModNetwork.sendToPlayersNear(serverLevel, null, at.x, at.y, at.z, 20.0,
                     new ScreenShakePayload(at.x, at.y, at.z, intensity));
         }
     }

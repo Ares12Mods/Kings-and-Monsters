@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -126,7 +126,7 @@ public final class FortVegetationCleaner {
                 BlockState state = level.getBlockState(neighbor);
                 if (isTreePart(state)) {
                     removable.add(packed);
-                    open.addLast(neighbor);
+                    open.add(neighbor);
                 }
             }
         }

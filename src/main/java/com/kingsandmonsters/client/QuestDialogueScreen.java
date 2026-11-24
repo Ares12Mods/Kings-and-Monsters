@@ -13,7 +13,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 
 /** An errand conversation with the King or a captain. */
 public final class QuestDialogueScreen extends CinematicDialogueScreen {
@@ -58,7 +58,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
 
     @Override
     public void removed() {
-        PacketDistributor.sendToServer(new QuestActionPayload(data.giverId(), QuestManager.END_TALK, -1));
+        ModNetwork.sendToServer(new QuestActionPayload(data.giverId(), QuestManager.END_TALK, -1));
         super.removed();
     }
 
@@ -100,7 +100,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
                 } else {
                     option(Component.translatable("screen.kingsandmonsters.quest.accept"), button -> {
                         lastAction = QuestManager.ACCEPT;
-                        PacketDistributor.sendToServer(new QuestActionPayload(
+                        ModNetwork.sendToServer(new QuestActionPayload(
                                 data.giverId(), QuestManager.ACCEPT, picked));
                     });
                     option(Component.translatable("screen.kingsandmonsters.quest.back"), button -> choose(-1));
@@ -139,7 +139,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
     private void action(String key, int action) {
         option(Component.translatable("screen.kingsandmonsters.quest." + key), button -> {
             lastAction = action;
-            PacketDistributor.sendToServer(new QuestActionPayload(data.giverId(), action, -1));
+            ModNetwork.sendToServer(new QuestActionPayload(data.giverId(), action, -1));
         });
     }
 

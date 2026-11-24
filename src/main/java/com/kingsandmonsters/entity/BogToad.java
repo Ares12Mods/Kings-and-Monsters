@@ -67,18 +67,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathFinder;
-import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.level.pathfinder.AmphibiousNodeEvaluator;
 import net.minecraft.world.level.pathfinder.Node;
-import net.minecraft.world.level.pathfinder.PathfindingContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.fluids.FluidType;
+import net.minecraftforge.fluids.FluidType;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.EnumSet;
@@ -201,13 +201,22 @@ public class BogToad extends Animal implements GeoEntity {
     public BogToad(EntityType<? extends BogToad> type, Level level) {
         super(type, level);
         // Water and shoreline nodes are valid destinations for this amphibious mob.
-        setPathfindingMalus(PathType.WATER, 0.0F);
-        setPathfindingMalus(PathType.WATER_BORDER, 0.0F);
+        setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
+        setPathfindingMalus(BlockPathTypes.WATER_BORDER, 0.0F);
         landMoveControl = new BogToadLandMoveControl(this);
         // Normalize Frog-style swimming against the Bog Toad's lower movement attribute.
         swimMoveControl = new SmoothSwimmingMoveControl(this, 85, 10, 0.50F, 0.1F, true);
         moveControl = isInWater() ? swimMoveControl : landMoveControl;
     }
+
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
 
     public static AttributeSupplier.Builder createAttributes() {
         return Animal.createLivingAttributes()
@@ -215,23 +224,23 @@ public class BogToad extends Animal implements GeoEntity {
                 .add(Attributes.ARMOR, 8.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.20)
                 .add(Attributes.ATTACK_DAMAGE, 7.0)
+                .add(Attributes.ATTACK_KNOCKBACK, 0.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.70)
                 // 1.21.1 PathNavigation needs this during the Mob constructor. 16 was barely past his
                 // bite/leap range, so a chase could drop the target for a tick and let a wander goal
                 // veer him off course.
-                .add(Attributes.FOLLOW_RANGE, 32.0)
-                // A full-block step lets the wide body clear normal shoreline lips.
-                .add(Attributes.STEP_HEIGHT, 1.0);
+                .add(Attributes.FOLLOW_RANGE, 32.0);
+                // A full-block step lets the wide body clear normal shoreline lips.;
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_JUMP_PHASE, GROUND);
-        builder.define(DATA_BITING, false);
-        builder.define(DATA_BITE_START_TICK, 0L);
-        builder.define(DATA_AGGRO, false);
-        builder.define(DATA_BITE_IN_WATER, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_JUMP_PHASE, GROUND);
+        this.entityData.define(DATA_BITING, false);
+        this.entityData.define(DATA_BITE_START_TICK, 0L);
+        this.entityData.define(DATA_AGGRO, false);
+        this.entityData.define(DATA_BITE_IN_WATER, false);
     }
 
     @Override
@@ -769,8 +778,8 @@ public class BogToad extends Animal implements GeoEntity {
         }
 
         @Override
-        public boolean canCutCorner(PathType pathType) {
-            return pathType != PathType.WATER_BORDER && super.canCutCorner(pathType);
+        public boolean canCutCorner(BlockPathTypes pathType) {
+            return pathType != BlockPathTypes.WATER_BORDER && super.canCutCorner(pathType);
         }
 
         @Override
@@ -799,11 +808,11 @@ public class BogToad extends Animal implements GeoEntity {
         }
 
         @Override
-        public PathType getPathType(PathfindingContext context, int x, int y, int z) {
+        public BlockPathTypes getBlockPathType(BlockGetter context, int x, int y, int z) {
             belowPos.set(x, y - 1, z);
             return context.getBlockState(belowPos).is(BlockTags.FROG_PREFER_JUMP_TO)
-                    ? PathType.OPEN
-                    : super.getPathType(context, x, y, z);
+                    ? BlockPathTypes.OPEN
+                    : super.getBlockPathType(context, x, y, z);
         }
     }
 

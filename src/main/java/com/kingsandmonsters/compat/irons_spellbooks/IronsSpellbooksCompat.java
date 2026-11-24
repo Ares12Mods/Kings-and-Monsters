@@ -11,9 +11,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,14 +32,14 @@ public final class IronsSpellbooksCompat {
     private static final ResourceLocation ELDRITCH_RESIST = id("eldritch_magic_resist");
 
     private static Map<EntityType<? extends LivingEntity>, Map<ResourceLocation, Double>> profiles;
-    private static Map<ResourceLocation, Holder<Attribute>> attributes;
+    private static Map<ResourceLocation, Attribute> attributes;
 
     private IronsSpellbooksCompat() {
     }
 
     public static void registerIfPresent() {
         if (ModList.get().isLoaded(MOD_ID)) {
-            NeoForge.EVENT_BUS.addListener(IronsSpellbooksCompat::onEntityJoinLevel);
+            MinecraftForge.EVENT_BUS.addListener(IronsSpellbooksCompat::onEntityJoinLevel);
             KingsAndMonsters.LOGGER.info("Enabling optional Iron's Spells 'n Spellbooks resistance compatibility");
         }
     }
@@ -54,9 +54,9 @@ public final class IronsSpellbooksCompat {
             return;
         }
 
-        Map<ResourceLocation, Holder<Attribute>> resolvedAttributes = attributes();
+        Map<ResourceLocation, Attribute> resolvedAttributes = attributes();
         profile.forEach((attributeId, value) -> {
-            Holder<Attribute> attribute = resolvedAttributes.get(attributeId);
+            Attribute attribute = resolvedAttributes.get(attributeId);
             if (attribute == null) {
                 return;
             }
@@ -105,9 +105,9 @@ public final class IronsSpellbooksCompat {
         return profiles;
     }
 
-    private static Map<ResourceLocation, Holder<Attribute>> attributes() {
+    private static Map<ResourceLocation, Attribute> attributes() {
         if (attributes == null) {
-            Map<ResourceLocation, Holder<Attribute>> resolved = new LinkedHashMap<>();
+            Map<ResourceLocation, Attribute> resolved = new LinkedHashMap<>();
             for (Map<ResourceLocation, Double> profile : profiles().values()) {
                 for (ResourceLocation attributeId : profile.keySet()) {
                     if (resolved.containsKey(attributeId)) {
@@ -117,7 +117,7 @@ public final class IronsSpellbooksCompat {
                     Optional<Holder.Reference<Attribute>> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(
                             ResourceKey.create(Registries.ATTRIBUTE, attributeId));
                     if (attribute.isPresent()) {
-                        resolved.put(attributeId, attribute.get());
+                        resolved.put(attributeId, attribute.get().value());
                     } else {
                         KingsAndMonsters.LOGGER.warn("Iron's Spells attribute {} is unavailable; skipping it", attributeId);
                     }
@@ -137,6 +137,6 @@ public final class IronsSpellbooksCompat {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+        return new ResourceLocation(MOD_ID, path);
     }
 }

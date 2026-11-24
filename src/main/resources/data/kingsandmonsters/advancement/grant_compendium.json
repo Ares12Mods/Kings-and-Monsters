@@ -1,8 +1,0 @@
-{
-  "neoforge:conditions": [{ "type": "neoforge:mod_loaded", "modid": "patchouli" }],
-  "criteria": {
-    "first_tick": {
-      "trigger": "minecraft:impossible"
-    }
-  }
-}

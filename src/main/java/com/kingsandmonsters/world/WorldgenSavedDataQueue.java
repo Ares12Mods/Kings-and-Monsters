@@ -96,7 +96,7 @@ public final class WorldgenSavedDataQueue {
         List<BlockPos> immutablePositions = spawnPositions.stream().map(BlockPos::immutable).toList();
         level.getServer().execute(() -> {
             long site = origin.asLong();
-            BlockPos center = immutablePositions.getFirst();
+            BlockPos center = immutablePositions.get(0);
             boolean alreadySpawned = !level.getEntitiesOfClass(MudsnoutBoar.class,
                     new AABB(center).inflate(16, 8, 16),
                     boar -> boar.getPersistentData().getLong(TRAPPER_PEN_KEY) == site).isEmpty();
@@ -114,7 +114,7 @@ public final class WorldgenSavedDataQueue {
                 }
                 boar.moveTo(position.getX() + 0.5, position.getY(), position.getZ() + 0.5,
                         level.random.nextFloat() * 360.0F, 0.0F);
-                boar.finalizeSpawn(level, level.getCurrentDifficultyAt(position), MobSpawnType.STRUCTURE, null);
+                boar.finalizeSpawn(level, level.getCurrentDifficultyAt(position), MobSpawnType.STRUCTURE, null, null);
                 boar.setBaby(index >= adults);
                 boar.setPersistenceRequired();
                 boar.restrictTo(center, 8);

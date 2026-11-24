@@ -47,7 +47,7 @@ public final class FortMapDeliveryService {
         if (!(blockEntity instanceof RandomizableContainerBlockEntity chest)) {
             return;
         }
-        if (chest.getLootTable() != null) {
+        if (chest.lootTable != null) {
             // Never opened yet — the ordinary loot-function path will deliver the map correctly
             // the first time a player opens it, now that the target is resolved.
             return;

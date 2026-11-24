@@ -1,14 +1,11 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.entity.MudsnoutBoar;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * The jump key (space) while riding a boar: pressed starts the charge's wind-up, and released launches
@@ -16,8 +13,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
  */
 public record BoarChargePayload(boolean pressed) implements CustomPacketPayload {
     public static final Type<BoarChargePayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "boar_charge"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, BoarChargePayload> STREAM_CODEC =
+            new ResourceLocation(KingsAndMonsters.MODID, "boar_charge"));
+    public static final StreamCodec<FriendlyByteBuf, BoarChargePayload> STREAM_CODEC =
             StreamCodec.composite(ByteBufCodecs.BOOL, BoarChargePayload::pressed, BoarChargePayload::new);
 
     @Override

@@ -1,15 +1,12 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.BogrotClientSync;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /**
  * Vanilla only sends mob-effect packets to the afflicted player (and riders), so other clients never
@@ -18,8 +15,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
  */
 public record BogrotSyncPayload(int entityId, int amplifier, int duration) implements CustomPacketPayload {
     public static final Type<BogrotSyncPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bogrot_sync"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, BogrotSyncPayload> STREAM_CODEC = StreamCodec.composite(
+            new ResourceLocation(KingsAndMonsters.MODID, "bogrot_sync"));
+    public static final StreamCodec<FriendlyByteBuf, BogrotSyncPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, BogrotSyncPayload::entityId,
             ByteBufCodecs.VAR_INT, BogrotSyncPayload::amplifier,
             ByteBufCodecs.VAR_INT, BogrotSyncPayload::duration,

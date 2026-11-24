@@ -380,7 +380,7 @@ public final class OutpostTerrainCleaner {
     static boolean isSmallVegetation(BlockState state) {
         return state.is(BlockTags.FLOWERS)
                 || state.is(BlockTags.SAPLINGS)
-                || state.is(Blocks.SHORT_GRASS)
+                || state.is(Blocks.GRASS)
                 || state.is(Blocks.TALL_GRASS)
                 || state.is(Blocks.LARGE_FERN)
                 || state.is(Blocks.FERN)

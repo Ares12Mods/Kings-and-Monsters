@@ -15,7 +15,7 @@ public final class SkinningKnifeItem extends SwordItem {
     private static final int HAMSTRING_TICKS = 3 * 20;
 
     public SkinningKnifeItem(Tier tier, Properties properties) {
-        super(tier, properties);
+        super(tier, 3, -2.4F, properties);
     }
 
     @Override
@@ -33,7 +33,7 @@ public final class SkinningKnifeItem extends SwordItem {
         long gameTime = target.level().getGameTime();
         if (gameTime >= target.getPersistentData().getLong(HAMSTRING_COOLDOWN_TAG)) {
             target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, HAMSTRING_TICKS, 1), attacker);
-            target.addEffect(new MobEffectInstance(ModMobEffects.HAMSTRUNG, HAMSTRING_TICKS, 0, false, false, true), attacker);
+            target.addEffect(new MobEffectInstance(ModMobEffects.HAMSTRUNG.get(), HAMSTRING_TICKS, 0, false, false, true), attacker);
             CombatEffects.applyBleeding(target, BleedingEffect.Severity.NORMAL, attacker);
             target.getPersistentData().putLong(HAMSTRING_COOLDOWN_TAG, gameTime + 4 * 20);
         }

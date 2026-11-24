@@ -1,6 +1,7 @@
 package com.kingsandmonsters.entity;
 
 import com.kingsandmonsters.Config;
+import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.tribute.TributeManager;
 import com.kingsandmonsters.tribute.TributeSavedData;
@@ -19,7 +20,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -48,18 +48,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.BossEvent;
-import net.minecraft.world.level.block.TrialSpawnerBlock;
-import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -596,6 +594,10 @@ public class OgreLord extends OgreGrunt {
             BossEvent.BossBarColor.PURPLE,
             BossEvent.BossBarOverlay.PROGRESS);
     private int completedRoyalTrialsMask;
+    /** Leaders of each royal trial (Mage, Brute, Grunt Captain) beaten so far; a trial is won at its target. */
+    private final int[] royalTrialKills = new int[ROYAL_TRIAL_COUNT];
+    private static final int[] ROYAL_TRIAL_KILL_TARGETS = {5, 5, 4};
+    private static final String ROYAL_TRIAL_KILLS_TAG = "KingsAndMonstersRoyalTrialKills";
     private boolean royalDefenceStarted;
     private int wakeUpTicks;
     @Nullable private UUID courtGuestId;
@@ -615,6 +617,15 @@ public class OgreLord extends OgreGrunt {
         xpReward = LORD_XP_REWARD;
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.3F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 400.0)
@@ -624,13 +635,10 @@ public class OgreLord extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 34.0)
                 .add(Attributes.ARMOR, 25.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
-                .add(Attributes.ATTACK_KNOCKBACK, 2.0)
-                .add(Attributes.STEP_HEIGHT, 1.3)
-                .add(Attributes.SAFE_FALL_DISTANCE, 6.0)
+                .add(Attributes.ATTACK_KNOCKBACK, 2.0);
                 // See OgreGrunt#createAttributes — default 0 caps water acceleration at a tiny fixed
                 // baseline regardless of requested speed, which would make applyShallowWaterSpeedFactor's
-                // 50% reduction meaningless since he's already moving slower than that.
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                // 50% reduction meaningless since he's already moving slower than that.;
     }
 
     @Override
@@ -644,16 +652,16 @@ public class OgreLord extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_LORD_ATTACK_ID, 0);
-        builder.define(DATA_LORD_ATTACK_START_TICK, 0L);
-        builder.define(DATA_LORD_PHASE_TWO, false);
-        builder.define(DATA_LORD_TRANSITIONING, false);
-        builder.define(DATA_LORD_CLUB_IN_HAND, false);
-        builder.define(DATA_LORD_DYING, false);
-        builder.define(DATA_LORD_LOCOMOTION, LOCOMOTION_IDLE);
-        builder.define(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_NORMAL);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_LORD_ATTACK_ID, 0);
+        this.entityData.define(DATA_LORD_ATTACK_START_TICK, 0L);
+        this.entityData.define(DATA_LORD_PHASE_TWO, false);
+        this.entityData.define(DATA_LORD_TRANSITIONING, false);
+        this.entityData.define(DATA_LORD_CLUB_IN_HAND, false);
+        this.entityData.define(DATA_LORD_DYING, false);
+        this.entityData.define(DATA_LORD_LOCOMOTION, LOCOMOTION_IDLE);
+        this.entityData.define(DATA_FORT_ENCOUNTER_STATE, FORT_ENCOUNTER_NORMAL);
     }
 
     @Override
@@ -668,6 +676,7 @@ public class OgreLord extends OgreGrunt {
         tag.putLongArray(ROYAL_TRIAL_POSITIONS_TAG,
                 royalTrialPositions.stream().mapToLong(BlockPos::asLong).toArray());
         tag.putInt(COMPLETED_ROYAL_TRIALS_TAG, completedRoyalTrialsMask);
+        tag.putIntArray(ROYAL_TRIAL_KILLS_TAG, royalTrialKills);
         tag.putBoolean(ROYAL_DEFENCE_STARTED_TAG, royalDefenceStarted);
         if (duelistId != null) {
             tag.putUUID(DUELIST_TAG, duelistId);
@@ -749,6 +758,10 @@ public class OgreLord extends OgreGrunt {
             royalTrialPositions.add(BlockPos.of(packedPos));
         }
         completedRoyalTrialsMask = tag.getInt(COMPLETED_ROYAL_TRIALS_TAG);
+        int[] savedKills = tag.getIntArray(ROYAL_TRIAL_KILLS_TAG);
+        for (int i = 0; i < royalTrialKills.length; i++) {
+            royalTrialKills[i] = i < savedKills.length ? savedKills[i] : 0;
+        }
         royalDefenceStarted = tag.getBoolean(ROYAL_DEFENCE_STARTED_TAG);
         duelistId = tag.hasUUID(DUELIST_TAG) ? tag.getUUID(DUELIST_TAG) : null;
         thronePos = tag.contains(THRONE_POS_TAG) ? BlockPos.of(tag.getLong(THRONE_POS_TAG)) : null;
@@ -790,6 +803,7 @@ public class OgreLord extends OgreGrunt {
         royalTrialPositions.clear();
         royalTrialPositions.addAll(trialPositions.stream().limit(ROYAL_TRIAL_COUNT).toList());
         completedRoyalTrialsMask = 0;
+        java.util.Arrays.fill(royalTrialKills, 0);
         royalDefenceStarted = false;
         wakeUpTicks = 0;
         thronePos = blockPosition();
@@ -996,18 +1010,14 @@ public class OgreLord extends OgreGrunt {
                 continue;
             }
             BlockState state = serverLevel.getBlockState(trialPos);
-            if (!(state.getBlock() instanceof TrialSpawnerBlock)) {
+            if (!state.is(net.minecraft.world.level.block.Blocks.SPAWNER)) {
                 continue;
             }
-            TrialSpawnerState trialState = state.getValue(TrialSpawnerBlock.STATE);
-            if (!royalDefenceStarted && playersNearby && trialState == TrialSpawnerState.ACTIVE) {
+            // The defence begins when someone steps close enough to wake a trial spawner.
+            if (!royalDefenceStarted && playersNearby
+                    && serverLevel.getNearestPlayer(trialPos.getX() + 0.5, trialPos.getY() + 0.5,
+                            trialPos.getZ() + 0.5, ROYAL_TRIAL_SPAWNER_WAKE_RANGE, false) != null) {
                 royalDefenceStarted = true;
-            }
-            if (trialState == TrialSpawnerState.WAITING_FOR_REWARD_EJECTION
-                    || trialState == TrialSpawnerState.EJECTING_REWARD
-                    || trialState == TrialSpawnerState.COOLDOWN) {
-                royalDefenceStarted = true;
-                completedRoyalTrialsMask |= bit;
             }
         }
 
@@ -1017,6 +1027,76 @@ public class OgreLord extends OgreGrunt {
                 "Royal Trials " + completed + "/" + ROYAL_TRIAL_COUNT));
         if (completed >= ROYAL_TRIAL_COUNT) {
             beginFortWakeUp();
+        }
+    }
+
+    private static final double ROYAL_TRIAL_SPAWNER_WAKE_RANGE = 3.0;
+
+    /** Called when a royal trial leader dies; wins the trial once enough of them have fallen. */
+    public static void onRoyalTrialLeaderDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event) {
+        LivingEntity dead = event.getEntity();
+        int trial;
+        if (dead instanceof OgreMage mage && mage.isRoyalTrialSquadLeader()) {
+            trial = 0;
+        } else if (dead instanceof OgreBrute brute && brute.isRoyalPatrolSquadLeader()) {
+            trial = 1;
+        } else if (dead instanceof OgreGruntCaptain captain && captain.isRoyalPatrolSquadLeader()) {
+            trial = 2;
+        } else {
+            return;
+        }
+        if (!(dead.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        for (OgreLord lord : serverLevel.getEntitiesOfClass(OgreLord.class,
+                dead.getBoundingBox().inflate(ROYAL_TRIAL_BAR_RANGE * 1.5))) {
+            lord.recordRoyalTrialKill(serverLevel, trial, dead.blockPosition());
+        }
+    }
+
+    private static final String[] ROYAL_TRIAL_REWARD_TABLES = {
+            "spawners/ogre_mage", "spawners/ogre_brute", "spawners/ogre_guard"};
+
+    /** The reward a won trial used to eject: its loot table is dropped where the spawner stood. */
+    private static void dropRoyalTrialReward(ServerLevel serverLevel, int trial, BlockPos at) {
+        net.minecraft.world.level.storage.loot.LootTable table = serverLevel.getServer().getLootData()
+                .getLootTable(new net.minecraft.resources.ResourceLocation(KingsAndMonsters.MODID,
+                        ROYAL_TRIAL_REWARD_TABLES[trial]));
+        net.minecraft.world.level.storage.loot.LootParams params =
+                new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
+                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,
+                                net.minecraft.world.phys.Vec3.atCenterOf(at))
+                        .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+        for (ItemStack stack : table.getRandomItems(params)) {
+            net.minecraft.world.entity.item.ItemEntity drop = new net.minecraft.world.entity.item.ItemEntity(
+                    serverLevel, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, stack);
+            serverLevel.addFreshEntity(drop);
+        }
+    }
+
+    private void recordRoyalTrialKill(ServerLevel serverLevel, int trial, BlockPos deathPos) {
+        int bit = 1 << trial;
+        if ((completedRoyalTrialsMask & bit) != 0 || trial >= royalTrialKills.length) {
+            return;
+        }
+        royalDefenceStarted = true;
+        royalTrialKills[trial]++;
+        if (royalTrialKills[trial] < ROYAL_TRIAL_KILL_TARGETS[trial]) {
+            return;
+        }
+        completedRoyalTrialsMask |= bit;
+        BlockPos nearest = null;
+        for (BlockPos trialPos : royalTrialPositions) {
+            if (serverLevel.getBlockState(trialPos).is(net.minecraft.world.level.block.Blocks.SPAWNER)
+                    && (nearest == null || trialPos.distSqr(deathPos) < nearest.distSqr(deathPos))) {
+                nearest = trialPos;
+            }
+        }
+        if (nearest != null && nearest.distSqr(deathPos) < 24.0 * 24.0) {
+            serverLevel.sendParticles(ParticleTypes.POOF, nearest.getX() + 0.5, nearest.getY() + 0.5,
+                    nearest.getZ() + 0.5, 20, 0.4, 0.4, 0.4, 0.02);
+            serverLevel.removeBlock(nearest, false);
+            dropRoyalTrialReward(serverLevel, trial, nearest);
         }
     }
 
@@ -1039,7 +1119,7 @@ public class OgreLord extends OgreGrunt {
         double rangeSqr = ROYAL_TRIAL_BAR_RANGE * ROYAL_TRIAL_BAR_RANGE;
         for (ServerPlayer player : serverLevel.getPlayers(candidate ->
                 !candidate.isSpectator() && candidate.distanceToSqr(this) <= rangeSqr)) {
-            PacketDistributor.sendToPlayer(player,
+            ModNetwork.sendToPlayer(player,
                     com.kingsandmonsters.network.OgreOverlayPayload.major(
                             "THE OGRE KING AWAKENS", ""));
         }
@@ -1187,7 +1267,7 @@ public class OgreLord extends OgreGrunt {
     private void openDialogue(ServerPlayer player) {
         ServerLevel serverLevel = player.serverLevel();
         com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/audience");
-        PacketDistributor.sendToPlayer(player, new com.kingsandmonsters.network.KingDialoguePayload(
+        ModNetwork.sendToPlayer(player, new com.kingsandmonsters.network.KingDialoguePayload(
                 getId(), TributeManager.getFavor(serverLevel, player.getUUID()), Config.TRIBUTE_APPEASED_FAVOR.get(),
                 Config.TRIBUTE_TRADE_FAVOR.get(), Config.TRIBUTE_DUEL_FAVOR.get(),
                 TributeManager.isAppeased(serverLevel, player.getUUID()),
@@ -1212,7 +1292,7 @@ public class OgreLord extends OgreGrunt {
                 todaysWares().stream().filter(Ware::needed).findFirst().ifPresent(ware ->
                         player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
                                 "message.kingsandmonsters.king_need",
-                                new ItemStack(ware.first().item().value()).getHoverName()), true));
+                                new ItemStack(ware.first().getItem()).getHoverName()), true));
                 trades.setTradingPlayer(player);
                 trades.openTradingScreen(player, getDisplayName(), 1);
             }
@@ -1433,10 +1513,10 @@ public class OgreLord extends OgreGrunt {
     private record DailyStock(long day, int[] used) {}
 
     /** A repeatable ware: what it costs, what it gives, and how many a player may buy per day. */
-    private record Ware(ItemCost first, @Nullable ItemCost second, ItemStack result, int perDay, boolean needed) {}
+    private record Ware(ItemStack first, @Nullable ItemStack second, ItemStack result, int perDay, boolean needed) {}
 
-    private static ItemCost cost(net.minecraft.world.level.ItemLike item, int count) {
-        return new ItemCost(item, count);
+    private static ItemStack cost(net.minecraft.world.level.ItemLike item, int count) {
+        return new ItemStack(item, count);
     }
 
     /**
@@ -1455,7 +1535,7 @@ public class OgreLord extends OgreGrunt {
         offers.add(artifact(ModItems.OGRE_LOINCLOTH.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(ModItems.GOLD_COIN.get(), 15), (bought & 16) != 0));
         offers.add(artifact(ModItems.BRUTE_GAUNTLETS.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(ModItems.GOLD_COIN.get(), 23), (bought & 32) != 0));
         offers.add(artifact(ModItems.OGRE_STOMACH.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 8), cost(Items.NETHERITE_INGOT, 3), (bought & 64) != 0));
-        offers.add(new MerchantOffer(cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), Optional.of(cost(Items.RABBIT, 34)), timberAxe(),
+        offers.add(new MerchantOffer(cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2), cost(Items.RABBIT, 34), timberAxe(),
                 (bought & 128) != 0 ? 1 : 0, 1, 0, 0.0F));
         // Appended rather than inserted so every older one-time purchase keeps its original save bit.
         offers.add(artifact(ModItems.BOGSTEEL_CHESTPLATE.get(), cost(ModItems.GOLDEN_OGRE_TOOTH.get(), 4),
@@ -1464,7 +1544,7 @@ public class OgreLord extends OgreGrunt {
         int[] used = usedToday(buyer, wares.size());
         for (int i = 0; i < wares.size(); i++) {
             Ware ware = wares.get(i);
-            offers.add(new MerchantOffer(ware.first(), Optional.ofNullable(ware.second()), ware.result().copy(),
+            offers.add(new MerchantOffer(ware.first(), (ware.second() == null ? ItemStack.EMPTY : ware.second()), ware.result().copy(),
                     used[i], ware.perDay(), 0, 0.0F));
         }
         return offers;
@@ -1473,10 +1553,8 @@ public class OgreLord extends OgreGrunt {
     /** A bog iron axe that already carries the Timber enchantment, which only the King can give. */
     private ItemStack timberAxe() {
         ItemStack axe = new ItemStack(ModItems.BOG_IRON_AXE.get());
-        axe.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
-                Component.literal("Stumpsplitter").withStyle(style -> style.withItalic(false)));
-        axe.enchant(level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
-                .getOrThrow(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER), 1);
+        axe.setHoverName(Component.literal("Stumpsplitter").withStyle(style -> style.withItalic(false)));
+        axe.enchant(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER.get(), 1);
         return axe;
     }
 
@@ -1552,8 +1630,8 @@ public class OgreLord extends OgreGrunt {
         }
     }
 
-    private static MerchantOffer artifact(Item result, ItemCost first, @Nullable ItemCost second, boolean soldOut) {
-        return new MerchantOffer(first, Optional.ofNullable(second), new ItemStack(result), soldOut ? 1 : 0, 1, 0, 0.0F);
+    private static MerchantOffer artifact(Item result, ItemStack first, @Nullable ItemStack second, boolean soldOut) {
+        return new MerchantOffer(first, (second == null ? ItemStack.EMPTY : second), result.getDefaultInstance(), soldOut ? 1 : 0, 1, 0, 0.0F);
     }
 
     /**
@@ -1651,7 +1729,7 @@ public class OgreLord extends OgreGrunt {
         if (royalDefenceStarted
                 && isRoyalDefenceInProgress()
                 && royalDefenceIntroducedPlayers.add(player.getUUID())) {
-            PacketDistributor.sendToPlayer(player,
+            ModNetwork.sendToPlayer(player,
                     com.kingsandmonsters.network.OgreOverlayPayload.major("ROYAL TRIALS", ""));
         }
     }
@@ -2132,7 +2210,7 @@ public class OgreLord extends OgreGrunt {
         float shift = impactPitchShift();
         float volume = impactVolumeScale();
         level().playSound(null, impact.x, impact.y, impact.z,
-                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
+                SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
         playSlamLayers(impact, 1.6F, shift);
         scheduleSlamRumble(impact, 1.5F);
         destroyNearbyBlocks(impact, blocksDestroyed);
@@ -2145,7 +2223,7 @@ public class OgreLord extends OgreGrunt {
         spawnDenseDustCloud(serverLevel, impact, radius);
         // The ring of cloud at the slam's full reach, as a boss's area attack should show.
         StaticShockwaveParticles.spawn(serverLevel, impact, radius);
-        PacketDistributor.sendToPlayersNear(
+        ModNetwork.sendToPlayersNear(
                 serverLevel, null, impact.x, impact.y, impact.z,
                 Math.max(24.0, radius * 4.0),
                 new ScreenShakePayload(impact.x, impact.y, impact.z, shake));
@@ -2336,7 +2414,7 @@ public class OgreLord extends OgreGrunt {
         float shift = impactPitchShift();
         float volume = impactVolumeScale();
         Vec3 impact = getImpactCenter(0.4, rightOffset);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.3F * volume, 0.55F + shift);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.3F * volume, 0.55F + shift);
         playSlamLayers(impact, 1.0F, shift);
         destroyNearbyBlocks(impact, DOUBLE_STOMP_BLOCKS_DESTROYED);
     }
@@ -2345,7 +2423,7 @@ public class OgreLord extends OgreGrunt {
         float shift = impactPitchShift();
         float volume = impactVolumeScale();
         Vec3 impact = getImpactCenter(1.6, 0.0);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.6F * volume, 0.45F + shift);
         playSlamLayers(impact, 1.5F, shift);
         scheduleSlamRumble(impact, 1.4F);
         destroyNearbyBlocks(impact, DOUBLE_OVERHEAD_SLAM_BLOCKS_DESTROYED);
@@ -2355,7 +2433,7 @@ public class OgreLord extends OgreGrunt {
     private void playRegularSlamImpact(Vec3 impact) {
         float shift = impactPitchShift();
         float volume = impactVolumeScale();
-        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(),
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 1.2F * volume, 0.6F + shift);
         playSlamLayers(impact, 1.1F, shift);
         destroyNearbyBlocks(impact, REGULAR_ATTACK_BLOCKS_DESTROYED);
@@ -2364,14 +2442,14 @@ public class OgreLord extends OgreGrunt {
     private void playSingleLegStompImpactSound() {
         float shift = impactPitchShift();
         float volume = impactVolumeScale();
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.1F * volume, 0.6F + shift);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.1F * volume, 0.6F + shift);
         playSlamLayers(position(), 1.0F, shift);
     }
 
     /** A low boom that trails the hit by a few ticks, like the slam rolling away across the ground. */
     private void scheduleSlamRumble(Vec3 at, float power) {
         delayedSounds.add(new DelayedSound(7 + getRandom().nextInt(3), () ->
-                level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(),
+                level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE,
                         SoundSource.HOSTILE, 0.8F * power, 0.35F)));
     }
 
@@ -2554,7 +2632,7 @@ public class OgreLord extends OgreGrunt {
 
     private void sendContinuousRoarScreenShake() {
         if (level() instanceof ServerLevel serverLevel) {
-            PacketDistributor.sendToPlayersNear(
+            ModNetwork.sendToPlayersNear(
                     serverLevel, null, getX(), getY(), getZ(), ROAR_SCREEN_SHAKE_RANGE,
                     new ScreenShakePayload(getX(), getY(), getZ(), ROAR_SCREEN_SHAKE_INTENSITY,
                             ROAR_SCREEN_SHAKE_ACTIVE_TICKS, ROAR_SCREEN_SHAKE_FREQUENCY_MULTIPLIER));
@@ -2625,7 +2703,7 @@ public class OgreLord extends OgreGrunt {
         double y = getY() + 0.15;
 
         for (int point = 0; point < ringPoints; point++) {
-            double angle = Math.TAU * point / ringPoints;
+            double angle = (Math.PI * 2.0) * point / ringPoints;
             double x = getX() + Math.cos(angle) * radius;
             double z = getZ() + Math.sin(angle) * radius;
             serverLevel.sendParticles(ParticleTypes.CLOUD,
@@ -2894,7 +2972,7 @@ public class OgreLord extends OgreGrunt {
 
     private double getSummonSpawnAngle(int index, int formationSize) {
         return Math.toRadians(summonLockedYaw) + Math.PI / 2.0
-                + Math.TAU * index / formationSize;
+                + (Math.PI * 2.0) * index / formationSize;
     }
 
     private enum SummonFormation { GUARDS, CAPTAIN, MAGE, VOLLEY, BRUTE }
@@ -3407,7 +3485,7 @@ public class OgreLord extends OgreGrunt {
         plowReach = 4.0 + getRandom().nextDouble() * 3.0;
         plowDropChance = getRandom().nextFloat() * 0.3F;
         playLordHuff(1.3F);
-        serverLevel.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(),
+        serverLevel.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 0.8F, 0.55F + getRandom().nextFloat() * 0.2F);
     }
 
@@ -3547,7 +3625,7 @@ public class OgreLord extends OgreGrunt {
                 1.125F, 0.44F, 1.0F, STOMP_WAVE_VERTICAL_HIT_RANGE, false, GroundRippleKind.KING_STOMP_WAVE));
         if (level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(ParticleTypes.POOF, x, floorY + 0.1, z, 5, 0.6, 0.1, 0.6, 0.02);
-            serverLevel.playSound(null, x, floorY, z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE,
+            serverLevel.playSound(null, x, floorY, z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE,
                     0.45F, 0.75F + pulse * 0.04F);
             // The ground itself cracking up under each pulse, in whatever it is made of.
             BlockPos below = BlockPos.containing(x, floorY - 0.5, z);

@@ -25,8 +25,8 @@ import top.theillusivec4.curios.api.client.ICurioRenderer;
 
 public class OgreMerchantBackpackRenderer implements ICurioRenderer {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_merchant_backpack"), "main");
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            new ResourceLocation(KingsAndMonsters.MODID, "ogre_merchant_backpack"), "main");
+    private static final ResourceLocation TEXTURE = new ResourceLocation(
             KingsAndMonsters.MODID, "textures/item/backpack_texture.png");
     private final ModelPart backpack;
     private final ModelPart bagTop;

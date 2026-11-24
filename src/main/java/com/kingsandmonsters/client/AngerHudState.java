@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import net.minecraft.util.Mth;
 import com.kingsandmonsters.api.patrol.PatrolTier;
 
 public final class AngerHudState {
@@ -27,7 +28,7 @@ public final class AngerHudState {
 
     public static float advanceFade() {
         float speed = nearOgreSite && enabled ? 0.08F : -0.04F;
-        opacity = Math.clamp(opacity + speed, 0.0F, 1.0F);
+        opacity = Mth.clamp(opacity + speed, 0.0F, 1.0F);
         return opacity;
     }
 

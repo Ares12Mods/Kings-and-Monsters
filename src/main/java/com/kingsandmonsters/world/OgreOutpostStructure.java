@@ -1,7 +1,6 @@
 package com.kingsandmonsters.world;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.core.BlockPos;
@@ -24,11 +23,8 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-import net.minecraft.world.level.levelgen.structure.pools.DimensionPadding;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
-import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasBinding;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
-import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.core.registries.Registries;
 import com.kingsandmonsters.Config;
@@ -47,12 +43,8 @@ import java.util.Set;
  */
 public class OgreOutpostStructure extends Structure {
 
-    private static final ResourceKey<LootTable> SWAMP_TRIBUTE_WITH_MAP = ResourceKey.create(
-            Registries.LOOT_TABLE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "chests/ogre_outpost_tribute_swamp_map"));
-    private static final ResourceKey<LootTable> SWAMP_TRIBUTE_WITHOUT_MAP = ResourceKey.create(
-            Registries.LOOT_TABLE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "chests/ogre_outpost_tribute_swamp"));
+    private static final ResourceLocation SWAMP_TRIBUTE_WITH_MAP = new ResourceLocation(KingsAndMonsters.MODID, "chests/ogre_outpost_tribute_swamp_map");
+    private static final ResourceLocation SWAMP_TRIBUTE_WITHOUT_MAP = new ResourceLocation(KingsAndMonsters.MODID, "chests/ogre_outpost_tribute_swamp");
 
     private final StructureSettings structureSettings;
     private final Holder<StructureTemplatePool> startPool;
@@ -62,12 +54,9 @@ public class OgreOutpostStructure extends Structure {
     private final boolean useExpansionHack;
     private final Optional<Heightmap.Types> projectStartToHeightmap;
     private final int maxDistanceFromCenter;
-    private final List<PoolAliasBinding> poolAliases;
-    private final DimensionPadding dimensionPadding;
-    private final LiquidSettings liquidSettings;
     private final boolean swamp;
 
-    public static final MapCodec<OgreOutpostStructure> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    public static final Codec<OgreOutpostStructure> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     settingsCodec(instance),
                     StructureTemplatePool.CODEC.fieldOf("start_pool").forGetter(s -> s.startPool),
@@ -77,9 +66,7 @@ public class OgreOutpostStructure extends Structure {
                     Codec.BOOL.fieldOf("use_expansion_hack").forGetter(s -> s.useExpansionHack),
                     Heightmap.Types.CODEC.optionalFieldOf("project_start_to_heightmap").forGetter(s -> s.projectStartToHeightmap),
                     Codec.intRange(1, 128).fieldOf("max_distance_from_center").forGetter(s -> s.maxDistanceFromCenter),
-                    PoolAliasBinding.CODEC.listOf().optionalFieldOf("pool_aliases", List.of()).forGetter(s -> s.poolAliases),
-                    DimensionPadding.CODEC.optionalFieldOf("dimension_padding", DimensionPadding.ZERO).forGetter(s -> s.dimensionPadding),
-                    LiquidSettings.CODEC.optionalFieldOf("liquid_settings", LiquidSettings.APPLY_WATERLOGGING).forGetter(s -> s.liquidSettings),
+
                     Codec.BOOL.optionalFieldOf("swamp", false).forGetter(s -> s.swamp)
             ).apply(instance, OgreOutpostStructure::new)
     );
@@ -93,9 +80,6 @@ public class OgreOutpostStructure extends Structure {
             boolean useExpansionHack,
             Optional<Heightmap.Types> projectStartToHeightmap,
             int maxDistanceFromCenter,
-            List<PoolAliasBinding> poolAliases,
-            DimensionPadding dimensionPadding,
-            LiquidSettings liquidSettings,
             boolean swamp) {
         super(settings);
         this.structureSettings = settings;
@@ -106,9 +90,6 @@ public class OgreOutpostStructure extends Structure {
         this.useExpansionHack = useExpansionHack;
         this.projectStartToHeightmap = projectStartToHeightmap;
         this.maxDistanceFromCenter = maxDistanceFromCenter;
-        this.poolAliases = poolAliases;
-        this.dimensionPadding = dimensionPadding;
-        this.liquidSettings = liquidSettings;
         this.swamp = swamp;
     }
 
@@ -218,8 +199,7 @@ public class OgreOutpostStructure extends Structure {
     public Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
         JigsawStructure delegate = new JigsawStructure(
                 structureSettings, startPool, startJigsawName, maxDepth,
-                startHeight, useExpansionHack, projectStartToHeightmap, maxDistanceFromCenter,
-                poolAliases, dimensionPadding, liquidSettings
+                startHeight, useExpansionHack, projectStartToHeightmap, maxDistanceFromCenter
         );
         Optional<GenerationStub> stubOpt = delegate.findGenerationPoint(context);
         if (swamp || stubOpt.isEmpty()) {
@@ -378,7 +358,7 @@ public class OgreOutpostStructure extends Structure {
                 ^ ((long) structureBox.minZ() * 132897987541L);
         RandomSource mapRoll = RandomSource.create(hash);
         boolean includeMap = mapRoll.nextDouble() < Config.SWAMP_OUTPOST_FORT_MAP_CHANCE.get();
-        ResourceKey<LootTable> lootTable = includeMap
+        ResourceLocation lootTable = includeMap
                 ? SWAMP_TRIBUTE_WITH_MAP
                 : SWAMP_TRIBUTE_WITHOUT_MAP;
 
@@ -393,8 +373,7 @@ public class OgreOutpostStructure extends Structure {
                     pos.set(x, y, z);
                     if (level.getBlockState(pos).is(Blocks.TRAPPED_CHEST)
                             && level.getBlockEntity(pos) instanceof RandomizableContainerBlockEntity chest) {
-                        chest.setLootTable(lootTable);
-                        chest.setLootTableSeed(hash ^ pos.asLong());
+                        chest.setLootTable(lootTable, hash ^ pos.asLong());
                         chest.setChanged();
                         if (includeMap) {
                             // This roll carries the guaranteed map pool, so track it the way Plains does

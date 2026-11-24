@@ -39,11 +39,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class BogjawTrap extends Entity implements GeoEntity {
     private static final EntityDataAccessor<Integer> DATA_PHASE =
             SynchedEntityData.defineId(BogjawTrap.class, EntityDataSerializers.INT);
     private static final TagKey<EntityType<?>> OGRES = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogres"));
+            new ResourceLocation(KingsAndMonsters.MODID, "ogres"));
 
     private static final RawAnimation CLAMPED = RawAnimation.begin().thenLoop("clamped");
     private static final RawAnimation DEPLOYED = RawAnimation.begin().thenPlay("deployed").thenLoop("idle");
@@ -135,8 +135,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(DATA_PHASE, PHASE_FLYING);
+    protected void defineSynchedData() {
+        this.entityData.define(DATA_PHASE, PHASE_FLYING);
     }
 
     @Override
@@ -367,7 +367,7 @@ public class BogjawTrap extends Entity implements GeoEntity {
                 king.onTrapped();
             }
             victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, hold, 6, false, true));
-            victim.addEffect(new MobEffectInstance(ModMobEffects.HAMSTRUNG, hold, 0, false, true));
+            victim.addEffect(new MobEffectInstance(ModMobEffects.HAMSTRUNG.get(), hold, 0, false, true));
             held.add(victim.getUUID());
         }
         return true;
@@ -446,7 +446,7 @@ public class BogjawTrap extends Entity implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new software.bernie.geckolib.animation.AnimationController<>(this, "Trap", 0, this::animate));
+        controllers.add(new software.bernie.geckolib.core.animation.AnimationController<>(this, "Trap", 0, this::animate));
     }
 
     private PlayState animate(AnimationState<BogjawTrap> state) {

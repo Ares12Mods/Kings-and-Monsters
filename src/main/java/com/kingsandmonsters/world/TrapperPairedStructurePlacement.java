@@ -1,6 +1,6 @@
 package com.kingsandmonsters.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
@@ -22,8 +22,7 @@ import java.util.Optional;
  */
 @SuppressWarnings("deprecation")
 public final class TrapperPairedStructurePlacement extends RandomSpreadStructurePlacement {
-    public static final MapCodec<TrapperPairedStructurePlacement> CODEC =
-            RecordCodecBuilder.mapCodec(instance -> placementCodec(instance)
+    public static final Codec<TrapperPairedStructurePlacement> CODEC = RecordCodecBuilder.create(instance -> placementCodec(instance)
                     .and(StructurePlacement.ExclusionZone.CODEC.listOf()
                             .optionalFieldOf("exclusion_zones", List.of())
                             .forGetter(TrapperPairedStructurePlacement::exclusionZones))
@@ -59,7 +58,7 @@ public final class TrapperPairedStructurePlacement extends RandomSpreadStructure
     }
 
     @Override
-    public boolean applyInteractionsWithOtherStructures(
+    public boolean isStructureChunk(
             ChunkGeneratorStructureState state, int chunkX, int chunkZ) {
         ChunkPos hut = TrapperSites.hutChunk(state.getLevelSeed(), chunkX, chunkZ);
         // Range 0 asks the hut's own placement about exactly that one chunk.
@@ -71,7 +70,7 @@ public final class TrapperPairedStructurePlacement extends RandomSpreadStructure
                 return false;
             }
         }
-        return super.applyInteractionsWithOtherStructures(state, chunkX, chunkZ);
+        return super.isStructureChunk(state, chunkX, chunkZ);
     }
 
     @Override

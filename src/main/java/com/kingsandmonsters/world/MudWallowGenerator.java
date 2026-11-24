@@ -26,8 +26,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 /** Places the authored Mudsnout wallow and settles it naturally into plains terrain. */
 public final class MudWallowGenerator {
     private static final ResourceLocation[] TEMPLATES = {
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "mud_wallow/boar_wallow"),
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "mud_wallow/boar_wallow_2")
+            new ResourceLocation(KingsAndMonsters.MODID, "mud_wallow/boar_wallow"),
+            new ResourceLocation(KingsAndMonsters.MODID, "mud_wallow/boar_wallow_2")
     };
     /** Half the template's footprint; the structure's bounding box adds the terrain blend to it. */
     public static final int HALF_SIZE = 15;
@@ -281,7 +281,7 @@ public final class MudWallowGenerator {
             }
             boar.moveTo(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5,
                     random.nextFloat() * 360.0F, 0.0F);
-            boar.finalizeSpawn(level, level.getCurrentDifficultyAt(spawn), MobSpawnType.CHUNK_GENERATION, null);
+            boar.finalizeSpawn(level, level.getCurrentDifficultyAt(spawn), MobSpawnType.CHUNK_GENERATION, null, null);
             boar.setBaby(baby);
             if (!level.noCollision(boar, boar.getBoundingBox())) {
                 boar.discard();

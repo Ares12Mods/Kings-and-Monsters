@@ -31,8 +31,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.List;
 
@@ -131,9 +131,9 @@ public class PlagueOgre extends OgreGrunt {
     @Override
     @Nullable
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnData) {
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
         naturallySpawned = spawnType == MobSpawnType.NATURAL;
-        return super.finalizeSpawn(level, difficulty, spawnType, spawnData);
+        return super.finalizeSpawn(level, difficulty, spawnType, spawnData, spawnTag);
     }
 
     @Override
@@ -341,7 +341,7 @@ public class PlagueOgre extends OgreGrunt {
 
     @Override
     public boolean canBeAffected(MobEffectInstance effect) {
-        return !effect.is(ModMobEffects.BOGROT) && super.canBeAffected(effect);
+        return effect.getEffect() != ModMobEffects.BOGROT.get() && super.canBeAffected(effect);
     }
 
     @Override

@@ -44,9 +44,9 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.EnumSet;
@@ -62,7 +62,7 @@ public final class BogPole extends Animal implements GeoEntity {
     public static final double SCARED_SWIM_SPEED = 1.5;
     private static final double WATER_SPEED_SCALE = 4.5;
     public static final TagKey<Item> FOOD = TagKey.create(net.minecraft.core.registries.Registries.ITEM,
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "bog_toad_food"));
+            new net.minecraft.resources.ResourceLocation("kingsandmonsters", "bog_toad_food"));
 
     private static final EntityDataAccessor<Boolean> SCARED =
             SynchedEntityData.defineId(BogPole.class, EntityDataSerializers.BOOLEAN);
@@ -110,15 +110,14 @@ public final class BogPole extends Animal implements GeoEntity {
                 .add(Attributes.ARMOR, 2.0)
                 // Swimming speed is scaled separately by FishLikeMoveControl.
                 .add(Attributes.MOVEMENT_SPEED, 0.22)
-                .add(Attributes.FOLLOW_RANGE, 20.0)
-                .add(Attributes.STEP_HEIGHT, 0.6);
+                .add(Attributes.FOLLOW_RANGE, 20.0);
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(SCARED, false);
-        builder.define(LAND_MOVING, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(SCARED, false);
+        this.entityData.define(LAND_MOVING, false);
     }
 
     @Override
@@ -224,9 +223,9 @@ public final class BogPole extends Animal implements GeoEntity {
     @Override
     @Nullable
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-                                        MobSpawnType reason, @Nullable SpawnGroupData spawnData) {
+                                        MobSpawnType reason, @Nullable SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
         setAirSupply(MAX_AIR);
-        return super.finalizeSpawn(level, difficulty, reason, spawnData);
+        return super.finalizeSpawn(level, difficulty, reason, spawnData, spawnTag);
     }
 
     @Override
@@ -243,7 +242,7 @@ public final class BogPole extends Animal implements GeoEntity {
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (isFood(stack)) {
-            stack.consume(1, player);
+            com.kingsandmonsters.item.ItemUtil.consume(stack, 1, player);
             int seconds = AgeableMob.getSpeedUpSecondsWhenFeeding(Math.max(0, GROWTH_TICKS - age));
             setGrowthAge(age + seconds * 20);
             level().addParticle(ParticleTypes.HAPPY_VILLAGER, getRandomX(1.0), getRandomY() + 0.3,
@@ -265,12 +264,12 @@ public final class BogPole extends Animal implements GeoEntity {
             age = GROWTH_TICKS - 20 * 60;
             return;
         }
-        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, ModEntities.BOG_TOAD.get(), timer -> {})) return;
+        if (!net.minecraftforge.event.ForgeEventFactory.canLivingConvert(this, ModEntities.BOG_TOAD.get(), timer -> {})) return;
         BogToad adult = ModEntities.BOG_TOAD.get().create(level());
         if (adult == null) return;
-        net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, adult);
+        net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, adult);
         adult.moveTo(getX(), getY(), getZ(), getYRot(), getXRot());
-        adult.finalizeSpawn(serverLevel, level().getCurrentDifficultyAt(blockPosition()), MobSpawnType.CONVERSION, null);
+        adult.finalizeSpawn(serverLevel, level().getCurrentDifficultyAt(blockPosition()), MobSpawnType.CONVERSION, null, null);
         adult.setNoAi(isNoAi());
         if (hasCustomName()) {
             adult.setCustomName(getCustomName());
@@ -330,7 +329,7 @@ public final class BogPole extends Animal implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new software.bernie.geckolib.animation.AnimationController<>(this, "movement", 3, state -> {
+        controllers.add(new software.bernie.geckolib.core.animation.AnimationController<>(this, "movement", 3, state -> {
             if (isInWaterOrBubble() || (!onGround() && getAirSupply() < MAX_AIR)) {
                 if (isScared()) return state.setAndContinue(SWIM_SCARED);
                 if (!navigation.isDone() || state.isMoving()) return state.setAndContinue(SWIM);
@@ -411,7 +410,7 @@ public final class BogPole extends Animal implements GeoEntity {
             BlockPos best = null;
             for (BlockPos candidate : BlockPos.betweenClosed(origin.offset(-4, 0, -4), origin.offset(4, 12, 4))) {
                 if ((level().getFluidState(candidate).isEmpty() || level().getBlockState(candidate).is(net.minecraft.world.level.block.Blocks.BUBBLE_COLUMN))
-                        && level().getBlockState(candidate).isPathfindable(PathComputationType.LAND)) {
+                        && level().getBlockState(candidate).isPathfindable(level(), candidate, PathComputationType.LAND)) {
                     if (best == null || candidate.distSqr(origin) < best.distSqr(origin)) {
                         best = candidate.immutable();
                     }

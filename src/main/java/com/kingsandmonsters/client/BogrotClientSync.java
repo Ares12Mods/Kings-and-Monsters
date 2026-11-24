@@ -14,10 +14,10 @@ public final class BogrotClientSync {
         var level = Minecraft.getInstance().level;
         if (level == null || !(level.getEntity(entityId) instanceof LivingEntity living)) return;
         if (duration <= 0) {
-            living.removeEffect(ModMobEffects.BOGROT);
+            living.removeEffect(ModMobEffects.BOGROT.get());
             return;
         }
-        MobEffectInstance current = living.getEffect(ModMobEffects.BOGROT);
+        MobEffectInstance current = living.getEffect(ModMobEffects.BOGROT.get());
         // The client ticks the duration down itself; only replace when the server state has drifted.
         if (current != null && current.getAmplifier() == amplifier
                 && Math.abs(current.getDuration() - duration) <= 3) return;

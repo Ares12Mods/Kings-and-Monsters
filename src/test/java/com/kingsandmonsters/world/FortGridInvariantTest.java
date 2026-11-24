@@ -77,9 +77,9 @@ class FortGridInvariantTest {
         }
         distances.sort(Comparator.naturalOrder());
         System.out.printf("Fort spawn distance blocks: min=%.0f p10=%.0f p25=%.0f p50=%.0f p75=%.0f p90=%.0f p95=%.0f p99=%.0f max=%.0f%n",
-                distances.getFirst(), percentile(distances, .10), percentile(distances, .25),
+                distances.get(0), percentile(distances, .10), percentile(distances, .25),
                 percentile(distances, .50), percentile(distances, .75), percentile(distances, .90),
-                percentile(distances, .95), percentile(distances, .99), distances.getLast());
+                percentile(distances, .95), percentile(distances, .99), distances.get(distances.size() - 1));
     }
 
     private static double percentile(List<Double> sorted, double percentile) {

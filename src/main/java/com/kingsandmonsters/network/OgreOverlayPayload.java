@@ -1,14 +1,13 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.util.Mth;
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.OgreOverlayState;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /** Server-authored, client-rendered dramatic Ogre notification. */
 public record OgreOverlayPayload(
@@ -24,8 +23,8 @@ public record OgreOverlayPayload(
     public enum Emphasis { MAJOR_EVENT, LOCATION_DISCOVERY }
 
     public static final Type<OgreOverlayPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_overlay"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, OgreOverlayPayload> STREAM_CODEC = StreamCodec.of(
+            new ResourceLocation(KingsAndMonsters.MODID, "ogre_overlay"));
+    public static final StreamCodec<FriendlyByteBuf, OgreOverlayPayload> STREAM_CODEC = StreamCodec.of(
             (buffer, payload) -> {
                 buffer.writeUtf(payload.title, 128);
                 buffer.writeUtf(payload.subtitle, 128);
@@ -44,7 +43,7 @@ public record OgreOverlayPayload(
                     buffer.readVarInt(),
                     buffer.readFloat(),
                     buffer.readFloat(),
-                    Emphasis.values()[Math.clamp(buffer.readUnsignedByte(), 0, Emphasis.values().length - 1)]));
+                    Emphasis.values()[Mth.clamp(buffer.readUnsignedByte(), 0, Emphasis.values().length - 1)]));
 
     public static OgreOverlayPayload major(String title, String subtitle) {
         return new OgreOverlayPayload(title, subtitle, 10, 50, 20, 2.0F, 1.0F, Emphasis.MAJOR_EVENT);

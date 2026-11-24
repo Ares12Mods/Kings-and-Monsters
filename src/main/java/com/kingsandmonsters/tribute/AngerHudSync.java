@@ -6,9 +6,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +52,7 @@ public final class AngerHudSync {
                 AngerHudPayload payload = computePayload(level, player, radius);
                 AngerHudPayload lastSent = lastSentByPlayer.get(player);
                 if (!payload.equals(lastSent)) {
-                    PacketDistributor.sendToPlayer(player, payload);
+                    ModNetwork.sendToPlayer(player, payload);
                     lastSentByPlayer.put(player, payload);
                 }
             }

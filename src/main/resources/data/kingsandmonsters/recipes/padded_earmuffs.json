@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "W": {
+      "item": "minecraft:white_wool"
+    }
+  },
+  "pattern": [
+    "LLL",
+    "I I",
+    "W W"
+  ],
+  "result": {
+    "item": "kingsandmonsters:padded_earmuffs",
+    "count": 1
+  }
+}

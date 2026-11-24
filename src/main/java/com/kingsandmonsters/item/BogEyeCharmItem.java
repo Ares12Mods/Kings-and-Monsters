@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.network.BogEyeTargetPayload;
@@ -22,7 +23,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.List;
 
@@ -59,10 +60,9 @@ public class BogEyeCharmItem extends Item {
                 "message.kingsandmonsters.bog_eye.found", Math.round(distance))
                 .withStyle(ChatFormatting.GREEN), true);
         player.getCooldowns().addCooldown(this, SUCCESS_COOLDOWN_TICKS);
-        stack.hurtAndBreak(1, player,
-                hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+        ItemUtil.hurt(stack, 1, player, ItemUtil.slotForHand(hand));
         if (player instanceof ServerPlayer serverPlayer) {
-            PacketDistributor.sendToPlayer(serverPlayer, new BogEyeTargetPayload(target));
+            ModNetwork.sendToPlayer(serverPlayer, new BogEyeTargetPayload(target));
         }
         serverLevel.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME,
                 SoundSource.PLAYERS, 0.8F, 0.75F);
@@ -85,7 +85,7 @@ public class BogEyeCharmItem extends Item {
                 }
                 for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
                     if (!(blockEntity instanceof RandomizableContainerBlockEntity container)
-                            || container.getLootTable() == null) {
+                            || container.lootTable == null) {
                         continue;
                     }
                     BlockPos pos = container.getBlockPos();
@@ -108,7 +108,7 @@ public class BogEyeCharmItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());

@@ -67,7 +67,7 @@ public final class BoarCallingHornItem extends Item {
 
     private void consumeUse(Player player, InteractionHand hand, ItemStack stack) {
         player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
-        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+        com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
     }
 
     @Override
@@ -76,7 +76,7 @@ public final class BoarCallingHornItem extends Item {
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+    public int getUseDuration(ItemStack stack) {
         return 40;
     }
 

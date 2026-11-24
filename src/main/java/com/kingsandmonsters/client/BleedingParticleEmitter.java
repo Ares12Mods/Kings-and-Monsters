@@ -19,8 +19,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
 import org.joml.Vector3f;
 
 /**
@@ -177,9 +177,9 @@ public final class BleedingParticleEmitter {
 
     /** Highest active bleeding tier (2 Greater, 1 Bleeding, 0 Lesser) or -1. */
     private static int severityOf(LivingEntity entity) {
-        if (entity.hasEffect(ModMobEffects.GREATER_BLEEDING)) return 2;
-        if (entity.hasEffect(ModMobEffects.BLEEDING)) return 1;
-        if (entity.hasEffect(ModMobEffects.LESSER_BLEEDING)) return 0;
+        if (entity.hasEffect(ModMobEffects.GREATER_BLEEDING.get())) return 2;
+        if (entity.hasEffect(ModMobEffects.BLEEDING.get())) return 1;
+        if (entity.hasEffect(ModMobEffects.LESSER_BLEEDING.get())) return 0;
         return -1;
     }
 

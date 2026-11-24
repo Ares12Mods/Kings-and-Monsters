@@ -32,7 +32,7 @@ public final class StormArrow extends Arrow {
     private int landedAtTick = -1;
 
     public StormArrow(Level level, double x, double y, double z, LivingEntity owner, float splashDamage) {
-        super(level, x, y, z, new ItemStack(Items.ARROW), null);
+        super(level, x, y, z);
         this.splashDamage = splashDamage;
         setOwner(owner);
         pickup = Pickup.DISALLOWED;

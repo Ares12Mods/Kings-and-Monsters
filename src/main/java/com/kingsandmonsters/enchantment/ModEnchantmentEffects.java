@@ -14,17 +14,18 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import com.kingsandmonsters.event.LivingIncomingDamageEvent;
 
 /** Java-side mechanics for effects that cannot be expressed by vanilla enchantment components. */
 public final class ModEnchantmentEffects {
-    private static final TagKey<Item> TYRANT_WEAPONS = TagKey.create(Registries.ITEM,
-            ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "enchantable/tyrant_weapons"));
     private ModEnchantmentEffects() {}
 
-    public static int level(Level level, ItemStack stack, ResourceKey<Enchantment> key) {
-        var enchantment = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(key);
-        return stack.getEnchantmentLevel(enchantment);
+    public static int level(Level level, ItemStack stack, net.minecraftforge.registries.RegistryObject<Enchantment> enchantment) {
+        return net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(enchantment.get(), stack);
+    }
+
+    public static int level(Level level, ItemStack stack, Enchantment enchantment) {
+        return net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack);
     }
 
     public static float heavyThrowDamage(float baseDamage, int level) {
@@ -48,7 +49,7 @@ public final class ModEnchantmentEffects {
 
         ItemStack weapon = attacker.getMainHandItem();
         LivingEntity target = event.getEntity();
-        if (weapon.is(TYRANT_WEAPONS)) {
+        {
             int tyrantLevel = level(attacker.level(), weapon, ModEnchantments.TYRANT);
             if (tyrantLevel > 0) {
                 double radius = Config.TYRANT_SEARCH_RADIUS.get();

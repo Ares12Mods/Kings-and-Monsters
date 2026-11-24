@@ -21,7 +21,7 @@ public final class CombatEffects {
 
     /** Mobs without blood (slimes, skeletons, golems...) are immune to every Bleeding tier. */
     public static final TagKey<EntityType<?>> BLEED_IMMUNE = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bleed_immune"));
+            new ResourceLocation(KingsAndMonsters.MODID, "bleed_immune"));
 
     public static boolean isBleedImmune(LivingEntity target) {
         return target.getType().is(BLEED_IMMUNE);
@@ -29,7 +29,7 @@ public final class CombatEffects {
 
     public static void applyDazed(LivingEntity target, int durationTicks, LivingEntity source) {
         // The persistent custom head swirl replaces vanilla's ambient status particles.
-        target.addEffect(new MobEffectInstance(ModMobEffects.DAZED, durationTicks, 0, false, false, true), source);
+        target.addEffect(new MobEffectInstance(ModMobEffects.DAZED.get(), durationTicks, 0, false, false, true), source);
     }
 
     public static void applyBogrot(LivingEntity target, int durationTicks, int amplifier, LivingEntity source) {
@@ -39,10 +39,10 @@ public final class CombatEffects {
     public static void applyCrippled(LivingEntity target, int durationTicks, LivingEntity source) {
         // Crippled has a fixed commitment window: repeated bites or spear procs cannot reset
         // its timer. Once the active instance expires, a later hit may apply a fresh one.
-        if (target.hasEffect(ModMobEffects.CRIPPLED)) {
+        if (target.hasEffect(ModMobEffects.CRIPPLED.get())) {
             return;
         }
-        target.addEffect(new MobEffectInstance(ModMobEffects.CRIPPLED, durationTicks, 0, false, true, true), source);
+        target.addEffect(new MobEffectInstance(ModMobEffects.CRIPPLED.get(), durationTicks, 0, false, true, true), source);
     }
 
     public static void applyBleeding(LivingEntity target, BleedingEffect.Severity severity, LivingEntity source) {
@@ -81,15 +81,15 @@ public final class CombatEffects {
     }
 
     private static int activeBleedingSeverity(LivingEntity target) {
-        if (target.hasEffect(ModMobEffects.GREATER_BLEEDING)) return 2;
-        if (target.hasEffect(ModMobEffects.BLEEDING)) return 1;
-        if (target.hasEffect(ModMobEffects.LESSER_BLEEDING)) return 0;
+        if (target.hasEffect(ModMobEffects.GREATER_BLEEDING.get())) return 2;
+        if (target.hasEffect(ModMobEffects.BLEEDING.get())) return 1;
+        if (target.hasEffect(ModMobEffects.LESSER_BLEEDING.get())) return 0;
         return -1;
     }
 
-    private static Holder<MobEffect> bleedingEffect(int severity) {
-        return severity >= 2 ? ModMobEffects.GREATER_BLEEDING
-                : severity == 1 ? ModMobEffects.BLEEDING : ModMobEffects.LESSER_BLEEDING;
+    private static MobEffect bleedingEffect(int severity) {
+        return severity >= 2 ? ModMobEffects.GREATER_BLEEDING.get()
+                : severity == 1 ? ModMobEffects.BLEEDING.get() : ModMobEffects.LESSER_BLEEDING.get();
     }
 
 }

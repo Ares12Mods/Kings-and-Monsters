@@ -12,9 +12,9 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.Tags;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
@@ -121,7 +121,7 @@ public final class RattleboneRingEvents {
             int ringPoints = Math.max(14, (int) Math.ceil(radius * 3.0F));
             double y = center.y + 0.1;
             for (int point = 0; point < ringPoints; point++) {
-                double angle = Math.TAU * point / ringPoints;
+                double angle = (Math.PI * 2.0) * point / ringPoints;
                 double x = center.x + Math.cos(angle) * radius;
                 double z = center.z + Math.sin(angle) * radius;
                 level.sendParticles(ParticleTypes.CLOUD, x, y, z, 1, 0.02, 0.01, 0.02, 0.005);

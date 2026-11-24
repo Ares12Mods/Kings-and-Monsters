@@ -19,7 +19,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -71,7 +71,7 @@ public final class TributeManager {
         }
 
         TributeChestLootedEvent event = new TributeChestLootedEvent(player, chestPos, level.dimension(), angerDelta);
-        NeoForge.EVENT_BUS.post(event);
+        MinecraftForge.EVENT_BUS.post(event);
 
         if (event.isCanceled()) {
             return false;
@@ -93,13 +93,13 @@ public final class TributeManager {
         }
 
         getOrCreate(level, campOrigin).setChiefAlive(false);
-        NeoForge.EVENT_BUS.post(new ChiefDeathEvent(chief, campOrigin, level.dimension()));
+        MinecraftForge.EVENT_BUS.post(new ChiefDeathEvent(chief, campOrigin, level.dimension()));
     }
 
     public static Optional<PatrolTier> preparePatrol(ServerLevel level, BlockPos campOrigin) {
         ITributeData tributeData = getOrCreate(level, campOrigin);
         PatrolSpawnEvent event = new PatrolSpawnEvent(campOrigin, level.dimension(), tributeData.getCurrentPatrolTier());
-        NeoForge.EVENT_BUS.post(event);
+        MinecraftForge.EVENT_BUS.post(event);
 
         if (event.isCanceled()) {
             return Optional.empty();
@@ -186,7 +186,7 @@ public final class TributeManager {
             return;
         }
 
-        getData(level).incrementFactionAnger(-amount, camps.getFirst().campOrigin());
+        getData(level).incrementFactionAnger(-amount, camps.get(0).campOrigin());
     }
 
     private static final long PROVOCATION_TICKS = 20L * 60 * 5;
@@ -355,7 +355,7 @@ public final class TributeManager {
         if (camps.isEmpty() || amount <= 0) {
             return;
         }
-        getData(level).incrementFactionAnger(amount, camps.getFirst().campOrigin());
+        getData(level).incrementFactionAnger(amount, camps.get(0).campOrigin());
     }
 
     public static void setNextPatrolGameTime(ServerLevel level, BlockPos campOrigin, long gameTime) {
@@ -446,10 +446,9 @@ public final class TributeManager {
     }
 
     static TributeSavedData getData(ServerLevel level) {
-        SavedData.Factory<TributeSavedData> factory = new SavedData.Factory<>(
+        return level.getDataStorage().computeIfAbsent(
+                tag -> TributeSavedData.load(level.dimension(), tag),
                 () -> new TributeSavedData(level.dimension()),
-                (tag, registries) -> TributeSavedData.load(level.dimension(), tag, registries)
-        );
-        return level.getDataStorage().computeIfAbsent(factory, TributeSavedData.FILE_ID);
+                TributeSavedData.FILE_ID);
     }
 }

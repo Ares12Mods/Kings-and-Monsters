@@ -12,17 +12,17 @@ public final class UnyieldingEffect extends MobEffect {
     public UnyieldingEffect() {
         super(MobEffectCategory.BENEFICIAL, 0x596A45);
         addAttributeModifier(Attributes.ARMOR, id("armor"), 4.0,
-                AttributeModifier.Operation.ADD_VALUE);
+                AttributeModifier.Operation.ADDITION);
         addAttributeModifier(Attributes.ARMOR_TOUGHNESS, id("toughness"), 2.0,
-                AttributeModifier.Operation.ADD_VALUE);
+                AttributeModifier.Operation.ADDITION);
         addAttributeModifier(Attributes.KNOCKBACK_RESISTANCE, id("knockback_resistance"), 0.30,
-                AttributeModifier.Operation.ADD_VALUE);
+                AttributeModifier.Operation.ADDITION);
         // Matches vanilla Strength I's three-point melee damage increase.
         addAttributeModifier(Attributes.ATTACK_DAMAGE, id("attack_damage"), 3.0,
-                AttributeModifier.Operation.ADD_VALUE);
+                AttributeModifier.Operation.ADDITION);
     }
 
-    private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "unyielding_" + name);
+    private static String id(String name) {
+        return com.kingsandmonsters.item.ItemAttributes.uuid("unyielding_" + name).toString();
     }
 }

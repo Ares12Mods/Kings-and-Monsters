@@ -12,11 +12,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import com.kingsandmonsters.event.LivingIncomingDamageEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingKnockBackEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import top.theillusivec4.curios.api.CuriosApi;
 
 public final class ArtifactEvents {
@@ -53,7 +53,7 @@ public final class ArtifactEvents {
 
     public static void onMobEffectAdded(MobEffectEvent.Added event) {
         MobEffectInstance effect = event.getEffectInstance();
-        if (!effect.is(MobEffects.POISON)) {
+        if (effect.getEffect() != MobEffects.POISON) {
             return;
         }
 
@@ -89,7 +89,7 @@ public final class ArtifactEvents {
                 && event.getSource().getEntity() == null
                 && event.getSource().getDirectEntity() == null
                 && victim.hasEffect(MobEffects.POISON)
-                && victim.hasEffect(ModMobEffects.POISON_RESISTANCE)) {
+                && victim.hasEffect(ModMobEffects.POISON_RESISTANCE.get())) {
             event.setCanceled(true);
             return;
         }
@@ -98,7 +98,7 @@ public final class ArtifactEvents {
         if (event.getSource().is(DamageTypes.MAGIC)
                 && event.getSource().getEntity() == null
                 && event.getSource().getDirectEntity() == null
-                && (victim.hasEffect(MobEffects.POISON) || victim.hasEffect(ModMobEffects.BOGROT))
+                && (victim.hasEffect(MobEffects.POISON) || victim.hasEffect(ModMobEffects.BOGROT.get()))
                 && hasCurio(victim, ModItems.BOG_IRON_BAND.get())) {
             event.setAmount(event.getAmount() * BAND_ROT_DAMAGE_MULTIPLIER);
         }

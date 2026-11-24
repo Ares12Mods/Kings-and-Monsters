@@ -1,6 +1,6 @@
 package com.kingsandmonsters.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
@@ -22,7 +22,7 @@ import java.util.Set;
  * this back in afterPlace so grading only touches ground the fort occupies.
  */
 public final class FortFootprintProcessor extends StructureProcessor {
-    public static final MapCodec<FortFootprintProcessor> CODEC = MapCodec.unit(FortFootprintProcessor::new);
+    public static final Codec<FortFootprintProcessor> CODEC = Codec.unit(FortFootprintProcessor::new);
     private static final ThreadLocal<Map<Long, int[]>> CAPTURED_COLUMNS = ThreadLocal.withInitial(HashMap::new);
     private static final ThreadLocal<Set<Long>> CAPTURED_BLOCKS = ThreadLocal.withInitial(HashSet::new);
 

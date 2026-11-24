@@ -23,17 +23,16 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.common.NeoForgeMod;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingEvent;
-import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.common.ForgeMod;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.player.CriticalHitEvent;
+import com.kingsandmonsters.event.PlayerTickEvent;
 
 public final class BogToadContentEvents {
-    private static final ResourceLocation SWIM_BONUS_ID = ResourceLocation.fromNamespaceAndPath(
-            KingsAndMonsters.MODID, "boghide_boots_swim_speed");
-    private static final AttributeModifier SWIM_BONUS = new AttributeModifier(
-            SWIM_BONUS_ID, 0.35, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    private static final java.util.UUID SWIM_BONUS_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("boghide_boots_swim_speed");
+    private static final AttributeModifier SWIM_BONUS = new AttributeModifier(SWIM_BONUS_ID, SWIM_BONUS_ID.toString(), 0.35, AttributeModifier.Operation.MULTIPLY_TOTAL);
     private static final String AMBUSH_MARK_UNTIL = "kingsandmonsters.ambush_mark_until";
     private static final String AMBUSH_MARK_OWNER = "kingsandmonsters.ambush_mark_owner";
     private static final String LEAP_UNTIL = "kingsandmonsters.bog_toad_leap_until";
@@ -51,35 +50,35 @@ public final class BogToadContentEvents {
     private static final int BOGSTRIDE_DISPLAY_DURATION_TICKS = 13 * 20;
     private static final int BOGSTRIDE_REFRESH_THRESHOLD_TICKS = 11 * 20;
     private static final TagKey<EntityType<?>> OGRES = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogres"));
+            new ResourceLocation(KingsAndMonsters.MODID, "ogres"));
 
     private BogToadContentEvents() {}
 
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         Player player = event.getEntity();
-        var swimSpeed = player.getAttribute(NeoForgeMod.SWIM_SPEED);
+        var swimSpeed = player.getAttribute(ForgeMod.SWIM_SPEED.get());
         if (swimSpeed == null) return;
-        boolean wearing = player.getItemBySlot(EquipmentSlot.FEET).is(ModItems.BOGHIDE_BOOTS);
-        if (wearing && !swimSpeed.hasModifier(SWIM_BONUS_ID)) {
+        boolean wearing = player.getItemBySlot(EquipmentSlot.FEET).is(ModItems.BOGHIDE_BOOTS.get());
+        if (wearing && swimSpeed.getModifier(SWIM_BONUS_ID) == null) {
             swimSpeed.addTransientModifier(SWIM_BONUS);
-        } else if (!wearing && swimSpeed.hasModifier(SWIM_BONUS_ID)) {
+        } else if (!wearing && swimSpeed.getModifier(SWIM_BONUS_ID) != null) {
             swimSpeed.removeModifier(SWIM_BONUS_ID);
         }
         if (!(player instanceof ServerPlayer serverPlayer)) return;
         if (wearing && player.isInWater()) {
             // Refresh infrequently so the icon remains steady without spamming effect packets.
-            MobEffectInstance stride = player.getEffect(ModMobEffects.BOGSTRIDE);
+            MobEffectInstance stride = player.getEffect(ModMobEffects.BOGSTRIDE.get());
             if (stride == null || stride.getDuration() <= BOGSTRIDE_REFRESH_THRESHOLD_TICKS) {
-                player.addEffect(new MobEffectInstance(ModMobEffects.BOGSTRIDE,
+                player.addEffect(new MobEffectInstance(ModMobEffects.BOGSTRIDE.get(),
                         BOGSTRIDE_DISPLAY_DURATION_TICKS, 0, false, true, true));
             }
             // Every other tick, give back a bit of air: doubles the breath without water breathing.
             if (player.getAirSupply() < player.getMaxAirSupply() && player.tickCount % 2 == 0) {
                 player.setAirSupply(player.getAirSupply() + 1);
             }
-        } else if (player.hasEffect(ModMobEffects.BOGSTRIDE)) {
+        } else if (player.hasEffect(ModMobEffects.BOGSTRIDE.get())) {
             // The longer display duration is only visual bookkeeping; remove it as soon as it is inactive.
-            player.removeEffect(ModMobEffects.BOGSTRIDE);
+            player.removeEffect(ModMobEffects.BOGSTRIDE.get());
         }
         tickPendingLanding(serverPlayer, wearing);
     }
@@ -87,13 +86,13 @@ public final class BogToadContentEvents {
     public static void onLivingJump(LivingEvent.LivingJumpEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !player.isSprinting()) return;
         var boots = player.getItemBySlot(EquipmentSlot.FEET);
-        if (!boots.is(ModItems.BOGHIDE_BOOTS) || player.getCooldowns().isOnCooldown(boots.getItem())) return;
+        if (!boots.is(ModItems.BOGHIDE_BOOTS.get()) || player.getCooldowns().isOnCooldown(boots.getItem())) return;
         var forward = player.getLookAngle().multiply(BOGHIDE_LEAP_HORIZONTAL_SPEED, 0.0,
                 BOGHIDE_LEAP_HORIZONTAL_SPEED);
         player.setDeltaMovement(forward.x, BOGHIDE_LEAP_VERTICAL_SPEED, forward.z);
         player.hurtMarked = true;
         player.getCooldowns().addCooldown(boots.getItem(), BoghideSet.leapCooldownTicks(player));
-        boots.hurtAndBreak(1, player, EquipmentSlot.FEET);
+        com.kingsandmonsters.item.ItemUtil.hurt(boots, 1, player, EquipmentSlot.FEET);
         player.getPersistentData().putLong(LEAP_UNTIL, player.level().getGameTime() + 12);
         player.getPersistentData().putLong(IMPACT_UNTIL, player.level().getGameTime() + 10 * 20);
         player.getPersistentData().putBoolean(LEAP_AIRBORNE, false);
@@ -177,7 +176,7 @@ public final class BogToadContentEvents {
                 && mark.hasUUID(AMBUSH_MARK_OWNER) && mark.getUUID(AMBUSH_MARK_OWNER).equals(attacker.getUUID())) {
             damage *= BoghideSet.AMBUSH_DAMAGE_MULTIPLIER;
         }
-        if (attacker.hasEffect(ModMobEffects.OGRES_BANE)
+        if (attacker.hasEffect(ModMobEffects.OGRES_BANE.get())
                 && event.getEntity().getType().is(OGRES)) {
             damage *= 1.15F;
         }
@@ -187,12 +186,12 @@ public final class BogToadContentEvents {
     public static void onLivingDamagePost(LivingDamageEvent.Post event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer attacker)
                 || event.getSource().getDirectEntity() != attacker
-                || !attacker.getMainHandItem().is(ModItems.BOGFANG_BLADE)
+                || !attacker.getMainHandItem().is(ModItems.BOGFANG_BLADE.get())
                 || attacker.getPersistentData().getBoolean(RUPTURE_GUARD)) return;
 
         LivingEntity target = event.getEntity();
         if (EffectImmunityRules.rejectsBogrot(target)) return;
-        var existing = target.getEffect(ModMobEffects.BOGROT);
+        var existing = target.getEffect(ModMobEffects.BOGROT.get());
         boolean critical = attacker.getPersistentData().getInt(CRIT_TARGET) == target.getId()
                 && attacker.getPersistentData().getLong(CRIT_TICK) == attacker.level().getGameTime();
         long now = attacker.level().getGameTime();
@@ -203,7 +202,7 @@ public final class BogToadContentEvents {
         int progress = critical && !cooldown ? target.getPersistentData().getInt(progressKey) + 1 : 0;
         if (progress >= 3) {
             float ruptureDamage = BogrotMechanics.remainingScheduledDamage(existing, target);
-            target.removeEffect(ModMobEffects.BOGROT);
+            target.removeEffect(ModMobEffects.BOGROT.get());
             target.getPersistentData().remove(progressKey);
             attacker.getPersistentData().putLong(RUPTURE_COOLDOWN, now + 8 * 20);
             spawnRuptureParticles(attacker, target, true);
@@ -225,7 +224,7 @@ public final class BogToadContentEvents {
 
     public static void onCriticalHit(CriticalHitEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !event.isVanillaCritical()
-                || !player.getMainHandItem().is(ModItems.BOGFANG_BLADE)) return;
+                || !player.getMainHandItem().is(ModItems.BOGFANG_BLADE.get())) return;
         player.getPersistentData().putInt(CRIT_TARGET, event.getTarget().getId());
         player.getPersistentData().putLong(CRIT_TICK, player.level().getGameTime());
     }

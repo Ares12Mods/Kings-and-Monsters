@@ -126,10 +126,11 @@ public final class BloodStainParticle extends TextureSheetParticle {
                         float lx, float lz, float u, float v, int light) {
         float rx = lx * rotationCos - lz * rotationSin;
         float rz = lx * rotationSin + lz * rotationCos;
-        buffer.addVertex(cx + rx, cy, cz + rz)
-                .setUv(u, v)
-                .setColor(rCol, gCol, bCol, alpha)
-                .setLight(light);
+        buffer.vertex(cx + rx, cy, cz + rz)
+                .uv(u, v)
+                .color(rCol, gCol, bCol, alpha)
+                .uv2(light)
+                .endVertex();
     }
 
     @Override

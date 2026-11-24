@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import com.kingsandmonsters.network.ScreenShakePayload;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -62,11 +62,11 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.Comparator;
@@ -353,7 +353,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     /** Blocks a boar will wallow in; a tag so packs or other mud can be added without code. */
     private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> WALLOW_BLOCKS =
             net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "boar_wallows"));
+                    new net.minecraft.resources.ResourceLocation("kingsandmonsters", "boar_wallows"));
     private static final int WALLOW_SEARCH_RADIUS = 20;
     /** Wild boars drift back toward a wallow they know of when it is within this many blocks. */
     private static final double WALLOW_HOME_RANGE = 40.0;
@@ -441,7 +441,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     public void openCustomInventoryScreen(Player player) {
         if (!level().isClientSide && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer
                 && isTamed() && isOwner(player)) {
-            serverPlayer.openMenu(
+            net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer,
                     new SimpleMenuProvider((id, inventory, p) -> new MudsnoutBoarMenu(id, inventory, this),
                             getDisplayName()),
                     buffer -> buffer.writeVarInt(getId()));
@@ -470,6 +470,15 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         return Math.sqrt(blocksPerTick / 2.86) / SPEED_ATTRIBUTE;
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, ADULT_HEALTH)
@@ -477,25 +486,24 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 .add(Attributes.MOVEMENT_SPEED, SPEED_ATTRIBUTE)
                 .add(Attributes.FOLLOW_RANGE, 22.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.4)
-                .add(Attributes.ARMOR, 18.0)
-                .add(Attributes.STEP_HEIGHT, 1.0);
+                .add(Attributes.ARMOR, 18.0);
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_PHASE, PHASE_NONE);
-        builder.define(DATA_OVERLAY_ID, 0);
-        builder.define(DATA_OVERLAY_START, 0L);
-        builder.define(DATA_FLEEING, false);
-        builder.define(DATA_TAMED, false);
-        builder.define(DATA_SADDLED, false);
-        builder.define(DATA_SPEED_TRAIT, 0.0F);
-        builder.define(DATA_HEALTH_TRAIT, 0.0F);
-        builder.define(DATA_WINDED, false);
-        builder.define(DATA_SPRINT_LOCKED, false);
-        builder.define(DATA_BABY, false);
-        builder.define(DATA_POSE, POSE_NONE);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_PHASE, PHASE_NONE);
+        this.entityData.define(DATA_OVERLAY_ID, 0);
+        this.entityData.define(DATA_OVERLAY_START, 0L);
+        this.entityData.define(DATA_FLEEING, false);
+        this.entityData.define(DATA_TAMED, false);
+        this.entityData.define(DATA_SADDLED, false);
+        this.entityData.define(DATA_SPEED_TRAIT, 0.0F);
+        this.entityData.define(DATA_HEALTH_TRAIT, 0.0F);
+        this.entityData.define(DATA_WINDED, false);
+        this.entityData.define(DATA_SPRINT_LOCKED, false);
+        this.entityData.define(DATA_BABY, false);
+        this.entityData.define(DATA_POSE, POSE_NONE);
     }
 
     @Override
@@ -892,10 +900,10 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         serverLevel.sendParticles(ParticleTypes.POOF, head.x, head.y, head.z, 18, 0.7, 0.5, 0.7, 0.05);
         serverLevel.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, head.x - direction.x * 0.4, head.y - 0.3,
                 head.z - direction.z * 0.4, 6, 0.6, 0.2, 0.6, 0.02);
-        serverLevel.playSound(null, head.x, head.y, head.z, SoundEvents.GENERIC_EXPLODE.value(),
+        serverLevel.playSound(null, head.x, head.y, head.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 0.7F, 1.5F);
         playSound(SoundEvents.HOGLIN_ATTACK, 1.2F, 0.5F);
-        PacketDistributor.sendToPlayersNear(serverLevel, null, head.x, head.y, head.z, 24.0,
+        ModNetwork.sendToPlayersNear(serverLevel, null, head.x, head.y, head.z, 24.0,
                 new ScreenShakePayload(head.x, head.y, head.z, 0.8F));
         if (!ramAnimationPlayed) {
             ramAnimationPlayed = true;
@@ -1009,8 +1017,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     @Override
-    protected int getBaseExperienceReward() {
-        return armyBoar ? 0 : super.getBaseExperienceReward();
+    public int getExperienceReward() {
+        return armyBoar ? 0 : super.getExperienceReward();
     }
 
     // ------------------------------------------------------------------ //
@@ -1208,13 +1216,13 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             return;
         }
         archer.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
-        archer.finalizeSpawn(level, difficulty, MobSpawnType.JOCKEY, null);
+        archer.finalizeSpawn(level, difficulty, MobSpawnType.JOCKEY, null, null);
         archer.setPersistenceRequired();
         // Its first charge comes a few seconds into the fight, not the instant it sees a target.
         chargeCooldownTicks = 200 + random.nextInt(JOCKEY_CHARGE_COOLDOWN_RANGE);
         // A boar still being spawned is added with its passengers by the spawner, like a spider jockey;
         // adding the rider first would tell clients about a rider on a boar they have never heard of.
-        if (!isAddedToLevel()) {
+        if (!isAddedToWorld()) {
             archer.startRiding(this, true);
             return;
         }
@@ -1226,7 +1234,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** Whether the space above the boar is clear for a seated Archer, seat height plus his full height. */
     private boolean hasJockeyRoom(ServerLevelAccessor level) {
-        double archerHeight = com.kingsandmonsters.ModEntities.OGRE_ARCHER.get().getDimensions().height();
+        double archerHeight = com.kingsandmonsters.ModEntities.OGRE_ARCHER.get().getDimensions().height;
         net.minecraft.world.phys.AABB column = new net.minecraft.world.phys.AABB(
                 getX() - 0.5, getY() + getBbHeight(), getZ() - 0.5,
                 getX() + 0.5, getY() + JOCKEY_SEAT_HEIGHT + archerHeight + 0.2, getZ() + 0.5);
@@ -1339,7 +1347,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             baby.moveTo((getX() + partner.getX()) / 2.0, getY(), (getZ() + partner.getZ()) / 2.0,
                     random.nextFloat() * 360.0F, 0.0F);
             baby.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(blockPosition()),
-                    MobSpawnType.BREEDING, null);
+                    MobSpawnType.BREEDING, null, null);
             baby.setBaby(true);
             baby.ownerId = ownerId;
             baby.entityData.set(DATA_TAMED, true);
@@ -1428,8 +1436,13 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     @Override
-    protected EntityDimensions getDefaultDimensions(net.minecraft.world.entity.Pose pose) {
-        return isBaby() ? EntityDimensions.scalable(0.9F, 0.8F).withEyeHeight(0.6F) : super.getDefaultDimensions(pose);
+    public EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose) {
+        return isBaby() ? EntityDimensions.scalable(0.9F, 0.8F) : super.getDimensions(pose);
+    }
+
+    @Override
+    protected float getStandingEyeHeight(net.minecraft.world.entity.Pose pose, EntityDimensions dimensions) {
+        return isBaby() ? 0.6F : super.getStandingEyeHeight(pose, dimensions);
     }
 
     /** Rare roaming groups are two adults with one snoutlet; wallow families are spawned explicitly. */
@@ -1438,8 +1451,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     @SuppressWarnings("deprecation")
     public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(ServerLevelAccessor level,
             net.minecraft.world.DifficultyInstance difficulty, MobSpawnType spawnType,
-            @Nullable net.minecraft.world.entity.SpawnGroupData group) {
-        net.minecraft.world.entity.SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, group);
+            @Nullable net.minecraft.world.entity.SpawnGroupData group, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        net.minecraft.world.entity.SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, group, spawnTag);
         if (spawnType == MobSpawnType.NATURAL || spawnType == MobSpawnType.CHUNK_GENERATION) {
             MudsnoutPackData pack = group instanceof MudsnoutPackData existing
                     ? existing : new MudsnoutPackData();
@@ -1682,7 +1695,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         tag.putInt("BabyTicks", babyTicks);
         tag.putBoolean("Sitting", sitting);
         if (!saddleSlot.getItem(0).isEmpty()) {
-            tag.put("SaddleItem", saddleSlot.getItem(0).save(registryAccess()));
+            tag.put("SaddleItem", saddleSlot.getItem(0).save(new net.minecraft.nbt.CompoundTag()));
         }
     }
 
@@ -1705,7 +1718,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         sitting = tag.getBoolean("Sitting");
         entityData.set(DATA_POSE, sitting ? POSE_SITTING : POSE_NONE);
         ItemStack saddle = tag.contains("SaddleItem")
-                ? ItemStack.parseOptional(registryAccess(), tag.getCompound("SaddleItem"))
+                ? ItemStack.of(tag.getCompound("SaddleItem"))
                 : tag.getBoolean("Saddled") ? new ItemStack(Items.SADDLE) : ItemStack.EMPTY;
         saddleSlot.setItem(0, saddle);
         entityData.set(DATA_SADDLED, saddle.is(Items.SADDLE));
@@ -1721,15 +1734,24 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         return isSaddled() && getFirstPassenger() instanceof Player player ? player : null;
     }
 
+    /** 1.21 seated riders by their own hip height: 0.6 for a player, at the feet for everything else. */
+    private static double riderFeetOffset(net.minecraft.world.entity.Entity passenger) {
+        return passenger instanceof Player ? -0.7 : 0.0;
+    }
+
     @Override
-    protected Vec3 getPassengerAttachmentPoint(net.minecraft.world.entity.Entity passenger, EntityDimensions dimensions,
-                                               float scale) {
+    protected void positionRider(net.minecraft.world.entity.Entity passenger, net.minecraft.world.entity.Entity.MoveFunction callback) {
+        if (!hasPassenger(passenger)) {
+            return;
+        }
         boolean jockey = passenger instanceof OgreArcher;
         Vec3 seat = new Vec3(0.0, jockey ? JOCKEY_SEAT_HEIGHT : SEAT_HEIGHT, jockey ? JOCKEY_SEAT_OFFSET : 0.0);
         // The offset follows the way the body faces, which is what the model is drawn along. It is not
         // rotated for us, and the body lags the look direction at rest, so a fixed offset drifted around
         // the saddle and settled only once the boar started to walk.
-        return seat.yRot(-yBodyRot * net.minecraft.util.Mth.DEG_TO_RAD);
+        Vec3 offset = seat.yRot(-yBodyRot * net.minecraft.util.Mth.DEG_TO_RAD);
+        callback.accept(passenger, getX() + offset.x, getY() + offset.y + riderFeetOffset(passenger),
+                getZ() + offset.z);
     }
 
     /**
@@ -2096,7 +2118,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     private static final net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.structure.Structure>
             WALLOW_STRUCTURE = net.minecraft.resources.ResourceKey.create(
                     net.minecraft.core.registries.Registries.STRUCTURE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "mud_wallow"));
+                    new net.minecraft.resources.ResourceLocation("kingsandmonsters", "mud_wallow"));
 
     /** True inside the footprint of a generated wallow. */
     private static boolean isAtWallow(ServerLevelAccessor level, BlockPos pos) {
@@ -2112,8 +2134,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     @Override
-    protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
-        super.dropCustomDeathLoot(level, source, recentlyHit);
+    protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit) {
+        super.dropCustomDeathLoot(source, looting, recentlyHit);
         if (!saddleSlot.getItem(0).isEmpty()) {
             spawnAtLocation(saddleSlot.getItem(0));
         }
@@ -2423,7 +2445,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
         @Override
         public boolean canUse() {
-            return boar.isWildAndIdle() && super.canUse() && toAvoid instanceof Player player && boar.canWarn(player);
+            return boar.isWildAndIdle() && super.canUse() && boar.canWarn((Player) toAvoid);
         }
     }
 

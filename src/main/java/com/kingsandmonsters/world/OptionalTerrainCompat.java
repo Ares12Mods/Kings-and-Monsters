@@ -8,7 +8,7 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Optional terrain recognized by structure cleanup without requiring the owning mod. */
 final class OptionalTerrainCompat {
     private static final ResourceLocation CREATE_ASURINE =
-            ResourceLocation.fromNamespaceAndPath("create", "asurine");
+            new ResourceLocation("create", "asurine");
 
     private static volatile boolean resolved;
     private static Block createAsurine;

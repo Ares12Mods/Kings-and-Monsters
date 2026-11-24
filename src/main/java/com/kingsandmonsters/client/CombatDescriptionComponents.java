@@ -30,23 +30,23 @@ public final class CombatDescriptionComponents {
     }
 
     @Nullable
-    public static Component enchantment(ResourceKey<Enchantment> key, int level) {
-        if (key.equals(ModEnchantments.HEAVY_THROW)) {
+    public static Component enchantment(Enchantment key, int level) {
+        if (key == ModEnchantments.HEAVY_THROW.get()) {
             return Component.translatable("tooltip.kingsandmonsters.enchantment.heavy_throw",
                     number(Config.HEAVY_THROW_DAMAGE_PER_LEVEL.get()),
                     number(Config.HEAVY_THROW_KNOCKBACK_PER_LEVEL.get()),
                     percent(Config.HEAVY_THROW_SPEED_PENALTY_PER_LEVEL.get()));
         }
-        if (key.equals(ModEnchantments.BARBED)) {
+        if (key == ModEnchantments.BARBED.get()) {
             return Component.translatable(level >= 2
                     ? "tooltip.kingsandmonsters.enchantment.barbed.2"
                     : "tooltip.kingsandmonsters.enchantment.barbed.1");
         }
-        if (key.equals(ModEnchantments.TYRANT)) {
+        if (key == ModEnchantments.TYRANT.get()) {
             return Component.translatable("tooltip.kingsandmonsters.enchantment.tyrant",
                     number(Config.TYRANT_SEARCH_RADIUS.get()));
         }
-        if (key.equals(ModEnchantments.BOGBURST)) {
+        if (key == ModEnchantments.BOGBURST.get()) {
             return Component.translatable(level >= 2
                     ? "tooltip.kingsandmonsters.enchantment.bogburst.2"
                     : "tooltip.kingsandmonsters.enchantment.bogburst.1");
@@ -55,39 +55,39 @@ public final class CombatDescriptionComponents {
     }
 
     @Nullable
-    public static Component enchantmentDetail(ResourceKey<Enchantment> key) {
-        if (key.equals(ModEnchantments.TYRANT)) {
+    public static Component enchantmentDetail(Enchantment key) {
+        if (key == ModEnchantments.TYRANT.get()) {
             return Component.translatable("tooltip.kingsandmonsters.enchantment.tyrant.detail");
         }
         return null;
     }
 
     @Nullable
-    public static Component effect(Holder<MobEffect> effect) {
-        if (effect.equals(ModMobEffects.DAZED)) {
+    public static Component effect(MobEffect effect) {
+        if (effect.equals(ModMobEffects.DAZED.get())) {
             return Component.translatable("tooltip.kingsandmonsters.effect.dazed",
                     percent(DazedEffect.MOVEMENT_SPEED_REDUCTION),
                     percent(DazedEffect.ATTACK_SPEED_REDUCTION));
         }
-        if (effect.equals(ModMobEffects.HAMSTRUNG)) {
+        if (effect.equals(ModMobEffects.HAMSTRUNG.get())) {
             return Component.translatable("tooltip.kingsandmonsters.effect.hamstrung");
         }
-        if (effect.equals(ModMobEffects.CRIPPLED)) {
+        if (effect.equals(ModMobEffects.CRIPPLED.get())) {
             return Component.translatable("tooltip.kingsandmonsters.effect.crippled",
                     percent(CrippledEffect.MOVEMENT_SPEED_REDUCTION));
         }
-        if (effect.equals(ModMobEffects.BOGFUME_RAGE)) {
+        if (effect.equals(ModMobEffects.BOGFUME_RAGE.get())) {
             return Component.translatable("tooltip.kingsandmonsters.effect.bogfume_rage",
                     percent(BogfumeRageEvents.DAMAGE_DEALT_MULTIPLIER - 1.0F),
                     percent(1.0F - BogfumeRageEvents.DAMAGE_TAKEN_MULTIPLIER));
         }
-        if (effect.equals(ModMobEffects.LESSER_BLEEDING)) {
+        if (effect.equals(ModMobEffects.LESSER_BLEEDING.get())) {
             return bleeding("lesser_bleeding", BleedingEffect.Severity.LESSER);
         }
-        if (effect.equals(ModMobEffects.BLEEDING)) {
+        if (effect.equals(ModMobEffects.BLEEDING.get())) {
             return bleeding("bleeding", BleedingEffect.Severity.NORMAL);
         }
-        if (effect.equals(ModMobEffects.GREATER_BLEEDING)) {
+        if (effect.equals(ModMobEffects.GREATER_BLEEDING.get())) {
             return bleeding("greater_bleeding", BleedingEffect.Severity.GREATER);
         }
         return null;

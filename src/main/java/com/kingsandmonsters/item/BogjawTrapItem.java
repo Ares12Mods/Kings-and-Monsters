@@ -48,7 +48,7 @@ public final class BogjawTrapItem extends Item {
         if (level instanceof ServerLevel) {
             level.addFreshEntity(trap);
             level.playSound(null, at.x, at.y, at.z, SoundEvents.IRON_TRAPDOOR_OPEN, SoundSource.PLAYERS, 1.0F, 0.7F);
-            context.getItemInHand().consume(1, player);
+            com.kingsandmonsters.item.ItemUtil.consume(context.getItemInHand(), 1, player);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -68,7 +68,7 @@ public final class BogjawTrapItem extends Item {
             Vec3 at = player.getEyePosition().add(look.scale(0.6)).add(0.0, -0.25, 0.0);
             level.addFreshEntity(BogjawTrap.thrown(level, player, at, look.scale(THROW_SPEED)));
             level.playSound(null, at.x, at.y, at.z, SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.8F, 0.9F);
-            stack.consume(1, player);
+            com.kingsandmonsters.item.ItemUtil.consume(stack, 1, player);
         }
         player.getCooldowns().addCooldown(this, THROW_COOLDOWN_TICKS);
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);

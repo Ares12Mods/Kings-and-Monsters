@@ -12,10 +12,8 @@ import net.minecraft.world.entity.player.Inventory;
 /** Vanilla's horse screen, minus the armor slot and the chest area. */
 public class MudsnoutBoarScreen extends AbstractContainerScreen<MudsnoutBoarMenu> {
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.withDefaultNamespace("textures/gui/container/horse.png");
+            new ResourceLocation("textures/gui/container/horse.png");
 
-    private static final ResourceLocation SADDLE_SLOT_SPRITE =
-            ResourceLocation.withDefaultNamespace("container/horse/saddle_slot");
 
     private float mouseX;
     private float mouseY;
@@ -32,10 +30,11 @@ public class MudsnoutBoarScreen extends AbstractContainerScreen<MudsnoutBoarMenu
         graphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
         // The base texture draws the horse's chest area; a boar has none, so paint the panel back over it.
         graphics.fill(x + 78, y + 16, x + 170, y + 72, 0xFFC6C6C6);
-        graphics.blitSprite(SADDLE_SLOT_SPRITE, x + 7, y + 17, 18, 18);
+        // Vanilla draws the saddle slot outline from the extra strip below the panel.
+        graphics.blit(TEXTURE, x + 7, y + 17, 18, imageHeight + 54, 18, 18);
         if (menu.getBoar() != null) {
-            InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, x + 26, y + 18, x + 78, y + 70, 17,
-                    0.25F, this.mouseX, this.mouseY, menu.getBoar());
+            InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, x + 51, y + 60, 17,
+                    (float) (x + 51) - this.mouseX, (float) (y + 75 - 50) - this.mouseY, menu.getBoar());
         }
     }
 

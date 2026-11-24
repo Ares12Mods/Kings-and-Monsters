@@ -30,6 +30,6 @@ public final class BlackhideArmorModel extends GeoModel<BlackhideArmorItem> {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

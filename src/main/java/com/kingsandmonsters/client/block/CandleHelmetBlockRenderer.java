@@ -21,7 +21,7 @@ public final class CandleHelmetBlockRenderer extends GeoBlockRenderer<CandleHelm
     public void actuallyRender(PoseStack poseStack, CandleHelmetBlockEntity animatable, BakedGeoModel model,
                                @Nullable RenderType renderType, MultiBufferSource bufferSource,
                                @Nullable VertexConsumer buffer, boolean isReRender, float partialTick,
-                               int packedLight, int packedOverlay, int colour) {
+                               int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
         poseStack.pushPose();
         poseStack.translate(0.0, CandleHelmetBlock.DROP_TO_FLOOR, 0.0);
         switch (animatable.getBlockState().getValue(CandleHelmetBlock.FACING)) {
@@ -42,7 +42,7 @@ public final class CandleHelmetBlockRenderer extends GeoBlockRenderer<CandleHelm
             default -> { }
         }
         super.actuallyRender(poseStack, animatable, model, renderType, bufferSource, buffer,
-                isReRender, partialTick, packedLight, packedOverlay, colour);
+                isReRender, partialTick, packedLight, packedOverlay, red, green, blue, alpha);
         poseStack.popPose();
     }
 }

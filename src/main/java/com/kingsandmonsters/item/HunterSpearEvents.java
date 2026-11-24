@@ -8,8 +8,8 @@ import com.kingsandmonsters.enchantment.ModEnchantments;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 
 public final class HunterSpearEvents {
 
@@ -23,7 +23,7 @@ public final class HunterSpearEvents {
 
         ItemStack weapon;
         boolean thrownTrident = event.getSource().getDirectEntity() instanceof ThrownTrident trident;
-        if (thrownTrident) weapon = ((ThrownTrident) event.getSource().getDirectEntity()).getWeaponItem();
+        if (thrownTrident) weapon = ((ThrownTrident) event.getSource().getDirectEntity()).tridentItem;
         else if (event.getSource().getDirectEntity() == attacker) weapon = attacker.getMainHandItem();
         else return;
         if (weapon.is(ModItems.HUNTERS_SPEAR.get())) {
@@ -43,7 +43,7 @@ public final class HunterSpearEvents {
 
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide() || !(event.getEntity() instanceof ThrownTrident trident)) return;
-        ItemStack weapon = trident.getWeaponItem();
+        ItemStack weapon = trident.tridentItem;
         int level = ModEnchantmentEffects.level(event.getLevel(), weapon, ModEnchantments.HEAVY_THROW);
         if (level <= 0) return;
         trident.setBaseDamage(ModEnchantmentEffects.heavyThrowDamage((float) trident.getBaseDamage(), level));

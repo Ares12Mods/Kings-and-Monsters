@@ -3,7 +3,6 @@ package com.kingsandmonsters.world;
 import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.Vec3i;
@@ -32,7 +31,7 @@ import java.util.Optional;
  */
 @SuppressWarnings("deprecation")
 public final class FortNeighborStructurePlacement extends RandomSpreadStructurePlacement {
-    public static final MapCodec<FortNeighborStructurePlacement> CODEC =
+    public static final Codec<FortNeighborStructurePlacement> CODEC =
             RecordCodecBuilder.<FortNeighborStructurePlacement>mapCodec(instance -> instance.group(
                             Codec.INT.fieldOf("salt").forGetter(FortNeighborStructurePlacement::ownSalt),
                             Codec.intRange(1, 4096).fieldOf("spacing")
@@ -59,7 +58,7 @@ public final class FortNeighborStructurePlacement extends RandomSpreadStructureP
                             Codec.intRange(1, 2048).fieldOf("max_distance_chunks")
                                     .forGetter(FortNeighborStructurePlacement::maxDistanceChunks)
                     ).apply(instance, FortNeighborStructurePlacement::new))
-                    .validate(FortNeighborStructurePlacement::validate);
+                    .flatXmap(FortNeighborStructurePlacement::validate, DataResult::success).codec();
 
     private final int ownSalt;
     private final float ownFrequency;
@@ -202,11 +201,11 @@ public final class FortNeighborStructurePlacement extends RandomSpreadStructureP
     }
 
     @Override
-    public boolean applyInteractionsWithOtherStructures(
+    public boolean isStructureChunk(
             ChunkGeneratorStructureState structureState,
             int chunkX,
             int chunkZ) {
-        if (!super.applyInteractionsWithOtherStructures(structureState, chunkX, chunkZ)) {
+        if (!super.isStructureChunk(structureState, chunkX, chunkZ)) {
             return false;
         }
         if (!WildscapesStructureCompat.isClear(structureState, chunkX, chunkZ)) {

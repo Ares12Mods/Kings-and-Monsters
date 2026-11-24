@@ -46,16 +46,16 @@ public final class OgreOverlayState {
         }
     }
 
-    public static void render(GuiGraphics graphics, net.minecraft.client.DeltaTracker deltaTracker) {
+    public static void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
         if (active == null || Minecraft.getInstance().options.hideGui) {
             return;
         }
 
         float partialAge = Math.min(
-                age + deltaTracker.getGameTimeDeltaPartialTick(false),
+                age + partialTick,
                 totalDuration(active));
         float alpha = Mth.clamp(alpha(active, partialAge), 0.0F, 1.0F);
-        int packedAlpha = Math.clamp(Math.round(alpha * 255.0F), 0, 255);
+        int packedAlpha = Mth.clamp(Math.round(alpha * 255.0F), 0, 255);
         // Minecraft's font renderer treats colors whose top six alpha bits are
         // all zero as legacy RGB and silently makes them fully opaque. Never
         // submit those final 0-3 alpha values or the fade flashes at its end.
@@ -64,8 +64,6 @@ public final class OgreOverlayState {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
-        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
         int centerY = active.emphasis() == OgreOverlayPayload.Emphasis.MAJOR_EVENT
                 ? Math.max(62, Math.round(screenHeight * 0.31F))
                 : Math.max(54, Math.round(screenHeight * 0.25F));

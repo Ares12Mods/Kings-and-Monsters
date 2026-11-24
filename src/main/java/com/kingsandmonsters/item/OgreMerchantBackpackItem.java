@@ -1,10 +1,11 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.nbt.CompoundTag;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.menu.OgreMerchantBackpackMenu;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -13,9 +14,8 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraftforge.items.ItemStackHandler;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.List;
@@ -38,26 +38,26 @@ public class OgreMerchantBackpackItem extends CurioItem {
     }
 
     public static void openEquipped(ServerPlayer player) {
-        CuriosApi.getCuriosInventory(player).flatMap(handler -> handler.findFirstCurio(
+        CuriosApi.getCuriosInventory(player).resolve().flatMap(handler -> handler.findFirstCurio(
                 stack -> stack.getItem() instanceof OgreMerchantBackpackItem))
                 .ifPresent(result -> open(player, result.stack(), -1));
     }
 
     private static void open(ServerPlayer player, ItemStack stack, int lockedInventorySlot) {
-        player.openMenu(new SimpleMenuProvider(
+        net.minecraftforge.network.NetworkHooks.openScreen(player, new SimpleMenuProvider(
                 (containerId, inventory, ignored) -> new OgreMerchantBackpackMenu(
                         containerId, inventory, stack, lockedInventorySlot),
                 Component.translatable("container.kingsandmonsters.ogre_merchant_backpack")),
                 buffer -> buffer.writeVarInt(lockedInventorySlot));
     }
 
-    public static ItemStackHandler loadInventory(ItemStack backpack, net.minecraft.core.HolderLookup.Provider registries) {
+    public static ItemStackHandler loadInventory(ItemStack backpack) {
         boolean[] loading = {true};
         ItemStackHandler handler = new ItemStackHandler(SLOT_COUNT) {
             @Override
             protected void onContentsChanged(int slot) {
                 if (!loading[0]) {
-                    saveInventory(backpack, this, registries);
+                    saveInventory(backpack, this);
                 }
             }
 
@@ -66,16 +66,16 @@ public class OgreMerchantBackpackItem extends CurioItem {
                 return !(candidate.getItem() instanceof OgreMerchantBackpackItem);
             }
         };
-        CustomData data = backpack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
-        if (data.contains(INVENTORY_TAG)) {
+        CompoundTag data = backpack.getTag();
+        if (data != null && data.contains(INVENTORY_TAG)) {
             ItemStackHandler stored = new ItemStackHandler();
-            stored.deserializeNBT(registries, data.copyTag().getCompound(INVENTORY_TAG));
+            stored.deserializeNBT(data.getCompound(INVENTORY_TAG));
             int copiedSlots = Math.min(stored.getSlots(), SLOT_COUNT);
             for (int slot = 0; slot < copiedSlots; slot++) {
                 handler.setStackInSlot(slot, stored.getStackInSlot(slot));
             }
             if (stored.getSlots() != SLOT_COUNT) {
-                saveInventory(backpack, handler, registries);
+                saveInventory(backpack, handler);
             }
         }
         loading[0] = false;
@@ -87,14 +87,12 @@ public class OgreMerchantBackpackItem extends CurioItem {
      * onContentsChanged callback is skipped when a stack is grown in place (stacking onto an existing
      * stack or shift-clicking), because setStackInSlot sees the same, already-mutated stack as unchanged.
      */
-    public static void saveInventory(ItemStack backpack, ItemStackHandler handler,
-                                     net.minecraft.core.HolderLookup.Provider registries) {
-        CustomData.update(DataComponents.CUSTOM_DATA, backpack,
-                tag -> tag.put(INVENTORY_TAG, handler.serializeNBT(registries)));
+    public static void saveInventory(ItemStack backpack, ItemStackHandler handler) {
+        backpack.getOrCreateTag().put(INVENTORY_TAG, handler.serializeNBT());
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.backpack.slots", SLOT_COUNT)
                 .withStyle(ChatFormatting.BLUE));

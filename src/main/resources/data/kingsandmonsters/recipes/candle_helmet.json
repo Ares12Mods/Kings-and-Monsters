@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": {
+      "item": "minecraft:candle"
+    },
+    "H": {
+      "item": "minecraft:iron_helmet"
+    }
+  },
+  "pattern": [
+    " C ",
+    " H "
+  ],
+  "result": {
+    "item": "kingsandmonsters:candle_helmet",
+    "count": 1
+  }
+}

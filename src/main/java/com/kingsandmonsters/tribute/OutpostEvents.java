@@ -11,10 +11,10 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 public final class OutpostEvents {
 
@@ -39,7 +39,7 @@ public final class OutpostEvents {
                 .ifPresent(campOrigin -> com.kingsandmonsters.world.FortMapDeliveryService.tryDeliver(level, campOrigin));
 
         // Only trigger the rest (anger/patrol) on first open — loot table tag is present before loot generates
-        CompoundTag tag = be.saveWithoutMetadata(level.registryAccess());
+        CompoundTag tag = be.saveWithoutMetadata();
         if (!tag.contains("LootTable")) return;
 
         int campRadius = Config.TRIBUTE_CAMP_KILL_RADIUS.get();
@@ -94,7 +94,7 @@ public final class OutpostEvents {
     private static final int FRIENDLY_FIRE_FAVOR_LOSS = 1;
     private static final String STRUCK_BY_FRIEND_TAG = "KingsAndMonstersStruckByFriend";
 
-    /** Striking the tribe ends any peace the player had, for every ogre and not just the one hit. */
+    /** Striking the tribe ends any peace the player had, for every ogre and not just the one hit, unless they are appeased. */
     public static void onOgreHurt(LivingDamageEvent.Post event) {
         if (event.getEntity() instanceof OgreGrunt ogre && !(ogre instanceof PlagueOgre)
                 && !ogre.isArmyAlly()

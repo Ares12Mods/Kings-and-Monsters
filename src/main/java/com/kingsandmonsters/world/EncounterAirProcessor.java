@@ -1,7 +1,6 @@
 package com.kingsandmonsters.world;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelReader;
@@ -21,7 +20,7 @@ import javax.annotation.Nullable;
  * placed (that carves the pit) and everything outside the cylinder is left to the natural terrain.</p>
  */
 public final class EncounterAirProcessor extends StructureProcessor {
-    public static final MapCodec<EncounterAirProcessor> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    public static final Codec<EncounterAirProcessor> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.INT.optionalFieldOf("ground_y", 0).forGetter(p -> p.groundY),
                     Codec.INT.optionalFieldOf("pit_x", 0).forGetter(p -> p.pitX),

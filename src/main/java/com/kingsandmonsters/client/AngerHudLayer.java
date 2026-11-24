@@ -1,13 +1,12 @@
 package com.kingsandmonsters.client;
 
+import net.minecraft.util.Mth;
 import com.kingsandmonsters.KingsAndMonsters;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.resources.ResourceLocation;
 
-public final class AngerHudLayer implements LayeredDraw.Layer {
+public final class AngerHudLayer implements net.minecraftforge.client.gui.overlay.IGuiOverlay {
     private static final int LEFT_OFFSET = 10;
     private static final int TOP_OFFSET = 10;
     private static final int HUD_WIDTH = 39;
@@ -24,7 +23,7 @@ public final class AngerHudLayer implements LayeredDraw.Layer {
     private static final ResourceLocation BRUTE = texture("brute");
 
     @Override
-    public void render(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
+    public void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight) {
         if (!AngerHudState.isVisible()) {
             return;
         }
@@ -41,7 +40,7 @@ public final class AngerHudLayer implements LayeredDraw.Layer {
 
         int anger = AngerHudState.getAngerLevel();
         int max = AngerHudState.getMaxAngerLevel();
-        int frame = Math.clamp(Math.round(anger * 30.0F / max), 0, 30);
+        int frame = Mth.clamp(Math.round(anger * 30.0F / max), 0, 30);
         ResourceLocation face = faceForAnger(anger);
         int faceY = FACE_Y - ((face.equals(GRUNT_CAPTAIN) || face.equals(BRUTE)) ? 2 : 0);
 
@@ -68,7 +67,7 @@ public final class AngerHudLayer implements LayeredDraw.Layer {
     }
 
     private static ResourceLocation texture(String name) {
-        return ResourceLocation.fromNamespaceAndPath(
+        return new ResourceLocation(
                 KingsAndMonsters.MODID, "textures/gui/anger_hud/" + name + ".png");
     }
 

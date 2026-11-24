@@ -16,8 +16,8 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
-import net.neoforged.neoforge.common.Tags;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.common.Tags;
+import com.kingsandmonsters.event.PlayerTickEvent;
 import org.joml.Vector3f;
 import top.theillusivec4.curios.api.CuriosApi;
 
@@ -33,14 +33,12 @@ public final class WarcallerBellEvents {
     // every time this method runs rather than relying on its own timer to expire.
     private static final int WARCALLED_EFFECT_DURATION_TICKS = HOSTILE_SCAN_INTERVAL_TICKS + 5;
     private static final String BONUS_UNTIL_TAG = "KingsAndMonstersWarcallerBonusUntil";
-    private static final ResourceLocation HEALTH_BONUS_ID = ResourceLocation.fromNamespaceAndPath(
-            KingsAndMonsters.MODID, "warcaller_bell_health");
-    private static final ResourceLocation ARMOR_BONUS_ID = ResourceLocation.fromNamespaceAndPath(
-            KingsAndMonsters.MODID, "warcaller_bell_armor");
-    private static final AttributeModifier HEALTH_BONUS = new AttributeModifier(
-            HEALTH_BONUS_ID, 2.0, AttributeModifier.Operation.ADD_VALUE);
-    private static final AttributeModifier ARMOR_BONUS = new AttributeModifier(
-            ARMOR_BONUS_ID, 4.0, AttributeModifier.Operation.ADD_VALUE);
+    private static final java.util.UUID HEALTH_BONUS_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("warcaller_bell_health");
+    private static final java.util.UUID ARMOR_BONUS_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("warcaller_bell_armor");
+    private static final AttributeModifier HEALTH_BONUS = new AttributeModifier(HEALTH_BONUS_ID, HEALTH_BONUS_ID.toString(), 2.0, AttributeModifier.Operation.ADDITION);
+    private static final AttributeModifier ARMOR_BONUS = new AttributeModifier(ARMOR_BONUS_ID, ARMOR_BONUS_ID.toString(), 4.0, AttributeModifier.Operation.ADDITION);
     private static final DustParticleOptions ACTIVATION_DUST =
             new DustParticleOptions(new Vector3f(0.78F, 0.62F, 0.28F), 1.2F);
 
@@ -105,17 +103,17 @@ public final class WarcallerBellEvents {
     }
 
     private static void updateWarcalledEffect(ServerPlayer player, boolean active) {
-        boolean wasActive = player.hasEffect(ModMobEffects.WARCALLED);
+        boolean wasActive = player.hasEffect(ModMobEffects.WARCALLED.get());
         if (active) {
             // Re-applied every time this runs so the icon's own timer never has to be the source
             // of truth — bonusActive already carries the linger, this just mirrors it.
-            player.addEffect(new MobEffectInstance(ModMobEffects.WARCALLED,
+            player.addEffect(new MobEffectInstance(ModMobEffects.WARCALLED.get(),
                     WARCALLED_EFFECT_DURATION_TICKS, 0, false, true, true));
             if (!wasActive) {
                 playActivationCue(player);
             }
         } else if (wasActive) {
-            player.removeEffect(ModMobEffects.WARCALLED);
+            player.removeEffect(ModMobEffects.WARCALLED.get());
         }
     }
 
@@ -134,11 +132,11 @@ public final class WarcallerBellEvents {
         if (attribute == null) {
             return;
         }
-        boolean present = attribute.getModifier(modifier.id()) != null;
+        boolean present = attribute.getModifier(modifier.getId()) != null;
         if (active && !present) {
             attribute.addTransientModifier(modifier);
         } else if (!active && present) {
-            attribute.removeModifier(modifier.id());
+            attribute.removeModifier(modifier.getId());
         }
     }
 

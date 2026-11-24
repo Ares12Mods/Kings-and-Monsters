@@ -1,12 +1,12 @@
 package com.kingsandmonsters.entity.animation;
 
-import software.bernie.geckolib.animatable.GeoAnimatable;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.AnimationProcessor;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.state.BoneSnapshot;
-import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.model.GeoModel;
+import software.bernie.geckolib.core.animatable.GeoAnimatable;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationProcessor;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.state.BoneSnapshot;
+import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
+import software.bernie.geckolib.core.animatable.model.CoreGeoModel;
 
 import java.util.Map;
 
@@ -45,7 +45,7 @@ public final class SynchronizedAnimationController<T extends GeoAnimatable> exte
     }
 
     @Override
-    public void process(GeoModel<T> model, AnimationState<T> state, Map<String, GeoBone> bones,
+    public void process(CoreGeoModel<T> model, AnimationState<T> state, Map<String, CoreGeoBone> bones,
                         Map<String, BoneSnapshot> snapshots, double seekTime, boolean crashWhenCantFindBone) {
         super.process(model, state, bones, snapshots, seekTime, crashWhenCantFindBone);
         elapsedAnimationTicks = animationSpeedModifier.apply(animatable) * Math.max(seekTime - tickOffset, 0);

@@ -1,7 +1,6 @@
 package com.kingsandmonsters.world;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelReader;
@@ -26,9 +25,9 @@ import java.util.Map;
  * in {@code worldgen/template_pool/ogre_outpost/outposts.json}).</p>
  */
 public final class OutpostMobLootProcessor extends StructureProcessor {
-    public static final MapCodec<OutpostMobLootProcessor> CODEC =
+    public static final Codec<OutpostMobLootProcessor> CODEC =
             Codec.STRING.optionalFieldOf("variant", "brute")
-                    .xmap(OutpostMobLootProcessor::new, processor -> processor.variant);
+                    .xmap(OutpostMobLootProcessor::new, processor -> processor.variant).codec();
 
     private static final String BRUTE_LOOT = "kingsandmonsters:chests/ogre_outpost_brute";
     private static final String GRUNT_LOOT = "kingsandmonsters:chests/ogre_outpost_grunt";

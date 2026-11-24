@@ -1,10 +1,10 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -22,7 +22,6 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -36,21 +35,18 @@ import java.util.Optional;
 
 public class KingsTributeBagItem extends BundleItem {
     private static final String OPENED_TAG = "KingsTributeOpened";
-    private static final ResourceKey<LootTable> LOOT_TABLE = ResourceKey.create(
-            Registries.LOOT_TABLE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "gameplay/kings_tribute_bag"));
+    private static final ResourceLocation LOOT_TABLE = new ResourceLocation(KingsAndMonsters.MODID, "gameplay/kings_tribute_bag");
 
     public KingsTributeBagItem(Properties properties) {
         super(properties);
     }
 
     public static boolean isOpened(ItemStack stack) {
-        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                .copyTag().getBoolean(OPENED_TAG);
+        return stack.hasTag() && stack.getTag().getBoolean(OPENED_TAG);
     }
 
     private static void markOpened(ItemStack stack) {
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(OPENED_TAG, true));
+        stack.getOrCreateTag().putBoolean(OPENED_TAG, true);
     }
 
     @Override
@@ -69,7 +65,7 @@ public class KingsTributeBagItem extends BundleItem {
                 .withOptionalParameter(LootContextParams.THIS_ENTITY, player)
                 .withLuck(player.getLuck())
                 .create(LootContextParamSets.CHEST);
-        LootTable table = serverLevel.getServer().reloadableRegistries().getLootTable(LOOT_TABLE);
+        LootTable table = serverLevel.getServer().getLootData().getLootTable(LOOT_TABLE);
         for (ItemStack reward : table.getRandomItems(params)) {
             serverPlayer.getInventory().add(reward);
             if (!reward.isEmpty()) {
@@ -104,13 +100,13 @@ public class KingsTributeBagItem extends BundleItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) {
-            if (isOpened(stack)) super.appendHoverText(stack, context, tooltip, flag);
+            if (isOpened(stack)) super.appendHoverText(stack, level, tooltip, flag);
             return;
         }
         if (isOpened(stack)) {
-            super.appendHoverText(stack, context, tooltip, flag);
+            super.appendHoverText(stack, level, tooltip, flag);
             tooltip.add(Component.translatable("tooltip.kingsandmonsters.tribute_bag.opened")
                     .withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
         } else {

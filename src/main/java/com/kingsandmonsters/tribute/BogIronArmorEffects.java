@@ -21,9 +21,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -57,7 +57,7 @@ public final class BogIronArmorEffects {
 
     public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
         if (EffectImmunityRules.rejects(event.getEntity(), event.getEffectInstance().getEffect())) {
-            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
         }
     }
 
@@ -67,11 +67,11 @@ public final class BogIronArmorEffects {
                 || !hasFullSet(wearer)) return;
 
         long now = wearer.level().getGameTime();
-        if (wearer.hasEffect(ModMobEffects.UNYIELDING)) return;
+        if (wearer.hasEffect(ModMobEffects.UNYIELDING.get())) return;
         if (wearer.getPersistentData().getLong(COOLDOWN_UNTIL_TAG) > now) return;
 
         wearer.getPersistentData().putLong(COOLDOWN_UNTIL_TAG, now + UNYIELDING_COOLDOWN_TICKS);
-        wearer.addEffect(new MobEffectInstance(ModMobEffects.UNYIELDING,
+        wearer.addEffect(new MobEffectInstance(ModMobEffects.UNYIELDING.get(),
                 UNYIELDING_DURATION_TICKS, 0, false, true, true));
 
         if (wearer.level() instanceof ServerLevel level) {
@@ -110,7 +110,7 @@ public final class BogIronArmorEffects {
     private static void spawnRing(ServerLevel level, Vec3 center, double radius) {
         int points = Math.max(18, (int) Math.ceil(radius * 7.0));
         for (int point = 0; point < points; point++) {
-            double angle = Math.TAU * point / points;
+            double angle = (Math.PI * 2.0) * point / points;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             level.sendParticles(ParticleTypes.CLOUD, x, center.y + 0.12, z,
@@ -121,7 +121,7 @@ public final class BogIronArmorEffects {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 
     private static final class ActiveShockwave {
@@ -158,7 +158,7 @@ public final class BogIronArmorEffects {
                 if (distance > radius + 0.65 || distance < Math.max(0.0, previousRadius - 0.65)) continue;
                 hitTargets.add(target.getUUID());
                 if (distance < 0.01) {
-                    double angle = wearer.getRandom().nextDouble() * Math.TAU;
+                    double angle = wearer.getRandom().nextDouble() * (Math.PI * 2.0);
                     dx = Math.cos(angle);
                     dz = Math.sin(angle);
                     distance = 1.0;

@@ -27,9 +27,8 @@ public final class BruteGauntletsCurioRenderer implements ICurioRenderer {
             return;
         }
 
-        renderer.prepForRender(slotContext.entity(), stack, EquipmentSlot.CHEST, humanoid, buffers,
-                partialTicks, limbSwing, limbSwingAmount, netHeadYaw, headPitch);
-        renderer.renderToBuffer(poseStack, null, light, OverlayTexture.NO_OVERLAY, -1);
+        renderer.prepForRender(slotContext.entity(), stack, EquipmentSlot.CHEST, humanoid);
+        renderer.renderToBuffer(poseStack, null, light, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
         renderer.doPostRenderCleanup();
     }
 }

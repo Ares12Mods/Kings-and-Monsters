@@ -11,9 +11,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 
 import java.util.Map;
 import java.util.Optional;
@@ -26,10 +26,10 @@ import java.util.Optional;
  */
 public final class SpellPowerCompat {
     private static final String MOD_ID = "spell_power";
-    private static final ResourceLocation RESISTANCE = ResourceLocation.fromNamespaceAndPath(MOD_ID, "resistance.generic");
+    private static final ResourceLocation RESISTANCE = new ResourceLocation(MOD_ID, "resistance.generic");
 
     private static Map<EntityType<? extends LivingEntity>, Double> resistances;
-    private static Holder<Attribute> attribute;
+    private static Attribute attribute;
     private static boolean attributeLookedUp;
 
     private SpellPowerCompat() {
@@ -37,7 +37,7 @@ public final class SpellPowerCompat {
 
     public static void registerIfPresent() {
         if (ModList.get().isLoaded(MOD_ID)) {
-            NeoForge.EVENT_BUS.addListener(SpellPowerCompat::onEntityJoinLevel);
+            MinecraftForge.EVENT_BUS.addListener(SpellPowerCompat::onEntityJoinLevel);
             KingsAndMonsters.LOGGER.info("Enabling optional Spell Power magic resistance compatibility");
         }
     }
@@ -47,7 +47,7 @@ public final class SpellPowerCompat {
             return;
         }
         Double value = resistances().get(livingEntity.getType());
-        Holder<Attribute> resistance = attribute();
+        Attribute resistance = attribute();
         if (value == null || resistance == null) {
             return;
         }
@@ -74,13 +74,13 @@ public final class SpellPowerCompat {
         return resistances;
     }
 
-    private static Holder<Attribute> attribute() {
+    private static Attribute attribute() {
         if (!attributeLookedUp) {
             attributeLookedUp = true;
             Optional<Holder.Reference<Attribute>> found = BuiltInRegistries.ATTRIBUTE.getHolder(
                     ResourceKey.create(Registries.ATTRIBUTE, RESISTANCE));
             if (found.isPresent()) {
-                attribute = found.get();
+                attribute = found.get().value();
             } else {
                 KingsAndMonsters.LOGGER.warn("Spell Power attribute {} is unavailable; skipping it", RESISTANCE);
             }

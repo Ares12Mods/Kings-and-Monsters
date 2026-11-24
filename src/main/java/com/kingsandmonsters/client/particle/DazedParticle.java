@@ -65,7 +65,7 @@ public final class DazedParticle extends TextureSheetParticle {
     @Override
     public void tick() {
         if (!(level.getEntity(entityId) instanceof LivingEntity entity)
-                || !entity.isAlive() || !entity.hasEffect(ModMobEffects.DAZED)) {
+                || !entity.isAlive() || !entity.hasEffect(ModMobEffects.DAZED.get())) {
             remove();
             return;
         }

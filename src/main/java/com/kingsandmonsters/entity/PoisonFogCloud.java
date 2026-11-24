@@ -1,5 +1,6 @@
 package com.kingsandmonsters.entity;
 
+import net.minecraft.util.Mth;
 import com.kingsandmonsters.effect.BogfumeRageEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -53,7 +54,7 @@ public class PoisonFogCloud extends Entity {
     public float getVisualProgress(float partialTick) {
         int phaseStart = isWarningPhase() ? 0 : WARNING_TICKS;
         int phaseDuration = isWarningPhase() ? WARNING_TICKS : ACTIVE_TICKS;
-        return Math.clamp((age + partialTick - phaseStart) / phaseDuration, 0.0F, 1.0F);
+        return Mth.clamp((age + partialTick - phaseStart) / phaseDuration, 0.0F, 1.0F);
     }
 
     public static PoisonFogCloud spawn(ServerLevel level, double x, double y, double z) {
@@ -78,7 +79,7 @@ public class PoisonFogCloud extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+    protected void defineSynchedData() {
     }
 
     @Override

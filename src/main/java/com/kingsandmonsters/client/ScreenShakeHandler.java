@@ -2,8 +2,8 @@ package com.kingsandmonsters.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 
 public final class ScreenShakeHandler {
     private static final int DEFAULT_DURATION_TICKS = 12;

@@ -1,7 +1,6 @@
 package com.kingsandmonsters.block;
 
 import com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -21,18 +20,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public final class OgreKingsCrownBlock extends BaseEntityBlock {
-    public static final MapCodec<OgreKingsCrownBlock> CODEC = simpleCodec(OgreKingsCrownBlock::new);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     private static final VoxelShape SHAPE = Block.box(3.5, 0.0, 3.5, 12.5, 6.0, 12.5);
 
     public OgreKingsCrownBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
-    }
-
-    @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
     }
 
     @Nullable
@@ -42,13 +35,13 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+    public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
         BlockPos supportPos = pos.below();
         return level.getBlockState(supportPos).isFaceSturdy(level, supportPos, Direction.UP);
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
                                      LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
         return direction == Direction.DOWN && !state.canSurvive(level, pos)
                 ? net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
@@ -56,13 +49,32 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    protected RenderShape getRenderShape(BlockState state) {
+    public RenderShape getRenderShape(BlockState state) {
         return RenderShape.ENTITYBLOCK_ANIMATED;
+    }
+
+    @Override
+    public java.util.List<net.minecraft.world.item.ItemStack> getDrops(BlockState state,
+            net.minecraft.world.level.storage.loot.LootParams.Builder params) {
+        BlockEntity entity = params.getOptionalParameter(
+                net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
+        if (entity instanceof OgreKingsCrownBlockEntity crown && !crown.getStack().isEmpty()) {
+            return java.util.List.of(crown.getStack());
+        }
+        return java.util.List.of(new net.minecraft.world.item.ItemStack(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get()));
+    }
+
+    @Override
+    public net.minecraft.world.item.ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
+        if (level.getBlockEntity(pos) instanceof OgreKingsCrownBlockEntity crown && !crown.getStack().isEmpty()) {
+            return crown.getStack().copy();
+        }
+        return new net.minecraft.world.item.ItemStack(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get());
     }
 
     @Nullable
@@ -72,7 +84,7 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    public void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
 }

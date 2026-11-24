@@ -4,10 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Fired on {@link net.neoforged.neoforge.common.NeoForge#EVENT_BUS} after a
+ * Fired on {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS} after a
  * tribute camp's chief has died and the camp's state has been updated.
  *
  * <p>This event is <em>not</em> cancellable — the chief is already dead.</p>

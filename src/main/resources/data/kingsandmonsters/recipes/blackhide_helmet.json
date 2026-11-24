@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "LLL",
+    "L L",
+    "T T"
+  ],
+  "key": {
+    "L": {
+      "item": "kingsandmonsters:blackhide_leather"
+    },
+    "T": {
+      "item": "kingsandmonsters:mudsnout_tusk"
+    }
+  },
+  "result": {
+    "item": "kingsandmonsters:blackhide_helmet",
+    "count": 1
+  }
+}

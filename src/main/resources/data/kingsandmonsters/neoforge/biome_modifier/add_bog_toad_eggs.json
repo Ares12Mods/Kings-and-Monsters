@@ -1,6 +1,0 @@
-{
-  "type": "neoforge:add_features",
-  "biomes": ["minecraft:swamp", "minecraft:mangrove_swamp"],
-  "features": ["kingsandmonsters:bog_toad_eggs"],
-  "step": "vegetal_decoration"
-}

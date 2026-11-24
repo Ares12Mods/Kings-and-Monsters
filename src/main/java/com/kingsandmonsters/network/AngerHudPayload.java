@@ -1,15 +1,12 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.AngerHudState;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /**
  * Sent server->client with the anger level of the nearest tribute camp to the player.
@@ -17,8 +14,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
  */
 public record AngerHudPayload(int angerLevel, int maxAngerLevel, boolean chiefAlive) implements CustomPacketPayload {
     public static final Type<AngerHudPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "anger_hud"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, AngerHudPayload> STREAM_CODEC = StreamCodec.composite(
+            new ResourceLocation(KingsAndMonsters.MODID, "anger_hud"));
+    public static final StreamCodec<FriendlyByteBuf, AngerHudPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.INT,
             AngerHudPayload::angerLevel,
             ByteBufCodecs.INT,

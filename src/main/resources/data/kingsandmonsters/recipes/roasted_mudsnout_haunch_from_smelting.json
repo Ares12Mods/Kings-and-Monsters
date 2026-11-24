@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": {
+    "item": "kingsandmonsters:raw_mudsnout_haunch"
+  },
+  "result": "kingsandmonsters:roasted_mudsnout_haunch"
+}

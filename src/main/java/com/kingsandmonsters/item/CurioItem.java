@@ -1,10 +1,11 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import net.minecraft.core.Holder;
+import java.util.UUID;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -19,16 +20,16 @@ import top.theillusivec4.curios.api.type.capability.ICurioItem;
 import java.util.List;
 
 public class CurioItem extends Item implements ICurioItem {
-    private final Multimap<Holder<Attribute>, AttributeModifier> attributeModifiers;
+    private final Multimap<Attribute, AttributeModifier> attributeModifiers;
     private final List<Component> tooltipLines;
 
-    public CurioItem(Properties properties, Multimap<Holder<Attribute>, AttributeModifier> attributeModifiers, List<Component> tooltipLines) {
+    public CurioItem(Properties properties, Multimap<Attribute, AttributeModifier> attributeModifiers, List<Component> tooltipLines) {
         super(properties);
         this.attributeModifiers = attributeModifiers;
         this.tooltipLines = tooltipLines;
     }
 
-    public CurioItem(Properties properties, Multimap<Holder<Attribute>, AttributeModifier> attributeModifiers) {
+    public CurioItem(Properties properties, Multimap<Attribute, AttributeModifier> attributeModifiers) {
         this(properties, attributeModifiers, List.of());
     }
 
@@ -37,25 +38,28 @@ public class CurioItem extends Item implements ICurioItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltipComponents.addAll(tooltipLines);
     }
 
     @Override
-    public Multimap<Holder<Attribute>, AttributeModifier> getAttributeModifiers(SlotContext slotContext, ResourceLocation id, ItemStack stack) {
-        return attributeModifiers;
+    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(SlotContext slotContext, UUID id, ItemStack stack) {
+        ImmutableMultimap.Builder<Attribute, AttributeModifier> perSlot = ImmutableMultimap.builder();
+        attributeModifiers.forEach((attribute, modifier) -> perSlot.put(attribute,
+                new AttributeModifier(id, modifier.getName(), modifier.getAmount(), modifier.getOperation())));
+        return perSlot.build();
     }
 
     @Override
-    public List<Component> getSlotsTooltip(List<Component> tooltips, TooltipContext context, ItemStack stack) {
+    public List<Component> getSlotsTooltip(List<Component> tooltips, ItemStack stack) {
         if (!ClientConfig.showCustomTooltips()) return tooltips;
         // Our item tooltip already presents the slot in the themed header.
         return List.of();
     }
 
     @Override
-    public List<Component> getAttributesTooltip(List<Component> tooltips, TooltipContext context, ItemStack stack) {
+    public List<Component> getAttributesTooltip(List<Component> tooltips, ItemStack stack) {
         if (!ClientConfig.showCustomTooltips()) return tooltips;
         // Attribute bonuses are included in our structured "When worn" section.
         return List.of();

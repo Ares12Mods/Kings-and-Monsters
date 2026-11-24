@@ -1,7 +1,7 @@
 package com.kingsandmonsters.entity;
 
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
 
 public final class OgreDamageCapEvents {
 

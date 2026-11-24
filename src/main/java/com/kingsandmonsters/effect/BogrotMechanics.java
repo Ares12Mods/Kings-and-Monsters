@@ -19,15 +19,15 @@ public final class BogrotMechanics {
     /** The Ogre King is vulnerable to the rot despite being a boss. */
     public static final float OGRE_KING_DAMAGE_MULTIPLIER = 1.50F;
     private static final TagKey<EntityType<?>> OGRES = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogres"));
+            new ResourceLocation(KingsAndMonsters.MODID, "ogres"));
     private BogrotMechanics() {}
     /** Entity types that always show Bogrot visuals (the Plague Ogre) despite being immune to the effect. */
     private static final TagKey<EntityType<?>> AMBIENT = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bogrot_ambient"));
-    public static boolean isAffected(LivingEntity entity) { return entity.hasEffect(ModMobEffects.BOGROT); }
+            new ResourceLocation(KingsAndMonsters.MODID, "bogrot_ambient"));
+    public static boolean isAffected(LivingEntity entity) { return entity.hasEffect(ModMobEffects.BOGROT.get()); }
     /** True while the synchronized effect is live, or the entity type naturally carries Bogrot. */
     public static boolean showsVisuals(LivingEntity entity) {
-        MobEffectInstance effect = entity.getEffect(ModMobEffects.BOGROT);
+        MobEffectInstance effect = entity.getEffect(ModMobEffects.BOGROT.get());
         return (effect != null && effect.getDuration() > 0) || entity.getType().is(AMBIENT);
     }
     public static MobEffectInstance standard(int durationTicks) {
@@ -37,7 +37,7 @@ public final class BogrotMechanics {
         return instance(45 * 20, 1);
     }
     public static MobEffectInstance instance(int durationTicks, int amplifier) {
-        return new MobEffectInstance(ModMobEffects.BOGROT, durationTicks, amplifier,
+        return new MobEffectInstance(ModMobEffects.BOGROT.get(), durationTicks, amplifier,
                 false, true, true);
     }
     public static int damageIntervalTicks(int amplifier) { return amplifier >= 1 ? 80 : 100; }

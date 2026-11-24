@@ -9,7 +9,6 @@ import com.kingsandmonsters.world.OgreTrialSpawnerProcessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -52,19 +51,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrownPotion;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.EventHooks;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.Animation;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.Animation;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -303,6 +299,15 @@ public class OgreMage extends OgreGrunt {
                 tag.getInt(ROYAL_SQUAD_ARCHERS_SPAWNED_TAG), 0, ROYAL_SQUAD_ARCHER_COUNT);
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 100.0)
@@ -311,13 +316,10 @@ public class OgreMage extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 30.0)
                 .add(Attributes.ARMOR, 12.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.85)
-                .add(Attributes.ATTACK_KNOCKBACK, 0.45)
-                .add(Attributes.STEP_HEIGHT, 1.0)
-                .add(Attributes.SAFE_FALL_DISTANCE, 4.0)
+                .add(Attributes.ATTACK_KNOCKBACK, 0.45);
                 // See OgreGrunt#createAttributes — default 0 caps water acceleration at a tiny fixed
                 // baseline regardless of requested speed, which would make applyShallowWaterSpeedFactor's
-                // 50% reduction meaningless since he's already moving slower than that.
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                // 50% reduction meaningless since he's already moving slower than that.;
     }
 
     private void deployRoyalTrialSquadIfNeeded() {
@@ -332,7 +334,7 @@ public class OgreMage extends OgreGrunt {
         if ((tickCount + getId()) % 20 != 0) {
             return;
         }
-        TrialSpawnerBlockEntity owner = findOwningTrialSpawner(serverLevel);
+        BlockPos owner = findOwningTrialSpawner(serverLevel);
         if (owner == null) {
             return;
         }
@@ -355,13 +357,13 @@ public class OgreMage extends OgreGrunt {
         return royalTrialSquadLeader;
     }
 
-    private TrialSpawnerBlockEntity findOwningTrialSpawner(ServerLevel level) {
+    /** The spawner block this squad leader came out of: any spawner within a few blocks of where it stands. */
+    private BlockPos findOwningTrialSpawner(ServerLevel level) {
         BlockPos center = blockPosition();
         for (BlockPos candidate : BlockPos.betweenClosed(
                 center.offset(-6, -3, -6), center.offset(6, 3, 6))) {
-            if (level.getBlockEntity(candidate) instanceof TrialSpawnerBlockEntity spawner
-                    && isTrackedBySpawner(level, spawner, getUUID())) {
-                return spawner;
+            if (level.getBlockEntity(candidate) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity) {
+                return candidate.immutable();
             }
         }
         return null;
@@ -369,14 +371,13 @@ public class OgreMage extends OgreGrunt {
 
     private boolean spawnTrackedSquadMember(
             ServerLevel level,
-            TrialSpawnerBlockEntity owner,
+            BlockPos spawnerPos,
             EntityType<? extends OgreGrunt> entityType) {
         OgreGrunt member = entityType.create(level);
         if (member == null) {
             return false;
         }
 
-        BlockPos spawnerPos = owner.getBlockPos();
         for (int attempt = 0; attempt < 20; attempt++) {
             double x = spawnerPos.getX() + 0.5 + (getRandom().nextDouble() - getRandom().nextDouble()) * 4.5;
             double y = spawnerPos.getY() + getRandom().nextInt(3) - 1;
@@ -386,48 +387,12 @@ public class OgreMage extends OgreGrunt {
                 continue;
             }
 
-            EventHooks.finalizeMobSpawnSpawner(
-                    member,
-                    level,
-                    level.getCurrentDifficultyAt(member.blockPosition()),
-                    MobSpawnType.TRIAL_SPAWNER,
-                    null,
-                    owner.getTrialSpawner(),
-                    true);
+            member.finalizeSpawn(level, level.getCurrentDifficultyAt(member.blockPosition()),
+                    MobSpawnType.SPAWNER, null, null);
             member.setPersistenceRequired();
-            if (!level.addFreshEntity(member)) {
-                return false;
-            }
-            addTrackedMob(level, owner, member.getUUID());
-            owner.getTrialSpawner().markUpdated();
-            return true;
+            return level.addFreshEntity(member);
         }
         return false;
-    }
-
-    private static boolean isTrackedBySpawner(
-            ServerLevel level,
-            TrialSpawnerBlockEntity spawner,
-            java.util.UUID entityId) {
-        CompoundTag savedData = spawner.saveWithoutMetadata(level.registryAccess());
-        ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
-        for (Tag trackedMob : trackedMobs) {
-            if (NbtUtils.loadUUID(trackedMob).equals(entityId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void addTrackedMob(
-            ServerLevel level,
-            TrialSpawnerBlockEntity spawner,
-            java.util.UUID entityId) {
-        CompoundTag savedData = spawner.saveWithoutMetadata(level.registryAccess());
-        ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
-        trackedMobs.add(NbtUtils.createUUID(entityId));
-        savedData.put("current_mobs", trackedMobs);
-        spawner.loadCustomOnly(savedData, level.registryAccess());
     }
 
     @Override
@@ -460,11 +425,11 @@ public class OgreMage extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_MAGE_CAST_START_TICK, 0L);
-        builder.define(DATA_MAGE_CAST_ID, 0);
-        builder.define(DATA_MAGE_RETREATING, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_MAGE_CAST_START_TICK, 0L);
+        this.entityData.define(DATA_MAGE_CAST_ID, 0);
+        this.entityData.define(DATA_MAGE_RETREATING, false);
     }
 
     @Override
@@ -514,7 +479,7 @@ public class OgreMage extends OgreGrunt {
                 0.25F, 0.85F + variation, false);
         level().playLocalSound(getX(), getY(), getZ(), SoundType.WOOL.getStepSound(), SoundSource.HOSTILE,
                 0.4F, 0.75F + variation, false);
-        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.ARMOR_EQUIP_LEATHER.value(), SoundSource.HOSTILE,
+        level().playLocalSound(getX(), getY(), getZ(), SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.HOSTILE,
                 0.12F, 0.7F + variation, false);
     }
 
@@ -562,7 +527,7 @@ public class OgreMage extends OgreGrunt {
     }
 
     private void beginHealingDrink() {
-        ItemStack healingPotion = PotionContents.createItemStack(Items.POTION, Potions.HEALING);
+        ItemStack healingPotion = net.minecraft.world.item.alchemy.PotionUtils.setPotion(new ItemStack(Items.POTION), Potions.HEALING);
         beginCast(new MageCast(CastType.HEAL_DRINK, this, healingPotion));
         healDrinkCooldownTicks = HEAL_DRINK_COOLDOWN_TICKS;
     }
@@ -762,10 +727,10 @@ public class OgreMage extends OgreGrunt {
         return new MageCast(CastType.POTION, target, potion);
     }
 
-    private ItemStack createCustomSplashPotion(Holder<MobEffect> effect, int durationTicks, int amplifier) {
+    private ItemStack createCustomSplashPotion(MobEffect effect, int durationTicks, int amplifier) {
         ItemStack stack = new ItemStack(Items.SPLASH_POTION);
-        PotionContents contents = PotionContents.EMPTY.withEffectAdded(new MobEffectInstance(effect, durationTicks, amplifier));
-        stack.set(DataComponents.POTION_CONTENTS, contents);
+        net.minecraft.world.item.alchemy.PotionUtils.setCustomEffects(stack,
+                java.util.List.of(new MobEffectInstance(effect, durationTicks, amplifier)));
         return stack;
     }
 
@@ -934,7 +899,7 @@ public class OgreMage extends OgreGrunt {
         // His cast cry, a burst of wind and a low surge of magic make up the blast.
         level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_MAGE_CAST_RELEASE.get(),
                 SoundSource.HOSTILE, 2.0F, 1.0F);
-        level().playSound(null, origin.x, origin.y, origin.z, SoundEvents.WIND_CHARGE_BURST.value(),
+        level().playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIRECHARGE_USE,
                 SoundSource.HOSTILE, 1.6F, 0.75F);
         level().playSound(null, getX(), getY(), getZ(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.HOSTILE, 1.2F, 0.7F);
 

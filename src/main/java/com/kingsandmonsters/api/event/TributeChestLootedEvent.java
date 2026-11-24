@@ -4,11 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Fired on {@link net.neoforged.neoforge.common.NeoForge#EVENT_BUS} just
+ * Fired on {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS} just
  * before a tribute chest is marked as looted and anger is increased.
  *
  * <p><b>Cancelling</b> this event prevents the anger increment from
@@ -27,7 +26,8 @@ import net.neoforged.bus.api.ICancellableEvent;
  * }
  * }</pre>
  */
-public class TributeChestLootedEvent extends Event implements ICancellableEvent {
+@net.minecraftforge.eventbus.api.Cancelable
+public class TributeChestLootedEvent extends Event {
 
     private final Player player;
     private final BlockPos chestPos;

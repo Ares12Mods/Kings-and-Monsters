@@ -15,12 +15,12 @@ public final class DazedEffect extends MobEffect {
     public DazedEffect() {
         super(MobEffectCategory.HARMFUL, 0xD6B46A);
         addAttributeModifier(Attributes.MOVEMENT_SPEED, id("movement_speed"), -MOVEMENT_SPEED_REDUCTION,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                AttributeModifier.Operation.MULTIPLY_TOTAL);
         addAttributeModifier(Attributes.ATTACK_SPEED, id("attack_speed"), -ATTACK_SPEED_REDUCTION,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
-    private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "dazed_" + name);
+    private static String id(String name) {
+        return com.kingsandmonsters.item.ItemAttributes.uuid("dazed_" + name).toString();
     }
 }

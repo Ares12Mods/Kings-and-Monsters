@@ -1,8 +1,9 @@
 package com.kingsandmonsters.menu;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.ModMenus;
 import com.kingsandmonsters.entity.MudsnoutBoar;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -17,7 +18,7 @@ public class MudsnoutBoarMenu extends AbstractContainerMenu {
     private final Container saddleSlot;
     private final MudsnoutBoar boar;
 
-    public MudsnoutBoarMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
+    public MudsnoutBoarMenu(int containerId, Inventory inventory, FriendlyByteBuf buffer) {
         this(containerId, inventory, findBoar(inventory, buffer.readVarInt()));
     }
 

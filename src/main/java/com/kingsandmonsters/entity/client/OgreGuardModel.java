@@ -1,7 +1,7 @@
 package com.kingsandmonsters.entity.client;
 
 import com.kingsandmonsters.entity.OgreGuard;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public class OgreGuardModel extends OgreModel<OgreGuard> {
     // The bones his stab and slam animate over the combat walk.

@@ -1,8 +1,8 @@
 {
-    "replace":  false,
-    "values":  [
-                   "minecraft:plains",
-                   "minecraft:sunflower_plains",
-                   "minecraft:swamp"
-               ]
+  "replace": false,
+  "values": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:swamp"
+  ]
 }

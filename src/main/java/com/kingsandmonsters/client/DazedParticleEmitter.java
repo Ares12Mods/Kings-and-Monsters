@@ -11,7 +11,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
 
 /** Emits the animated Dazed stars above every nearby afflicted entity. */
 public final class DazedParticleEmitter {
@@ -45,18 +45,18 @@ public final class DazedParticleEmitter {
         emit(level, minecraft.player);
         for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class,
                 minecraft.player.getBoundingBox().inflate(RANGE),
-                entity -> entity != minecraft.player && entity.isAlive() && entity.hasEffect(ModMobEffects.DAZED))) {
+                entity -> entity != minecraft.player && entity.isAlive() && entity.hasEffect(ModMobEffects.DAZED.get()))) {
             emit(level, entity);
         }
         if (level.getGameTime() % 100 == 0) {
             NEXT_EMISSION.keySet().removeIf(id -> !(level.getEntity(id) instanceof LivingEntity living)
-                    || !living.hasEffect(ModMobEffects.DAZED));
+                    || !living.hasEffect(ModMobEffects.DAZED.get()));
             ACTIVE_SWIRLS.int2ObjectEntrySet().removeIf(entry -> !entry.getValue().isAlive());
         }
     }
 
     private static void emit(ClientLevel level, LivingEntity entity) {
-        if (!entity.isAlive() || !entity.hasEffect(ModMobEffects.DAZED)) return;
+        if (!entity.isAlive() || !entity.hasEffect(ModMobEffects.DAZED.get())) return;
         double size = Math.sqrt(Math.max(0.01,
                 entity.getBbWidth() / 0.6 * entity.getBbHeight() / 1.8));
         float scale = Mth.clamp((float) size, 0.65F, 1.8F);
@@ -78,7 +78,7 @@ public final class DazedParticleEmitter {
         NEXT_EMISSION.put(entity.getId(), now + interval);
 
         double radius = Math.max(0.18, entity.getBbWidth() * 0.35);
-        double angle = entity.getRandom().nextDouble() * Math.TAU;
+        double angle = entity.getRandom().nextDouble() * (Math.PI * 2.0);
         level.addParticle(ParticleTypes.CRIT,
                 entity.getX() + Math.cos(angle) * radius,
                 entity.getY() + entity.getBbHeight() * 0.9,

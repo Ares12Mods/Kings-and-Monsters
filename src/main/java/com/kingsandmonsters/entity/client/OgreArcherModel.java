@@ -3,7 +3,7 @@ package com.kingsandmonsters.entity.client;
 import com.kingsandmonsters.entity.MudsnoutBoar;
 import com.kingsandmonsters.entity.OgreArcher;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public class OgreArcherModel extends OgreModel<OgreArcher> {
     // The bones his swings thrown over the combat walk animate.

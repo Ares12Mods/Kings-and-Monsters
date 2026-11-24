@@ -22,10 +22,10 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import com.kingsandmonsters.event.LivingIncomingDamageEvent;
+import com.kingsandmonsters.event.PlayerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +45,8 @@ public final class BlackhideEvents {
     // actual half-second grace period is tracked separately and still controls when Charge ends.
     private static final int CHARGE_DISPLAY_DURATION_TICKS = BlackhideSet.CHARGE_MAX_TICKS + 20;
     private static final int CHARGE_DISPLAY_REFRESH_THRESHOLD_TICKS = BlackhideSet.CHARGE_MAX_TICKS - 20;
-    private static final ResourceLocation MOMENTUM_SPEED_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "blackhide_momentum");
+    private static final java.util.UUID MOMENTUM_SPEED_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("blackhide_momentum");
     private static final double MIN_RUN_SPEED_SQR = 0.06 * 0.06;
     private static final double MAX_RUN_STEP_SQR = 2.0 * 2.0;
 
@@ -68,8 +68,8 @@ public final class BlackhideEvents {
             if (data.getInt(MOMENTUM) != 0) {
                 reset(player);
             }
-            if (player.hasEffect(ModMobEffects.CHARGE)) {
-                player.removeEffect(ModMobEffects.CHARGE);
+            if (player.hasEffect(ModMobEffects.CHARGE.get())) {
+                player.removeEffect(ModMobEffects.CHARGE.get());
             }
             data.remove(LAST_X);
             return;
@@ -103,23 +103,23 @@ public final class BlackhideEvents {
 
         long gameTime = player.level().getGameTime();
         if (running && momentum >= BlackhideSet.BUILD_TICKS) {
-            MobEffectInstance charge = player.getEffect(ModMobEffects.CHARGE);
+            MobEffectInstance charge = player.getEffect(ModMobEffects.CHARGE.get());
             data.putLong(CHARGE_GRACE_UNTIL, gameTime + BlackhideSet.CHARGE_GRACE_TICKS);
             // Refresh occasionally, while its displayed duration is still above the HUD's flashing range.
             if (charge == null || charge.getDuration() <= CHARGE_DISPLAY_REFRESH_THRESHOLD_TICKS) {
-                player.addEffect(new MobEffectInstance(ModMobEffects.CHARGE, CHARGE_DISPLAY_DURATION_TICKS, 0,
+                player.addEffect(new MobEffectInstance(ModMobEffects.CHARGE.get(), CHARGE_DISPLAY_DURATION_TICKS, 0,
                         false, true, true));
             }
             if (charge == null) {
                 player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.HOGLIN_ANGRY, SoundSource.PLAYERS, 0.8F, 1.3F);
             }
-        } else if (player.hasEffect(ModMobEffects.CHARGE)
+        } else if (player.hasEffect(ModMobEffects.CHARGE.get())
                 && gameTime >= data.getLong(CHARGE_GRACE_UNTIL)) {
-            player.removeEffect(ModMobEffects.CHARGE);
+            player.removeEffect(ModMobEffects.CHARGE.get());
         }
 
-        if (player.hasEffect(ModMobEffects.CHARGE)) {
+        if (player.hasEffect(ModMobEffects.CHARGE.get())) {
             int held = data.getInt(CHARGED_TICKS) + 1;
             if (held >= BlackhideSet.CHARGE_MAX_TICKS) {
                 windPlayer(player);
@@ -252,14 +252,14 @@ public final class BlackhideEvents {
                 && source.is(DamageTypes.PLAYER_ATTACK)
                 && source.getEntity() instanceof ServerPlayer player
                 && source.getDirectEntity() == player
-                && player.hasEffect(ModMobEffects.CHARGE)
+                && player.hasEffect(ModMobEffects.CHARGE.get())
                 && BlackhideSet.hasFullSet(player);
     }
 
     /** A tool or sword in the main hand, as opposed to a bare fist or a held block. */
     private static boolean holdsWeapon(ServerPlayer player) {
-        return player.getMainHandItem().getAttributeModifiers().modifiers().stream()
-                .anyMatch(entry -> entry.attribute().is(Attributes.ATTACK_DAMAGE));
+        return player.getMainHandItem().getAttributeModifiers(net.minecraft.world.entity.EquipmentSlot.MAINHAND)
+                .containsKey(Attributes.ATTACK_DAMAGE);
     }
 
     private static boolean canRam(ServerPlayer player, LivingEntity target) {
@@ -293,13 +293,13 @@ public final class BlackhideEvents {
         level.sendParticles(ParticleTypes.CRIT, x, y, z, weapon ? 28 : 16, 0.4, 0.4, 0.4, 0.5);
         level.playSound(null, x, y, z, SoundEvents.PLAYER_ATTACK_KNOCKBACK, SoundSource.PLAYERS, 1.3F, 0.7F);
         if (weapon) {
-            level.playSound(null, x, y, z, SoundEvents.MACE_SMASH_GROUND, SoundSource.PLAYERS, 1.0F, 1.0F);
+            level.playSound(null, x, y, z, SoundEvents.PLAYER_ATTACK_KNOCKBACK, SoundSource.PLAYERS, 1.0F, 1.0F);
         }
     }
 
     /** An impact uses the Charge up: it has to be built from a standing start again. */
     private static void spend(ServerPlayer player) {
-        player.removeEffect(ModMobEffects.CHARGE);
+        player.removeEffect(ModMobEffects.CHARGE.get());
         reset(player);
     }
 
@@ -318,9 +318,9 @@ public final class BlackhideEvents {
         AttributeModifier current = speed.getModifier(MOMENTUM_SPEED_ID);
         if (amount <= 0.0) {
             if (current != null) speed.removeModifier(MOMENTUM_SPEED_ID);
-        } else if (current == null || Math.abs(current.amount() - amount) > 0.004) {
-            speed.addOrUpdateTransientModifier(new AttributeModifier(MOMENTUM_SPEED_ID, amount,
-                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        } else if (current == null || Math.abs(current.getAmount() - amount) > 0.004) {
+            com.kingsandmonsters.item.ItemAttributes.addOrUpdate(speed, new AttributeModifier(MOMENTUM_SPEED_ID, MOMENTUM_SPEED_ID.toString(), amount,
+                    AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }
 }

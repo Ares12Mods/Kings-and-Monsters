@@ -13,8 +13,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 /** Abilities shared by the Bog Iron sword and tool set. */
 public final class BogIronEquipmentEvents {
@@ -86,7 +86,7 @@ public final class BogIronEquipmentEvents {
 
         player.serverLevel().setBlock(extra, tilled, Block.UPDATE_ALL_IMMEDIATE);
         player.serverLevel().playSound(null, extra, SoundEvents.HOE_TILL, SoundSource.BLOCKS, 1.0F, 1.0F);
-        player.getMainHandItem().hurtAndBreak(1, player, net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+        com.kingsandmonsters.item.ItemUtil.hurt(player.getMainHandItem(), 1, player, net.minecraft.world.entity.EquipmentSlot.MAINHAND);
         startHeavySwingCooldown(player);
     }
 

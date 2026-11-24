@@ -2,7 +2,7 @@ package com.kingsandmonsters.entity;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 
 import java.util.Map;
 import java.util.WeakHashMap;

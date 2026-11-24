@@ -20,7 +20,7 @@ public class CandleHelmetRenderer extends GeoArmorRenderer<CandleHelmetItem> {
     public void actuallyRender(PoseStack poseStack, CandleHelmetItem animatable, BakedGeoModel model,
                                @Nullable RenderType renderType, MultiBufferSource bufferSource,
                                @Nullable VertexConsumer buffer, boolean isReRender, float partialTick,
-                               int packedLight, int packedOverlay, int colour) {
+                               int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
         // The server-side light block hops between cells as its wearer moves, and light propagation
         // can briefly report a lower value in between, making the metal flash. Clamp to the light
         // this helmet creates while keeping brighter block light and the real sky light.
@@ -30,6 +30,6 @@ public class CandleHelmetRenderer extends GeoArmorRenderer<CandleHelmetItem> {
                         : LightTexture.block(packedLight),
                 LightTexture.sky(packedLight));
         super.actuallyRender(poseStack, animatable, model, renderType, bufferSource, buffer,
-                isReRender, partialTick, stableLight, packedOverlay, colour);
+                isReRender, partialTick, stableLight, packedOverlay, red, green, blue, alpha);
     }
 }

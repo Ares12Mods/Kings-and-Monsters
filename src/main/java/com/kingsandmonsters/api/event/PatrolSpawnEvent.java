@@ -4,11 +4,10 @@ import com.kingsandmonsters.api.patrol.PatrolTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Fired on {@link net.neoforged.neoforge.common.NeoForge#EVENT_BUS} just
+ * Fired on {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS} just
  * before a tribute camp patrol is spawned into the world.
  *
  * <p><b>Cancelling</b> this event fully suppresses the patrol spawn —
@@ -29,7 +28,8 @@ import net.neoforged.bus.api.ICancellableEvent;
  * }
  * }</pre>
  */
-public class PatrolSpawnEvent extends Event implements ICancellableEvent {
+@net.minecraftforge.eventbus.api.Cancelable
+public class PatrolSpawnEvent extends Event {
 
     private final BlockPos campOrigin;
     private final ResourceKey<Level> dimension;

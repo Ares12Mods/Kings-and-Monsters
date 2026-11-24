@@ -27,9 +27,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    public OgreKingsCrownItem(Holder<ArmorMaterial> material, Properties properties) {
+    public OgreKingsCrownItem(ArmorMaterial material, Properties properties) {
         super(material, Type.HELMET, properties);
     }
 
@@ -74,7 +74,9 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         // crown back instead of a fresh, fully repaired one.
         var crownEntity = level.getBlockEntity(pos);
         if (crownEntity != null) {
-            crownEntity.applyComponentsFromItemStack(context.getItemInHand());
+            if (crownEntity instanceof com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity crown) {
+                crown.setStack(context.getItemInHand());
+            }
             crownEntity.setChanged();
         }
 
@@ -82,15 +84,15 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         level.playSound(player, pos, soundType.getPlaceSound(), SoundSource.BLOCKS,
                 (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F);
         level.gameEvent(player, GameEvent.BLOCK_PLACE, pos);
-        if (player == null || !player.hasInfiniteMaterials()) {
+        if (player == null || !com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(player)) {
             context.getItemInHand().shrink(1);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_crown.ability").withStyle(ChatFormatting.GOLD));
@@ -104,20 +106,16 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
     }
 
     @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             private OgreKingsCrownRenderer renderer;
 
             @Override
-            public <T extends LivingEntity> HumanoidModel<?> getGeoArmorRenderer(
-                    @Nullable T livingEntity,
-                    ItemStack itemStack,
-                    @Nullable EquipmentSlot equipmentSlot,
-                    @Nullable HumanoidModel<T> original
-            ) {
+            public HumanoidModel<?> getHumanoidArmorModel(LivingEntity livingEntity, ItemStack itemStack, EquipmentSlot equipmentSlot, HumanoidModel<?> original) {
                 if (renderer == null) {
                     renderer = new OgreKingsCrownRenderer();
                 }
+                renderer.prepForRender(livingEntity, itemStack, equipmentSlot, original);
                 return renderer;
             }
         });

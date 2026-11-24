@@ -8,9 +8,9 @@ import net.minecraft.world.level.levelgen.structure.StructureSet;
 /** Optional structure spacing shared with Wildscapes. No Wildscapes classes are linked. */
 public final class WildscapesStructureCompat {
     private static final ResourceLocation SWAMP_VILLAGE =
-            ResourceLocation.fromNamespaceAndPath("wildscapes", "swamp_village");
+            new ResourceLocation("wildscapes", "swamp_village");
     private static final ResourceLocation WITCH_CAMP =
-            ResourceLocation.fromNamespaceAndPath("wildscapes", "witch_camp");
+            new ResourceLocation("wildscapes", "witch_camp");
 
     private WildscapesStructureCompat() {
     }

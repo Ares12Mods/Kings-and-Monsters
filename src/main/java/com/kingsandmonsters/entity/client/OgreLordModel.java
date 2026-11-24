@@ -2,7 +2,7 @@ package com.kingsandmonsters.entity.client;
 
 import com.kingsandmonsters.entity.OgreLord;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public class OgreLordModel extends OgreModel<OgreLord> {
     // The bones the attacks thrown over the walk animate.

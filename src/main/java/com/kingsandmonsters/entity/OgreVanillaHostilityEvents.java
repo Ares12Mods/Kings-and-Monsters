@@ -4,7 +4,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.AbstractIllager;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.entity.monster.warden.Warden;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import com.kingsandmonsters.event.EntityTickEvent;
 
 import java.util.Comparator;
 

@@ -9,8 +9,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.event.PlayerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -79,13 +79,13 @@ public final class OgreKingsClubEvents {
         }
 
         level.playSound(null, center.x, center.y, center.z,
-                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.35F, 0.55F);
+                SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.35F, 0.55F);
         level.sendParticles(ParticleTypes.CLOUD, center.x, center.y + 0.2, center.z,
                 44, 1.4, 0.2, 1.4, 0.04);
         level.sendParticles(ParticleTypes.POOF, center.x, center.y + 0.3, center.z,
                 24, 0.9, 0.15, 0.9, 0.025);
         spawnRing(level, center);
-        PacketDistributor.sendToPlayersNear(level, null, center.x, center.y, center.z, 24.0,
+        ModNetwork.sendToPlayersNear(level, null, center.x, center.y, center.z, 24.0,
                 new ScreenShakePayload(center.x, center.y, center.z, 1.2F));
     }
 

@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public class BogfumeBoltRenderer extends EntityRenderer<BogfumeBolt> {
     private static final ResourceLocation EMPTY_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "textures/entity/spell/bogfume_bolt.png");
+            new ResourceLocation(KingsAndMonsters.MODID, "textures/entity/spell/bogfume_bolt.png");
 
     public BogfumeBoltRenderer(EntityRendererProvider.Context context) {
         super(context);

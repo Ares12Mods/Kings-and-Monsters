@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
 import net.minecraft.ChatFormatting;
@@ -16,7 +17,7 @@ public class OgrebloodTotemItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());

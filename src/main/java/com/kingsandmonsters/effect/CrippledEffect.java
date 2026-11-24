@@ -14,7 +14,7 @@ public final class CrippledEffect extends MobEffect {
     public CrippledEffect() {
         super(MobEffectCategory.HARMFUL, 0x7A4B32);
         addAttributeModifier(Attributes.MOVEMENT_SPEED,
-                ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "crippled_movement_speed"),
-                -MOVEMENT_SPEED_REDUCTION, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                com.kingsandmonsters.item.ItemAttributes.uuid("crippled_movement_speed").toString(),
+                -MOVEMENT_SPEED_REDUCTION, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 }

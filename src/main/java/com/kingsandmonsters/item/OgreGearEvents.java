@@ -5,7 +5,6 @@ import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.enchantment.ModEnchantmentEffects;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -17,18 +16,17 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.GameRules;
-import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
-import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.event.ItemAttributeModifierEvent;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import com.kingsandmonsters.event.PlayerTickEvent;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayDeque;
@@ -48,10 +46,10 @@ public final class OgreGearEvents {
 
     /** The helm adds health on top of what its armor material gives. */
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
-        if (event.getItemStack().is(ModItems.BRUTES_HELM.get())) {
-            event.addModifier(Attributes.MAX_HEALTH, new AttributeModifier(
-                    ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "brutes_helm_health"),
-                    4.0, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.HEAD);
+        if (event.getSlotType() == net.minecraft.world.entity.EquipmentSlot.HEAD
+                && event.getItemStack().is(ModItems.BRUTES_HELM.get())) {
+            event.addModifier(Attributes.MAX_HEALTH, ItemAttributes.modifier(
+                    "brutes_helm_health", 4.0, AttributeModifier.Operation.ADDITION));
         }
     }
 
@@ -88,7 +86,7 @@ public final class OgreGearEvents {
     public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
         Player player = event.getEntity();
         ItemStack stack = event.getItemStack();
-        if (!stack.has(DataComponents.FOOD) || !wearsStomach(player) || player.canEat(false)) {
+        if (!stack.getItem().isEdible() || !wearsStomach(player) || player.canEat(false)) {
             return;
         }
         player.startUsingItem(event.getHand());
@@ -98,7 +96,7 @@ public final class OgreGearEvents {
 
     /** Added to by modpacks for foods whose Absorption effect is applied outside their food data. */
     private static final TagKey<Item> STOMACH_ABSORPTION_FOODS = TagKey.create(Registries.ITEM,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "stomach_absorption_foods"));
+            new ResourceLocation(KingsAndMonsters.MODID, "stomach_absorption_foods"));
 
     /**
      * Worn, the Ogre Stomach makes food instant unless it grants Absorption. Absorption foods retain
@@ -106,7 +104,7 @@ public final class OgreGearEvents {
      * compatible modded foods without imposing an additional cooldown.
      */
     public static void onUseStart(LivingEntityUseItemEvent.Start event) {
-        if (!(event.getEntity() instanceof Player player) || !event.getItem().has(DataComponents.FOOD)) {
+        if (!(event.getEntity() instanceof Player player) || !event.getItem().getItem().isEdible()) {
             return;
         }
         if (!wearsStomach(player)) {
@@ -120,9 +118,9 @@ public final class OgreGearEvents {
 
     /** Detects component-based Absorption as well as foods tagged for custom on-consume effects. */
     private static boolean grantsAbsorption(ItemStack stack) {
-        FoodProperties food = stack.get(DataComponents.FOOD);
-        return food != null && food.effects().stream()
-                .anyMatch(effect -> effect.effect().is(MobEffects.ABSORPTION))
+        FoodProperties food = stack.getFoodProperties(null);
+        return food != null && food.getEffects().stream()
+                .anyMatch(effect -> effect.getFirst().getEffect() == MobEffects.ABSORPTION)
                 || stack.is(STOMACH_ABSORPTION_FOODS);
     }
 

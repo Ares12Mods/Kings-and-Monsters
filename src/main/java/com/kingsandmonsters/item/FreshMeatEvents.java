@@ -9,12 +9,12 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.minecraftforge.event.entity.living.LivingDropsEvent;
 
 /** The Skinning Knife's Fresh Meat: raw meat from a kill made with it is fresh (see {@link FreshFood}). */
 public final class FreshMeatEvents {
     private static final TagKey<Item> FRESH_MEATS = TagKey.create(Registries.ITEM,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "fresh_meats"));
+            new ResourceLocation(KingsAndMonsters.MODID, "fresh_meats"));
 
     private FreshMeatEvents() {}
 

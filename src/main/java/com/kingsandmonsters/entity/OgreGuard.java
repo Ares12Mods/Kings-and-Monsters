@@ -47,12 +47,12 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -243,18 +243,15 @@ public class OgreGuard extends OgreGrunt {
         setItemSlot(EquipmentSlot.MAINHAND, spear);
     }
 
-    private void enchantSpear(ItemStack spear, net.minecraft.resources.ResourceKey<Enchantment> enchantment, int level) {
-        Holder<Enchantment> holder = this.level().registryAccess()
-                .lookupOrThrow(Registries.ENCHANTMENT)
-                .getOrThrow(enchantment);
-        spear.enchant(holder, level);
+    private void enchantSpear(ItemStack spear, net.minecraftforge.registries.RegistryObject<Enchantment> enchantment, int level) {
+        spear.enchant(enchantment.get(), level);
     }
 
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 OverrideOnly spawn hook; no replacement exists in this target.
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
-        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, spawnTag);
         ensureBowEquipped();
         return data;
     }
@@ -276,6 +273,15 @@ public class OgreGuard extends OgreGrunt {
         ensureBowEquipped();
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 70.0)
@@ -284,9 +290,7 @@ public class OgreGuard extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 34.0)
                 .add(Attributes.ARMOR, 15.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.65)
-                .add(Attributes.ATTACK_KNOCKBACK, 0.35)
-                .add(Attributes.STEP_HEIGHT, 1.0)
-                .add(Attributes.SAFE_FALL_DISTANCE, 4.0);
+                .add(Attributes.ATTACK_KNOCKBACK, 0.35);
     }
 
     @Override
@@ -331,17 +335,17 @@ public class OgreGuard extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_GUARD_SHOT_START_TICK, 0L);
-        builder.define(DATA_GUARD_PUNCH_START_TICK, 0L);
-        builder.define(DATA_GUARD_AIMING, false);
-        builder.define(DATA_GUARD_SPEAR_THROWN, false);
-        builder.define(DATA_GUARD_SPEAR_STAB, false);
-        builder.define(DATA_GUARD_SWING_ID, 0);
-        builder.define(DATA_GUARD_RETREATING, false);
-        builder.define(DATA_GUARD_COMBAT_MOVING, false);
-        builder.define(DATA_GUARD_HAS_TARGET, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_GUARD_SHOT_START_TICK, 0L);
+        this.entityData.define(DATA_GUARD_PUNCH_START_TICK, 0L);
+        this.entityData.define(DATA_GUARD_AIMING, false);
+        this.entityData.define(DATA_GUARD_SPEAR_THROWN, false);
+        this.entityData.define(DATA_GUARD_SPEAR_STAB, false);
+        this.entityData.define(DATA_GUARD_SWING_ID, 0);
+        this.entityData.define(DATA_GUARD_RETREATING, false);
+        this.entityData.define(DATA_GUARD_COMBAT_MOVING, false);
+        this.entityData.define(DATA_GUARD_HAS_TARGET, false);
     }
 
     @Override
@@ -695,7 +699,7 @@ public class OgreGuard extends OgreGrunt {
                 0.8F, 0.8F);
         level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.MUD_HIT, SoundSource.HOSTILE, 0.5F, 0.7F);
         spawnSmackGroundImpact(serverLevel, impact);
-        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 20.0,
+        ModNetwork.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 20.0,
                 new ScreenShakePayload(impact.x, impact.y, impact.z, 0.4F));
         punchImpactSoundPlayed = true;
     }
@@ -740,7 +744,7 @@ public class OgreGuard extends OgreGrunt {
     }
 
     @Override
-    protected void resetTransientCombatState() {
+    public void resetTransientCombatState() {
         super.resetTransientCombatState();
         // cancelBowShot()/cancelPunch() reset the server AI counters but not the synced start ticks
         // the client animations key off; a mob reloaded mid-swing would otherwise swing forever.

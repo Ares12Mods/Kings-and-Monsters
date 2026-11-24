@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import net.minecraft.util.Mth;
 import net.minecraft.client.Minecraft;
 
 /** What the errand tracker shows, and whether it is showing: held open by the key, or briefly after a change. */
@@ -36,7 +37,7 @@ public final class QuestTrackerState {
     /** Moves the fade one step and returns the opacity to draw with. */
     public static float advanceFade() {
         boolean show = quest >= 0 && (held || now() < showUntil);
-        opacity = Math.clamp(opacity + (show ? 0.08F : -0.04F), 0.0F, 1.0F);
+        opacity = Mth.clamp(opacity + (show ? 0.08F : -0.04F), 0.0F, 1.0F);
         return opacity;
     }
 

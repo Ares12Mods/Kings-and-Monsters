@@ -19,7 +19,7 @@ public final class BoneBrothItem extends Item {
         if (!level.isClientSide()) {
             consumer.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 8 * 20));
         }
-        return consumer.hasInfiniteMaterials() ? result : new ItemStack(Items.BOWL);
+        return com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
     }
 
 }

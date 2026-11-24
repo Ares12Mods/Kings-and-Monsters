@@ -28,6 +28,6 @@ public final class OgreHelmetModel extends GeoModel<OgreHelmetItem> {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

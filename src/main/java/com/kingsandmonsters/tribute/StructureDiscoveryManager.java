@@ -4,8 +4,8 @@ import com.kingsandmonsters.network.OgreOverlayPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.event.ServerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 /** Cheap proximity checks against structure origins already recorded by world generation. */
 public final class StructureDiscoveryManager {
@@ -50,7 +50,7 @@ public final class StructureDiscoveryManager {
                         continue;
                     }
                     boolean fort = site.kind() == TributeSavedData.StructureKind.FORT;
-                    PacketDistributor.sendToPlayer(player, OgreOverlayPayload.location(
+                    ModNetwork.sendToPlayer(player, OgreOverlayPayload.location(
                             fort ? "OGRE FORT" : "OGRE OUTPOST",
                             fort ? "Seat of the Ogre King" : "Territory of the Ogre Tribe",
                             fort));

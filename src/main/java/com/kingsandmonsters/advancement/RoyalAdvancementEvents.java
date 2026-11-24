@@ -9,11 +9,11 @@ import com.kingsandmonsters.entity.OgreLord;
 import com.kingsandmonsters.entity.OgreMage;
 import com.kingsandmonsters.entity.OgreTrapper;
 import com.kingsandmonsters.ModMobEffects;
-import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.Advancement;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.BabyEntitySpawnEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 
 public final class RoyalAdvancementEvents {
     private static final String CRITERION = "defeated";
@@ -44,7 +44,7 @@ public final class RoyalAdvancementEvents {
 
         if (event.getEntity() instanceof OgreLord) {
             award(player, "usurped");
-            if (player.hasEffect(ModMobEffects.OGRES_BANE)) award(player, "swamps_champion");
+            if (player.hasEffect(ModMobEffects.OGRES_BANE.get())) award(player, "swamps_champion");
         } else if (event.getEntity() instanceof OgreMage) {
             award(player, "mage_captain");
         } else if (event.getEntity() instanceof OgreBrute) {
@@ -69,9 +69,9 @@ public final class RoyalAdvancementEvents {
     }
 
     private static void awardAt(ServerPlayer player, String path, String criterion) {
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+        ResourceLocation id = new ResourceLocation(
                 KingsAndMonsters.MODID, path);
-        AdvancementHolder advancement = player.server.getAdvancements().get(id);
+        Advancement advancement = player.server.getAdvancements().getAdvancement(id);
         if (advancement != null) {
             player.getAdvancements().award(advancement, criterion);
         }

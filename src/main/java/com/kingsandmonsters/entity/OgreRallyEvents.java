@@ -6,7 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,8 @@ public final class OgreRallyEvents {
     }
 
     public static void onLivingDamagePost(LivingDamageEvent.Post event) {
-        if (!(event.getEntity() instanceof LivingEntity victim) || victim.level().isClientSide()
+        LivingEntity victim = event.getEntity();
+        if (victim.level().isClientSide()
                 || event.getNewDamage() <= 0.0F) {
             return;
         }

@@ -32,10 +32,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -203,6 +203,15 @@ public class OgreTrapper extends OgreGrunt {
         xpReward = TRAPPER_XP_REWARD;
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 130.0)
@@ -211,10 +220,7 @@ public class OgreTrapper extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 34.0)
                 .add(Attributes.ARMOR, 13.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.6)
-                .add(Attributes.ATTACK_KNOCKBACK, 1.0)
-                .add(Attributes.STEP_HEIGHT, 1.0)
-                .add(Attributes.SAFE_FALL_DISTANCE, 5.0)
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                .add(Attributes.ATTACK_KNOCKBACK, 1.0);
     }
 
     @Override
@@ -224,12 +230,12 @@ public class OgreTrapper extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_ATTACK_ID, 0);
-        builder.define(DATA_ATTACK_START_TICK, 0L);
-        builder.define(DATA_TRAP_STATE, TRAP_ON_BACK);
-        builder.define(DATA_KNIFE_OUT, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_ATTACK_ID, 0);
+        this.entityData.define(DATA_ATTACK_START_TICK, 0L);
+        this.entityData.define(DATA_TRAP_STATE, TRAP_ON_BACK);
+        this.entityData.define(DATA_KNIFE_OUT, false);
     }
 
     /** Whether the knife is in his right hand: from the moment he draws it until the fight is over. */
@@ -325,7 +331,7 @@ public class OgreTrapper extends OgreGrunt {
         if (lureCooldown > 0) {
             lureCooldown--;
         }
-        if (target == null || !target.isAlive() || lureCooldown > 0 || target.hasEffect(ModMobEffects.HAMSTRUNG)) {
+        if (target == null || !target.isAlive() || lureCooldown > 0 || target.hasEffect(ModMobEffects.HAMSTRUNG.get())) {
             lureSpot = null;
             lureTicks = 0;
             return;

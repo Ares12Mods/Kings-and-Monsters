@@ -8,7 +8,6 @@
         "location": "kingsandmonsters:ogre_trapper/trapper_hut_1",
         "processors": "kingsandmonsters:trapper_hut_1",
         "projection": "rigid",
-        "override_liquid_settings": "ignore_waterlogging",
         "element_type": "minecraft:single_pool_element"
       }
     },
@@ -18,7 +17,6 @@
         "location": "kingsandmonsters:ogre_trapper/trapper_hut_2",
         "processors": "kingsandmonsters:trapper_hut_2",
         "projection": "rigid",
-        "override_liquid_settings": "ignore_waterlogging",
         "element_type": "minecraft:single_pool_element"
       }
     }

@@ -1,24 +1,24 @@
 package com.kingsandmonsters;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 /** Client-only presentation settings. */
 public final class ClientConfig {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-    public static final ModConfigSpec.BooleanValue SHOW_CUSTOM_TOOLTIPS = BUILDER
+    public static final ForgeConfigSpec.BooleanValue SHOW_CUSTOM_TOOLTIPS = BUILDER
             .comment("Show Kings & Monsters custom tooltip text, fonts, colors, and borders. Vanilla item attributes and enchantments remain visible when disabled.")
             .define("showCustomTooltips", true);
 
-    public static final ModConfigSpec.BooleanValue BOSS_MUSIC_ENABLED = BUILDER
+    public static final ForgeConfigSpec.BooleanValue BOSS_MUSIC_ENABLED = BUILDER
             .comment("Play the Ogre King's boss fight music. Turn off to hear only the game's normal music and sounds.")
             .define("bossMusicEnabled", true);
 
-    public static final ModConfigSpec.BooleanValue USE_CUSTOM_EFFECT_PARTICLES = BUILDER
+    public static final ForgeConfigSpec.BooleanValue USE_CUSTOM_EFFECT_PARTICLES = BUILDER
             .comment("Use Kings & Monsters animated particles for Bleeding, Dazed, and Bogrot. Turn off to use simpler vanilla particles instead.")
             .define("useCustomEffectParticles", true);
 
-    static final ModConfigSpec SPEC = BUILDER.build();
+    static final ForgeConfigSpec SPEC = BUILDER.build();
 
     private ClientConfig() {
     }

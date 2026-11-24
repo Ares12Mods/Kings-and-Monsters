@@ -20,8 +20,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class BogFangsRenderer extends EntityRenderer<BogFangs> {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bog_fangs"), "main");
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            new ResourceLocation(KingsAndMonsters.MODID, "bog_fangs"), "main");
+    private static final ResourceLocation TEXTURE = new ResourceLocation(
             KingsAndMonsters.MODID, "textures/entity/bogvoker_fang.png");
 
     private final EvokerFangsModel<BogFangs> model;
@@ -61,7 +61,7 @@ public final class BogFangsRenderer extends EntityRenderer<BogFangs> {
         poseStack.scale(0.5F, 0.5F, 0.5F);
         model.setupAnim(fangs, progress, 0F, 0F, fangs.getYRot(), fangs.getXRot());
         VertexConsumer consumer = buffers.getBuffer(model.renderType(TEXTURE));
-        model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY);
+        model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
         super.render(fangs, entityYaw, partialTick, poseStack, buffers, packedLight);
     }

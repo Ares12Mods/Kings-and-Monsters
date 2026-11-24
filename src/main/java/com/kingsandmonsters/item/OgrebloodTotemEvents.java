@@ -23,9 +23,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -87,7 +87,7 @@ public final class OgrebloodTotemEvents {
         if (saved instanceof ServerPlayer player) {
             CriteriaTriggers.USED_TOTEM.trigger(player, new ItemStack(ModItems.OGREBLOOD_TOTEM.get()));
             player.awardStat(Stats.ITEM_USED.get(ModItems.OGREBLOOD_TOTEM.get()));
-            PacketDistributor.sendToPlayer(player, new OgrebloodTotemActivationPayload());
+            ModNetwork.sendToPlayer(player, new OgrebloodTotemActivationPayload());
         }
 
         LivingEntity lethalAttacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
@@ -99,7 +99,7 @@ public final class OgrebloodTotemEvents {
                 SoundSource.PLAYERS, 1.8F, 1.0F);
         level.playSound(null, saved.blockPosition(), SoundEvents.TOTEM_USE,
                 SoundSource.PLAYERS, 1.0F, 1.0F);
-        PacketDistributor.sendToPlayersNear(level, null,
+        ModNetwork.sendToPlayersNear(level, null,
                 saved.getX(), saved.getY(), saved.getZ(), 16.0,
                 new ScreenShakePayload(saved.getX(), saved.getY(), saved.getZ(),
                         0.32F, 10, 1.6F));
@@ -147,7 +147,7 @@ public final class OgrebloodTotemEvents {
                 continue;
             }
             if (dx * dx + dz * dz < 0.0001) {
-                double angle = saved.getRandom().nextDouble() * Math.TAU;
+                double angle = saved.getRandom().nextDouble() * (Math.PI * 2.0);
                 dx = Math.cos(angle);
                 dz = Math.sin(angle);
             }
@@ -185,7 +185,7 @@ public final class OgrebloodTotemEvents {
         double y = center.y + 0.15;
         int ringPoints = Math.max(20, (int) Math.ceil(radius * 6.0));
         for (int point = 0; point < ringPoints; point++) {
-            double angle = Math.TAU * point / ringPoints;
+            double angle = (Math.PI * 2.0) * point / ringPoints;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             level.sendParticles(ParticleTypes.CLOUD, x, y, z,

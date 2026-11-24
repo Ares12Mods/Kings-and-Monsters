@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.client.item.OgreKingsClubRenderer;
@@ -20,11 +21,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
-import net.neoforged.fml.ModList;
+import net.minecraftforge.fml.ModList;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.function.Consumer;
@@ -43,13 +44,13 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
     }
 
     @Override
-    public boolean supportsEnchantment(ItemStack stack, Holder<Enchantment> enchantment) {
-        return enchantment.is(Enchantments.UNBREAKING)
-                || enchantment.is(Enchantments.MENDING)
-                || enchantment.is(Enchantments.SWEEPING_EDGE)
-                || enchantment.is(Enchantments.KNOCKBACK)
-                || enchantment.is(Enchantments.SMITE)
-                || enchantment.is(ModEnchantments.TYRANT);
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        return enchantment == Enchantments.UNBREAKING
+                || enchantment == Enchantments.MENDING
+                || enchantment == Enchantments.SWEEPING_EDGE
+                || enchantment == Enchantments.KNOCKBACK
+                || enchantment == Enchantments.SMITE
+                || enchantment == ModEnchantments.TYRANT.get();
     }
 
     @Override
@@ -66,7 +67,7 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
         if (player instanceof ServerPlayer serverPlayer) {
             OgreKingsClubEvents.beginSlam(serverPlayer);
             player.getCooldowns().addCooldown(this, OgreKingsClubEvents.COOLDOWN_TICKS);
-            stack.hurtAndBreak(1, player, Player.getSlotForHand(hand));
+            com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
             if (ModList.get().isLoaded("bettercombat")) {
                 BetterCombatClubCompat.playSlam(serverPlayer);
             } else {
@@ -77,9 +78,9 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+        super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.ogre_kings_club.ability").withStyle(ChatFormatting.GOLD));
@@ -92,12 +93,12 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
     }
 
     @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             private OgreKingsClubRenderer renderer;
 
             @Override
-            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
                 if (renderer == null) {
                     renderer = new OgreKingsClubRenderer();
                 }

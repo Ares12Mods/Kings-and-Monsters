@@ -4,7 +4,6 @@ import com.kingsandmonsters.ModBlocks;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.block.entity.CandleHelmetBlockEntity;
 import com.kingsandmonsters.item.CandleHelmetItem;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -13,7 +12,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -54,7 +52,6 @@ import java.util.List;
  * its lit state but only works (light, flame) while worn.
  */
 public final class CandleHelmetBlock extends BaseEntityBlock {
-    public static final MapCodec<CandleHelmetBlock> CODEC = simpleCodec(CandleHelmetBlock::new);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     /** 0 = unlit; otherwise the light level the lit helmet gives (11 plus Brightwick). */
     public static final IntegerProperty LIGHT = IntegerProperty.create("light", 0, 15);
@@ -124,11 +121,10 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
-    @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
-                                              Player player, InteractionHand hand, BlockHitResult hit) {
+    private InteractionResult igniteWithFlint(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                             Player player, InteractionHand hand) {
         if (!stack.is(Items.FLINT_AND_STEEL) || isLit(state)) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            return null;
         }
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof CandleHelmetBlockEntity helmet) {
             ItemStack stored = helmet.getStack();
@@ -139,14 +135,16 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
             level.playSound(null, pos, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0F,
                     level.getRandom().nextFloat() * 0.4F + 0.8F);
             level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
         }
-        return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-                                               BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
+                                 InteractionHand hand, BlockHitResult hit) {
+        InteractionResult ignited = igniteWithFlint(player.getItemInHand(hand), state, level, pos, player, hand);
+        if (ignited != null) return ignited;
         if (!player.getMainHandItem().isEmpty()) return InteractionResult.PASS;
         if (player.isShiftKeyDown()) {
             return wear(state, level, pos, player);
@@ -182,7 +180,7 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
             if (!worn.isEmpty() && !player.getInventory().add(worn)) {
                 player.drop(worn, false);
             }
-            level.playSound(null, pos, SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.BLOCKS, 1.0F, 1.0F);
+            level.playSound(null, pos, SoundEvents.ARMOR_EQUIP_IRON, SoundSource.BLOCKS, 1.0F, 1.0F);
             level.gameEvent(player, GameEvent.EQUIP, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
@@ -204,7 +202,7 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+    public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         BlockEntity entity = params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
         ItemStack stack = entity instanceof CandleHelmetBlockEntity helmet
                 ? helmet.getStack()
@@ -213,15 +211,10 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(net.minecraft.world.level.BlockGetter level, BlockPos pos, BlockState state) {
         return level.getBlockEntity(pos) instanceof CandleHelmetBlockEntity helmet
                 ? helmet.getStack()
                 : new ItemStack(ModItems.CANDLE_HELMET.get());
-    }
-
-    @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
     }
 
     @Nullable
@@ -231,13 +224,13 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+    public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
         BlockPos supportPos = pos.below();
         return level.getBlockState(supportPos).isFaceSturdy(level, supportPos, Direction.UP);
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
                                      LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
         return direction == Direction.DOWN && !state.canSurvive(level, pos)
                 ? Blocks.AIR.defaultBlockState()
@@ -245,12 +238,12 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    protected RenderShape getRenderShape(BlockState state) {
+    public RenderShape getRenderShape(BlockState state) {
         return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
@@ -261,7 +254,7 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    public void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, LIGHT);
     }
 }

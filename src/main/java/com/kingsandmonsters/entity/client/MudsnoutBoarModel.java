@@ -3,17 +3,17 @@ package com.kingsandmonsters.entity.client;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.entity.MudsnoutBoar;
 import net.minecraft.resources.ResourceLocation;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public final class MudsnoutBoarModel extends OgreModel<MudsnoutBoar> {
-    private static final ResourceLocation SADDLED_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation SADDLED_TEXTURE = new ResourceLocation(
             KingsAndMonsters.MODID, "textures/entity/mudsnout_boar_saddled.png");
     // The snoutlet is a separate, smaller model with its own texture and clips.
-    private static final ResourceLocation SNOUTLET_MODEL = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation SNOUTLET_MODEL = new ResourceLocation(
             KingsAndMonsters.MODID, "geo/snoutlet.geo.json");
-    private static final ResourceLocation SNOUTLET_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation SNOUTLET_TEXTURE = new ResourceLocation(
             KingsAndMonsters.MODID, "textures/entity/snoutlet.png");
-    private static final ResourceLocation SNOUTLET_ANIMATIONS = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation SNOUTLET_ANIMATIONS = new ResourceLocation(
             KingsAndMonsters.MODID, "animations/snoutlet.animation.json");
 
     // The bones the headbutt, ram and eating clips key, eased out when the clip ends.

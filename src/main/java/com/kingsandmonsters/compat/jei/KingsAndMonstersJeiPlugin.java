@@ -31,20 +31,20 @@ public class KingsAndMonstersJeiPlugin implements IModPlugin {
     public void registerIngredients(IModIngredientRegistration registration) {
         // JEI has no mob effect ingredient of its own, so each of the mod's effects is listed as one.
         registration.register(EffectIngredient.TYPE, listedEffects(), new EffectIngredientHelper(),
-                new EffectIngredientRenderer(), EffectIngredient.CODEC);
+                new EffectIngredientRenderer());
     }
 
     // Only effects with their own custom icon are listed for now.
     private static List<EffectIngredient> listedEffects() {
         return List.of(
-                new EffectIngredient(ModMobEffects.DAZED),
-                new EffectIngredient(ModMobEffects.CRIPPLED),
-                new EffectIngredient(ModMobEffects.LESSER_BLEEDING),
-                new EffectIngredient(ModMobEffects.BLEEDING),
-                new EffectIngredient(ModMobEffects.GREATER_BLEEDING),
-                new EffectIngredient(ModMobEffects.BOGROT),
-                new EffectIngredient(ModMobEffects.BOGSTRIDE),
-                new EffectIngredient(ModMobEffects.CHARGE));
+                new EffectIngredient(ModMobEffects.DAZED.get()),
+                new EffectIngredient(ModMobEffects.CRIPPLED.get()),
+                new EffectIngredient(ModMobEffects.LESSER_BLEEDING.get()),
+                new EffectIngredient(ModMobEffects.BLEEDING.get()),
+                new EffectIngredient(ModMobEffects.GREATER_BLEEDING.get()),
+                new EffectIngredient(ModMobEffects.BOGROT.get()),
+                new EffectIngredient(ModMobEffects.BOGSTRIDE.get()),
+                new EffectIngredient(ModMobEffects.CHARGE.get()));
     }
 
     /** The short line shown on hover and on the effect's info page. */
@@ -102,6 +102,6 @@ public class KingsAndMonstersJeiPlugin implements IModPlugin {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

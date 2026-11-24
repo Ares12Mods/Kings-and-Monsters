@@ -1,0 +1,26 @@
+{
+  "parent": "kingsandmonsters:boars/swine_friend",
+  "display": {
+    "icon": {
+      "item": "kingsandmonsters:mudsnout_tusk"
+    },
+    "title": {
+      "translate": "advancement.kingsandmonsters.born_in_the_mud.title"
+    },
+    "description": {
+      "translate": "advancement.kingsandmonsters.born_in_the_mud.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "rewards": {
+    "experience": 15
+  }
+}

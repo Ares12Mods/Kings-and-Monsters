@@ -1,16 +1,15 @@
 {
-    "name":  "kingsandmonsters:ogre_encounters/moving_camp",
-    "fallback":  "minecraft:empty",
-    "elements":  [
-                     {
-                         "weight":  1,
-                         "element":  {
-                                         "location":  "kingsandmonsters:ogre_encounters/moving_camp",
-                                         "processors":  "kingsandmonsters:ogre_moving_camp",
-                                         "projection":  "rigid",
-                                         "override_liquid_settings":  "ignore_waterlogging",
-                                         "element_type":  "minecraft:single_pool_element"
-                                     }
-                     }
-                 ]
+  "name": "kingsandmonsters:ogre_encounters/moving_camp",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "kingsandmonsters:ogre_encounters/moving_camp",
+        "processors": "kingsandmonsters:ogre_moving_camp",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
 }

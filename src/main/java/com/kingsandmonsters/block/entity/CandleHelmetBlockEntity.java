@@ -3,14 +3,13 @@ package com.kingsandmonsters.block.entity;
 import com.kingsandmonsters.ModBlockEntities;
 import com.kingsandmonsters.ModItems;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /** Holds the exact helmet stack so enchantments, damage and lit state survive being placed and picked up. */
@@ -33,16 +32,16 @@ public final class CandleHelmetBlockEntity extends BlockEntity implements GeoBlo
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.put("Helmet", stack.save(registries));
+    public void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        tag.put("Helmet", stack.save(new CompoundTag()));
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         if (tag.contains("Helmet")) {
-            ItemStack loaded = ItemStack.parseOptional(registries, tag.getCompound("Helmet"));
+            ItemStack loaded = ItemStack.of(tag.getCompound("Helmet"));
             if (!loaded.isEmpty()) stack = loaded;
         }
     }

@@ -14,8 +14,8 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.model.data.ModelData;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -74,7 +74,7 @@ public final class GroundRippleRenderer {
             return;
         }
 
-        float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partialTick = event.getPartialTick();
         Vec3 camera = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         PoseStack poseStack = event.getPoseStack();
@@ -157,8 +157,12 @@ public final class GroundRippleRenderer {
                 }
 
                 BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+                ModelData existing = level.getModelDataManager().getAt(surface);
                 ModelData modelData = model.getModelData(level, surface, state,
-                        level.getModelDataManager().getAt(surface));
+                        existing == null ? ModelData.EMPTY : existing);
+                if (modelData == null) {
+                    modelData = ModelData.EMPTY;
+                }
                 List<RenderType> renderTypes = new ArrayList<>();
                 model.getRenderTypes(state, RandomSource.create(state.getSeed(surface)), modelData)
                         .forEach(renderTypes::add);

@@ -3,24 +3,24 @@ package com.kingsandmonsters;
 import com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, KingsAndMonsters.MODID);
 
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OgreKingsCrownBlockEntity>> OGRE_KINGS_CROWN =
+    public static final RegistryObject<BlockEntityType<OgreKingsCrownBlockEntity>> OGRE_KINGS_CROWN =
             BLOCK_ENTITY_TYPES.register("ogre_kings_crown", () ->
                     BlockEntityType.Builder.of(OgreKingsCrownBlockEntity::new, ModBlocks.OGRE_KINGS_CROWN_DISPLAY.get())
                             .build(null));
 
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.kingsandmonsters.block.entity.CandleHelmetBlockEntity>> CANDLE_HELMET =
+    public static final RegistryObject<BlockEntityType<com.kingsandmonsters.block.entity.CandleHelmetBlockEntity>> CANDLE_HELMET =
             BLOCK_ENTITY_TYPES.register("candle_helmet", () ->
                     BlockEntityType.Builder.of(com.kingsandmonsters.block.entity.CandleHelmetBlockEntity::new,
                             ModBlocks.CANDLE_HELMET_BLOCK.get()).build(null));
 
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity>> HAUNCH_PLATTER =
+    public static final RegistryObject<BlockEntityType<com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity>> HAUNCH_PLATTER =
             BLOCK_ENTITY_TYPES.register("haunch_platter", () ->
                     BlockEntityType.Builder.of(com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity::new,
                             ModBlocks.HAUNCH_PLATTER.get()).build(null));

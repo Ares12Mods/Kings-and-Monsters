@@ -48,10 +48,10 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -70,7 +70,7 @@ public class OgreArcher extends OgreGrunt {
     private static final EntityDataAccessor<Boolean> DATA_ARCHER_RETREATING =
             SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.BOOLEAN);
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
-    private static final RawAnimation RARE_IDLE = RawAnimation.begin().then("idle2", software.bernie.geckolib.animation.Animation.LoopType.PLAY_ONCE);
+    private static final RawAnimation RARE_IDLE = RawAnimation.begin().then("idle2", software.bernie.geckolib.core.animation.Animation.LoopType.PLAY_ONCE);
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
     private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("Combat walk");
     private static final RawAnimation SHOOT = RawAnimation.begin().thenPlay("Shoot");
@@ -198,8 +198,8 @@ public class OgreArcher extends OgreGrunt {
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 OverrideOnly spawn hook; no replacement exists in this target.
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
-        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, spawnTag);
         equipVariantBow(level);
         return data;
     }
@@ -219,6 +219,15 @@ public class OgreArcher extends OgreGrunt {
         ensureBowEquipped();
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.0F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 50.0)
@@ -227,13 +236,10 @@ public class OgreArcher extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 34.0)
                 .add(Attributes.ARMOR, 6.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.3)
-                .add(Attributes.ATTACK_KNOCKBACK, 0.35)
-                .add(Attributes.STEP_HEIGHT, 1.0)
-                .add(Attributes.SAFE_FALL_DISTANCE, 4.0)
+                .add(Attributes.ATTACK_KNOCKBACK, 0.35);
                 // See OgreGrunt#createAttributes — default 0 caps water acceleration at a tiny fixed
                 // baseline regardless of requested speed, which would make applyShallowWaterSpeedFactor's
-                // 50% reduction meaningless since he's already moving slower than that.
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                // 50% reduction meaningless since he's already moving slower than that.;
     }
 
     @Override
@@ -308,14 +314,14 @@ public class OgreArcher extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_ARCHER_SHOT_START_TICK, 0L);
-        builder.define(DATA_ARCHER_SWING_START_TICK, 0L);
-        builder.define(DATA_ARCHER_SWING_ID, 0);
-        builder.define(DATA_ARCHER_AIMING, false);
-        builder.define(DATA_ARCHER_COMBAT_MOVING, false);
-        builder.define(DATA_ARCHER_RETREATING, false);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_ARCHER_SHOT_START_TICK, 0L);
+        this.entityData.define(DATA_ARCHER_SWING_START_TICK, 0L);
+        this.entityData.define(DATA_ARCHER_SWING_ID, 0);
+        this.entityData.define(DATA_ARCHER_AIMING, false);
+        this.entityData.define(DATA_ARCHER_COMBAT_MOVING, false);
+        this.entityData.define(DATA_ARCHER_RETREATING, false);
     }
 
     @Override
@@ -336,12 +342,6 @@ public class OgreArcher extends OgreGrunt {
     /** True while he is riding a Mudsnout Boar: a jockey who aims and shoots but doesn't walk. */
     public boolean isMounted() {
         return getVehicle() instanceof MudsnoutBoar;
-    }
-
-    /** The boar keeps its own mind; he never steers it. */
-    @Override
-    public boolean canControlVehicle() {
-        return false;
     }
 
     @Override
@@ -487,7 +487,7 @@ public class OgreArcher extends OgreGrunt {
         }
 
         Vec3 arrowSpawn = getArrowSpawnPosition();
-        Arrow arrow = new Arrow(level(), this, new ItemStack(Items.ARROW), getMainHandItem());
+        Arrow arrow = new Arrow(level(), this);
         arrow.setPos(arrowSpawn.x, arrowSpawn.y, arrowSpawn.z);
 
         double xOffset = target.getX() - arrowSpawn.x;
@@ -498,7 +498,7 @@ public class OgreArcher extends OgreGrunt {
                 ARROW_PROJECTILE_SPEED, ARROW_INACCURACY);
         arrow.setBaseDamage(getVelocityAdjustedArrowDamage());
         if (enchantedBowHasFlame) {
-            arrow.igniteForSeconds(5.0F);
+            arrow.setSecondsOnFire(5);
         }
 
         int specialArrowRoll = getRandom().nextInt(100);
@@ -561,18 +561,18 @@ public class OgreArcher extends OgreGrunt {
         }
 
         if (roll < 70) {
-            enchantBow(level, bow, Enchantments.POWER, 1);
+            enchantBow(level, bow, Enchantments.POWER_ARROWS, 1);
             enchantedBowDamageBonus = 0.5;
         } else if (roll < 88) {
-            enchantBow(level, bow, Enchantments.POWER, 2);
+            enchantBow(level, bow, Enchantments.POWER_ARROWS, 2);
             enchantedBowDamageBonus = 1.0;
         } else if (roll < 96) {
-            enchantBow(level, bow, Enchantments.POWER, 2);
-            enchantBow(level, bow, Enchantments.PUNCH, 1);
+            enchantBow(level, bow, Enchantments.POWER_ARROWS, 2);
+            enchantBow(level, bow, Enchantments.PUNCH_ARROWS, 1);
             enchantedBowDamageBonus = 1.0;
         } else {
-            enchantBow(level, bow, Enchantments.POWER, 1);
-            enchantBow(level, bow, Enchantments.FLAME, 1);
+            enchantBow(level, bow, Enchantments.POWER_ARROWS, 1);
+            enchantBow(level, bow, Enchantments.FLAMING_ARROWS, 1);
             enchantedBowDamageBonus = 0.5;
             enchantedBowHasFlame = true;
         }
@@ -586,11 +586,8 @@ public class OgreArcher extends OgreGrunt {
         }
     }
 
-    private void enchantBow(ServerLevelAccessor level, ItemStack bow, net.minecraft.resources.ResourceKey<Enchantment> enchantment, int enchantmentLevel) {
-        Holder<Enchantment> holder = level.registryAccess()
-                .lookupOrThrow(Registries.ENCHANTMENT)
-                .getOrThrow(enchantment);
-        bow.enchant(holder, enchantmentLevel);
+    private void enchantBow(ServerLevelAccessor level, ItemStack bow, Enchantment enchantment, int enchantmentLevel) {
+        bow.enchant(enchantment, enchantmentLevel);
     }
 
     private void cancelBowShot() {

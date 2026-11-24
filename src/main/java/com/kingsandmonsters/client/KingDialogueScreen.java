@@ -8,7 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 
 /** What the Ogre King says when he has sat down for a visitor, and what the visitor can do about it. */
 public final class KingDialogueScreen extends CinematicDialogueScreen {
@@ -111,7 +111,7 @@ public final class KingDialogueScreen extends CinematicDialogueScreen {
 
     /** followUp is true when the server will answer with another dialogue screen. */
     private void act(int action, boolean followUp) {
-        PacketDistributor.sendToServer(new KingDialogueActionPayload(kingId, action));
+        ModNetwork.sendToServer(new KingDialogueActionPayload(kingId, action));
         if (followUp) {
             keepShot();
         }

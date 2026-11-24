@@ -68,24 +68,21 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
-import net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.EventHooks;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.event.EventHooks;
+import com.kingsandmonsters.network.ModNetwork;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.Animation;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.Animation;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
@@ -194,8 +191,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
     }
 
     @Override
-    protected int getBaseExperienceReward() {
-        return armyOwnerId == null ? super.getBaseExperienceReward() : 0;
+    public int getExperienceReward() {
+        return armyOwnerId == null ? super.getExperienceReward() : 0;
     }
 
     /**
@@ -393,14 +390,14 @@ public class OgreGrunt extends Monster implements GeoEntity {
             super.start();
         }
     }
-    private static final ResourceLocation BITE_ARMOR_PIERCE_MODIFIER_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_grunt_bite_armor_pierce");
-    private static final ResourceLocation BLACKHIDE_ARMOR_MODIFIER_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_grunt_blackhide_armor");
-    private static final ResourceLocation BLACKHIDE_KNOCKBACK_MODIFIER_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_grunt_blackhide_knockback");
-    private static final ResourceLocation BLACKHIDE_SPEED_MODIFIER_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_grunt_blackhide_speed");
+    private static final java.util.UUID BITE_ARMOR_PIERCE_MODIFIER_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("ogre_grunt_bite_armor_pierce");
+    private static final java.util.UUID BLACKHIDE_ARMOR_MODIFIER_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("ogre_grunt_blackhide_armor");
+    private static final java.util.UUID BLACKHIDE_KNOCKBACK_MODIFIER_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("ogre_grunt_blackhide_knockback");
+    private static final java.util.UUID BLACKHIDE_SPEED_MODIFIER_ID =
+            com.kingsandmonsters.item.ItemAttributes.uuid("ogre_grunt_blackhide_speed");
     private static final EntityDataAccessor<Integer> DATA_GRUNT_ATTACK_ID =
             SynchedEntityData.defineId(OgreGrunt.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> DATA_GRUNT_ATTACK_START_TICK =
@@ -562,14 +559,14 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if (usesReferenceGroundMovement()) {
             this.moveControl = new OgreGruntMoveControl(this);
         }
-        setPathfindingMalus(PathType.LEAVES, 0.0F);
+        setPathfindingMalus(BlockPathTypes.LEAVES, 0.0F);
         // Pointed dripstone and similar damaging floor nodes can strand the Ogre's wide collision
         // box and cause repeated path recalculation/turning. Never select them as walk nodes.
-        setPathfindingMalus(PathType.DAMAGE_OTHER, -1.0F);
+        setPathfindingMalus(BlockPathTypes.DAMAGE_OTHER, -1.0F);
         // Campfires and flames are never walked through, and the squares beside them are costly enough
         // that a path passes a block or so clear instead of brushing the fire.
-        setPathfindingMalus(PathType.DAMAGE_FIRE, -1.0F);
-        setPathfindingMalus(PathType.DANGER_FIRE, 16.0F);
+        setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, -1.0F);
+        setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 16.0F);
         // Grunts keep vanilla's discouraged-but-crossable water behavior so they can fight in one
         // block of shallow water. Larger and ranged subclasses opt into fully blocked water nodes.
     }
@@ -610,7 +607,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
     protected final void avoidWaterPathfinding() {
         // Negative water malus makes water nodes impassable to ground navigation. FloatGoal stays
         // available as an emergency escape if the ogre is physically knocked or spawned into water.
-        setPathfindingMalus(PathType.WATER, -1.0F);
+        setPathfindingMalus(BlockPathTypes.WATER, -1.0F);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -621,20 +618,14 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 .add(Attributes.FOLLOW_RANGE, 30.0)
                 .add(Attributes.ARMOR, 8.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.55)
-                .add(Attributes.ATTACK_KNOCKBACK, 0.9)
-                .add(Attributes.STEP_HEIGHT, 1.0)
-                .add(Attributes.SAFE_FALL_DISTANCE, 4.0)
-                // Default 0 caps water acceleration at a tiny baseline, which would make halving the
-                // shallow-water pursuit speed (applyShallowWaterSpeedFactor) do nothing. This lets
-                // the 50% reduction actually be felt.
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                .add(Attributes.ATTACK_KNOCKBACK, 0.9);
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, SpawnGroupData spawnData) {
-        SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData);
+                                        MobSpawnType spawnType, SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+        SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData, spawnTag);
         if (getClass() == OgreGrunt.class && getRandom().nextFloat() < BONE_CLUB_SPAWN_CHANCE) {
             net.minecraft.world.item.ItemStack club = new net.minecraft.world.item.ItemStack(ModItems.BONE_CLUB.get());
             club.setDamageValue(Mth.nextInt(getRandom(), club.getMaxDamage() / 2, club.getMaxDamage() * 4 / 5));
@@ -655,8 +646,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
         setAttributeBaseValue(Attributes.FOLLOW_RANGE, Config.OGRE_GRUNT_FOLLOW_RANGE.get());
         setAttributeBaseValue(Attributes.ARMOR, Config.OGRE_GRUNT_ARMOR.get());
         setAttributeBaseValue(Attributes.ATTACK_KNOCKBACK, Config.OGRE_GRUNT_ATTACK_KNOCKBACK.get());
-        setAttributeBaseValue(Attributes.STEP_HEIGHT, Config.OGRE_GRUNT_STEP_HEIGHT.get());
-        setAttributeBaseValue(Attributes.SAFE_FALL_DISTANCE, Config.OGRE_GRUNT_SAFE_FALL_DISTANCE.get());
+        setMaxUpStep(Config.OGRE_GRUNT_STEP_HEIGHT.get().floatValue());
+        configuredSafeFallDistance = Config.OGRE_GRUNT_SAFE_FALL_DISTANCE.get().intValue();
 
         if (healToMax) {
             setHealth(getMaxHealth());
@@ -665,11 +656,18 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
     }
 
-    protected void setAttributeBaseValue(net.minecraft.core.Holder<Attribute> attribute, double value) {
+    protected void setAttributeBaseValue(Attribute attribute, double value) {
         AttributeInstance instance = getAttribute(attribute);
         if (instance != null) {
             instance.setBaseValue(value);
         }
+    }
+
+    private int configuredSafeFallDistance = 4;
+
+    @Override
+    public int getMaxFallDistance() {
+        return configuredSafeFallDistance;
     }
 
     protected void applyConfiguredHealth(boolean healToMax) {
@@ -681,13 +679,13 @@ public class OgreGrunt extends Monster implements GeoEntity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_GRUNT_ATTACK_ID, 0);
-        builder.define(DATA_GRUNT_ATTACK_START_TICK, 0L);
-        builder.define(DATA_BOOSTED_MOVEMENT, false);
-        builder.define(DATA_MOVEMENT_STATE, MOVEMENT_IDLE);
-        builder.define(DATA_ARMOR_VARIANT, 0);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_GRUNT_ATTACK_ID, 0);
+        this.entityData.define(DATA_GRUNT_ATTACK_START_TICK, 0L);
+        this.entityData.define(DATA_BOOSTED_MOVEMENT, false);
+        this.entityData.define(DATA_MOVEMENT_STATE, MOVEMENT_IDLE);
+        this.entityData.define(DATA_ARMOR_VARIANT, 0);
     }
 
     public int getArmorVariant() {
@@ -715,15 +713,14 @@ public class OgreGrunt extends Monster implements GeoEntity {
 
         int pieces = getBlackhidePieceCount();
         replaceBlackhideModifier(Attributes.ARMOR, BLACKHIDE_ARMOR_MODIFIER_ID,
-                pieces * 2.0, AttributeModifier.Operation.ADD_VALUE);
+                pieces * 2.0, AttributeModifier.Operation.ADDITION);
         replaceBlackhideModifier(Attributes.KNOCKBACK_RESISTANCE, BLACKHIDE_KNOCKBACK_MODIFIER_ID,
-                pieces * 0.0375, AttributeModifier.Operation.ADD_VALUE);
+                pieces * 0.0375, AttributeModifier.Operation.ADDITION);
         replaceBlackhideModifier(Attributes.MOVEMENT_SPEED, BLACKHIDE_SPEED_MODIFIER_ID,
-                Math.max(0, pieces - 1) * 0.05, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+                Math.max(0, pieces - 1) * 0.05, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
-    private void replaceBlackhideModifier(net.minecraft.core.Holder<Attribute> attribute,
-                                           ResourceLocation id, double amount,
+    private void replaceBlackhideModifier(Attribute attribute, java.util.UUID id, double amount,
                                            AttributeModifier.Operation operation) {
         AttributeInstance instance = getAttribute(attribute);
         if (instance == null) {
@@ -731,7 +728,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
         instance.removeModifier(id);
         if (amount != 0.0) {
-            instance.addTransientModifier(new AttributeModifier(id, amount, operation));
+            instance.addTransientModifier(new AttributeModifier(id, id.toString(), amount, operation));
         }
     }
 
@@ -1124,7 +1121,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
         if (player instanceof ServerPlayer giver) {
             TributeManager.offerCoins(giver, held);
-            playSound(SoundEvents.ARMOR_EQUIP_GOLD.value(), 1.0F, 0.8F);
+            playSound(SoundEvents.ARMOR_EQUIP_GOLD, 1.0F, 0.8F);
         }
         return InteractionResult.SUCCESS;
     }
@@ -1315,7 +1312,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
     public void die(DamageSource source) {
         // Only ordinary Grunts can become Plague Ogres. Converting instead of running the
         // death/loot flow prevents one infected Grunt from producing both its drops and a mob.
-        MobEffectInstance bogrot = getEffect(ModMobEffects.BOGROT);
+        MobEffectInstance bogrot = getEffect(ModMobEffects.BOGROT.get());
         if (getClass() == OgreGrunt.class
                 && level() instanceof ServerLevel server
                 && bogrot != null
@@ -1466,7 +1463,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if ((tickCount + getId()) % 20 != 0) {
             return;
         }
-        TrialSpawnerBlockEntity owner = findOwningRoyalPatrolSpawner(serverLevel);
+        BlockPos owner = findOwningRoyalPatrolSpawner(serverLevel);
         if (owner == null) {
             return;
         }
@@ -1504,27 +1501,26 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 : ROYAL_PATROL_ARCHER_COUNT;
     }
 
-    private TrialSpawnerBlockEntity findOwningRoyalPatrolSpawner(ServerLevel serverLevel) {
+    /** The spawner block this squad leader came out of: any spawner within a few blocks of where it stands. */
+    private BlockPos findOwningRoyalPatrolSpawner(ServerLevel serverLevel) {
         BlockPos center = blockPosition();
         for (BlockPos candidate : BlockPos.betweenClosed(
                 center.offset(-6, -3, -6), center.offset(6, 3, 6))) {
-            if (serverLevel.getBlockEntity(candidate) instanceof TrialSpawnerBlockEntity spawner
-                    && isTrackedByTrialSpawner(serverLevel, spawner, getUUID())) {
-                return spawner;
+            if (serverLevel.getBlockEntity(candidate) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity) {
+                return candidate.immutable();
             }
         }
         return null;
     }
 
     private boolean spawnTrackedRoyalPatrolMember(ServerLevel serverLevel,
-                                                   TrialSpawnerBlockEntity owner,
+                                                   BlockPos spawnerPos,
                                                    EntityType<? extends OgreGrunt> entityType) {
         OgreGrunt member = entityType.create(serverLevel);
         if (member == null) {
             return false;
         }
 
-        BlockPos spawnerPos = owner.getBlockPos();
         for (int attempt = 0; attempt < 20; attempt++) {
             double x = spawnerPos.getX() + 0.5 + (getRandom().nextDouble() - getRandom().nextDouble()) * 4.5;
             double y = spawnerPos.getY() + getRandom().nextInt(3) - 1;
@@ -1534,46 +1530,16 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 continue;
             }
 
-            EventHooks.finalizeMobSpawnSpawner(member, serverLevel,
-                    serverLevel.getCurrentDifficultyAt(member.blockPosition()),
-                    MobSpawnType.TRIAL_SPAWNER, null, owner.getTrialSpawner(), true);
+            member.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(member.blockPosition()),
+                    MobSpawnType.SPAWNER, null, null);
             member.setPersistenceRequired();
-            if (!serverLevel.addFreshEntity(member)) {
-                return false;
-            }
-            addTrackedTrialMob(serverLevel, owner, member.getUUID());
-            owner.getTrialSpawner().markUpdated();
-            return true;
+            return serverLevel.addFreshEntity(member);
         }
         return false;
     }
 
-    private static boolean isTrackedByTrialSpawner(ServerLevel serverLevel,
-                                                    TrialSpawnerBlockEntity spawner,
-                                                    UUID entityId) {
-        CompoundTag savedData = spawner.saveWithoutMetadata(serverLevel.registryAccess());
-        ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
-        for (Tag trackedMob : trackedMobs) {
-            if (NbtUtils.loadUUID(trackedMob).equals(entityId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void addTrackedTrialMob(ServerLevel serverLevel,
-                                           TrialSpawnerBlockEntity spawner,
-                                           UUID entityId) {
-        CompoundTag savedData = spawner.saveWithoutMetadata(serverLevel.registryAccess());
-        ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
-        trackedMobs.add(NbtUtils.createUUID(entityId));
-        savedData.put("current_mobs", trackedMobs);
-        spawner.loadCustomOnly(savedData, serverLevel.registryAccess());
-    }
-
-    @Override
-    public void onAddedToLevel() {
-        super.onAddedToLevel();
+    /** Called when it joins a level (world launch, chunk reload). */
+    public void onJoinedLevel() {
         // A freshly loaded mob (world launch, chunk reload) shouldn't be stuck mid-attack or aggro'd
         // on whatever it was doing at save time. Force a clean idle state and let targeting start over.
         resetTransientCombatState();
@@ -1583,7 +1549,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
      * Clears any in-progress attack/animation state left over from before this entity was
      * (re)loaded. Subclasses with their own pending-attack timers should override and call super.
      */
-    protected void resetTransientCombatState() {
+    public void resetTransientCombatState() {
         setTarget(null);
         setAggressive(false);
         activeGruntAttackId = 0;
@@ -1660,7 +1626,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         BlockPos ground = BlockPos.containing(at.x, at.y - 0.5, at.z);
         var groundSound = level().getBlockState(ground).getSoundType(level(), ground, this);
         level().playSound(null, at.x, at.y, at.z,
-                power >= 1.2F ? SoundEvents.MACE_SMASH_GROUND_HEAVY : SoundEvents.MACE_SMASH_GROUND,
+                power >= 1.2F ? SoundEvents.DEEPSLATE_BRICKS_BREAK : SoundEvents.PLAYER_ATTACK_KNOCKBACK,
                 SoundSource.HOSTILE, 0.9F * power, 0.75F + pitchShift);
         level().playSound(null, at.x, at.y, at.z, groundSound.getBreakSound(),
                 SoundSource.HOSTILE, 1.3F * power, 0.5F + pitchShift);
@@ -2010,7 +1976,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
         serverLevel.sendParticles(ParticleTypes.POOF, impact.x, impact.y + 0.2, impact.z,
                 (int) (7 * power), 0.55 * power, 0.1, 0.55 * power, 0.02);
-        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 18.0,
+        ModNetwork.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 18.0,
                 new ScreenShakePayload(impact.x, impact.y, impact.z, 0.3F * power));
     }
 
@@ -2045,7 +2011,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
                     SoundSource.HOSTILE, 1.0F, 0.85F);
             level().playSound(null, at.x, at.y, at.z, SoundEvents.BONE_BLOCK_HIT,
                     SoundSource.HOSTILE, 0.9F, 0.75F);
-            level().playSound(null, at.x, at.y, at.z, SoundEvents.MACE_SMASH_GROUND,
+            level().playSound(null, at.x, at.y, at.z, SoundEvents.STONE_HIT,
                     SoundSource.HOSTILE, 0.2F, 0.9F);
             if (level() instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(new net.minecraft.core.particles.ItemParticleOption(
@@ -2113,10 +2079,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
 
         armor.removeModifier(BITE_ARMOR_PIERCE_MODIFIER_ID);
-        armor.addTransientModifier(new AttributeModifier(
-                BITE_ARMOR_PIERCE_MODIFIER_ID,
-                -armorPierceFraction,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        armor.addTransientModifier(new AttributeModifier(BITE_ARMOR_PIERCE_MODIFIER_ID, BITE_ARMOR_PIERCE_MODIFIER_ID.toString(), -armorPierceFraction,
+                AttributeModifier.Operation.MULTIPLY_TOTAL));
         try {
             return target.hurt(damageSources().mobAttack(this), (float) damage);
         } finally {
@@ -2994,7 +2958,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
                     center.x,
                     center.y,
                     center.z,
-                    SoundEvents.GENERIC_EXPLODE.value(),
+                    SoundEvents.GENERIC_EXPLODE,
                     SoundSource.HOSTILE,
                     1.25F,
                     0.55F);
@@ -3002,7 +2966,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
 
         private void sendShockwaveScreenShake(Vec3 center, float radius, float intensity) {
             if (intensity > 0.0F && ogre.level() instanceof ServerLevel serverLevel) {
-                PacketDistributor.sendToPlayersNear(
+                ModNetwork.sendToPlayersNear(
                         serverLevel,
                         null,
                         center.x,
@@ -3307,7 +3271,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if (!showsGroundRippleVisual(hit, profile)) {
             return;
         }
-        PacketDistributor.sendToPlayersNear(serverLevel, null, origin.x, origin.y, origin.z,
+        ModNetwork.sendToPlayersNear(serverLevel, null, origin.x, origin.y, origin.z,
                 Math.max(32.0, profile.maxRadius() * 4.0),
                 new GroundRipplePayload(origin.x, origin.y, origin.z, profile.maxRadius(),
                         profile.propagationSpeed(), RIPPLE_BLOCK_VISIBLE_TICKS, profile.maxVisualLift()));

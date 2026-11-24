@@ -5,7 +5,6 @@ import com.kingsandmonsters.tribute.OutpostProfile;
 import com.kingsandmonsters.tribute.PitZone;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -32,11 +31,8 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-import net.minecraft.world.level.levelgen.structure.pools.DimensionPadding;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
-import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasBinding;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
-import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 
 import java.util.List;
 import java.util.Map;
@@ -72,9 +68,6 @@ public final class OgreEncounterStructure extends Structure {
     private final boolean useExpansionHack;
     private final Optional<Heightmap.Types> projectStartToHeightmap;
     private final int maxDistanceFromCenter;
-    private final List<PoolAliasBinding> poolAliases;
-    private final DimensionPadding dimensionPadding;
-    private final LiquidSettings liquidSettings;
     private final String encounter;
     private final int groundY;
     private final int groundLift;
@@ -91,7 +84,7 @@ public final class OgreEncounterStructure extends Structure {
         ).apply(instance, Pit::new));
     }
 
-    public static final MapCodec<OgreEncounterStructure> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    public static final Codec<OgreEncounterStructure> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     settingsCodec(instance),
                     StructureTemplatePool.CODEC.fieldOf("start_pool").forGetter(s -> s.startPool),
@@ -101,9 +94,7 @@ public final class OgreEncounterStructure extends Structure {
                     Codec.BOOL.fieldOf("use_expansion_hack").forGetter(s -> s.useExpansionHack),
                     Heightmap.Types.CODEC.optionalFieldOf("project_start_to_heightmap").forGetter(s -> s.projectStartToHeightmap),
                     Codec.intRange(1, 128).fieldOf("max_distance_from_center").forGetter(s -> s.maxDistanceFromCenter),
-                    PoolAliasBinding.CODEC.listOf().optionalFieldOf("pool_aliases", List.of()).forGetter(s -> s.poolAliases),
-                    DimensionPadding.CODEC.optionalFieldOf("dimension_padding", DimensionPadding.ZERO).forGetter(s -> s.dimensionPadding),
-                    LiquidSettings.CODEC.optionalFieldOf("liquid_settings", LiquidSettings.APPLY_WATERLOGGING).forGetter(s -> s.liquidSettings),
+
                     Codec.STRING.fieldOf("encounter").forGetter(s -> s.encounter),
                     Codec.INT.optionalFieldOf("ground_y", 0).forGetter(s -> s.groundY),
                     Codec.INT.optionalFieldOf("ground_lift", 0).forGetter(s -> s.groundLift),
@@ -121,9 +112,6 @@ public final class OgreEncounterStructure extends Structure {
             boolean useExpansionHack,
             Optional<Heightmap.Types> projectStartToHeightmap,
             int maxDistanceFromCenter,
-            List<PoolAliasBinding> poolAliases,
-            DimensionPadding dimensionPadding,
-            LiquidSettings liquidSettings,
             String encounter,
             int groundY,
             int groundLift,
@@ -138,9 +126,6 @@ public final class OgreEncounterStructure extends Structure {
         this.useExpansionHack = useExpansionHack;
         this.projectStartToHeightmap = projectStartToHeightmap;
         this.maxDistanceFromCenter = maxDistanceFromCenter;
-        this.poolAliases = poolAliases;
-        this.dimensionPadding = dimensionPadding;
-        this.liquidSettings = liquidSettings;
         this.encounter = encounter;
         this.groundY = groundY;
         this.groundLift = groundLift;
@@ -278,8 +263,7 @@ public final class OgreEncounterStructure extends Structure {
     public Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
         JigsawStructure delegate = new JigsawStructure(
                 structureSettings, startPool, startJigsawName, maxDepth,
-                startHeight, useExpansionHack, projectStartToHeightmap, maxDistanceFromCenter,
-                poolAliases, dimensionPadding, liquidSettings);
+                startHeight, useExpansionHack, projectStartToHeightmap, maxDistanceFromCenter);
         Optional<GenerationStub> stubOpt = delegate.findGenerationPoint(context);
         if (stubOpt.isEmpty()) {
             return stubOpt;

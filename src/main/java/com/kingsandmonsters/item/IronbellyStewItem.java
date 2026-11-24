@@ -22,11 +22,11 @@ public class IronbellyStewItem extends Item {
         ItemStack result = super.finishUsingItem(stack, level, consumer);
         if (!level.isClientSide()) {
             consumer.removeEffect(MobEffects.POISON);
-            consumer.addEffect(new MobEffectInstance(ModMobEffects.POISON_RESISTANCE, TWO_MINUTES));
+            consumer.addEffect(new MobEffectInstance(ModMobEffects.POISON_RESISTANCE.get(), TWO_MINUTES));
             consumer.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ONE_MINUTE));
             consumer.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, TWO_MINUTES));
         }
-        return consumer.hasInfiniteMaterials() ? result : new ItemStack(Items.BOWL);
+        return com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
     }
 
 }

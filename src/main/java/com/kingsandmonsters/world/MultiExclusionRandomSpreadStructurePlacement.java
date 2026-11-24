@@ -3,7 +3,7 @@ package com.kingsandmonsters.world;
 import com.kingsandmonsters.compat.wildscapes.WildscapesStructureCompat;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
@@ -23,7 +23,7 @@ import java.util.Optional;
  */
 @SuppressWarnings("deprecation")
 public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSpreadStructurePlacement {
-    public static final MapCodec<MultiExclusionRandomSpreadStructurePlacement> CODEC =
+    public static final Codec<MultiExclusionRandomSpreadStructurePlacement> CODEC =
             RecordCodecBuilder.<MultiExclusionRandomSpreadStructurePlacement>mapCodec(instance ->
                     placementCodec(instance)
                             .and(instance.group(
@@ -41,9 +41,9 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
                             .apply(instance, (offset, method, frequency, salt, zone, spread, exclusions, nearby) ->
                                     new MultiExclusionRandomSpreadStructurePlacement(offset, method, frequency, salt,
                                             zone, spread.getFirst(), spread.getSecond(), exclusions, nearby)))
-                    .validate(placement -> placement.spacing() <= placement.separation()
+                    .flatXmap(placement -> placement.spacing() <= placement.separation()
                             ? DataResult.error(() -> "Spacing has to be larger than separation")
-                            : DataResult.success(placement));
+                            : DataResult.success(placement), DataResult::success).codec();
 
     private final List<StructurePlacement.ExclusionZone> exclusionZones;
     private final List<StructurePlacement.ExclusionZone> requiredNearby;
@@ -74,11 +74,11 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
     }
 
     @Override
-    public boolean applyInteractionsWithOtherStructures(
+    public boolean isStructureChunk(
             ChunkGeneratorStructureState structureState,
             int chunkX,
             int chunkZ) {
-        if (!super.applyInteractionsWithOtherStructures(structureState, chunkX, chunkZ)) {
+        if (!super.isStructureChunk(structureState, chunkX, chunkZ)) {
             return false;
         }
         if (!WildscapesStructureCompat.isClear(structureState, chunkX, chunkZ)) {

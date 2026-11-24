@@ -16,8 +16,8 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderHandEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
+import net.minecraftforge.client.event.RenderHandEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -374,7 +374,7 @@ public abstract class CinematicDialogueScreen extends Screen {
     // --- drawing ------------------------------------------------------------------------------
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         // The scene is the background; no blur or dimming.
     }
 

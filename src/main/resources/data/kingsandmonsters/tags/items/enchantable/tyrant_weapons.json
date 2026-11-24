@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:swords",
+    "#minecraft:axes",
+    {
+      "id": "minecraft:mace",
+      "required": false
+    },
+    {
+      "id": "#c:tools/mace",
+      "required": false
+    },
+    "kingsandmonsters:kings_cleaver",
+    "kingsandmonsters:ogre_kings_club"
+  ]
+}

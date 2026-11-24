@@ -41,7 +41,7 @@ public final class BlackhideSet {
     public static final double WEAPON_LIFT = 0.7;
 
     private static final TagKey<Item> BLACKHIDE_ARMOR = TagKey.create(Registries.ITEM,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "blackhide_armor"));
+            new ResourceLocation(KingsAndMonsters.MODID, "blackhide_armor"));
 
     private BlackhideSet() {
     }

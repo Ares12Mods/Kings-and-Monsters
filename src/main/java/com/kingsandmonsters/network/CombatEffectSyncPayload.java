@@ -1,15 +1,12 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.CombatEffectClientSync;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /**
  * Vanilla never tells other clients which effects a mob has, so Dazed and the bleeding tiers are
@@ -17,8 +14,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
  */
 public record CombatEffectSyncPayload(int entityId, int effectIndex, int duration) implements CustomPacketPayload {
     public static final Type<CombatEffectSyncPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "combat_effect_sync"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, CombatEffectSyncPayload> STREAM_CODEC =
+            new ResourceLocation(KingsAndMonsters.MODID, "combat_effect_sync"));
+    public static final StreamCodec<FriendlyByteBuf, CombatEffectSyncPayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.VAR_INT, CombatEffectSyncPayload::entityId,
                     ByteBufCodecs.VAR_INT, CombatEffectSyncPayload::effectIndex,

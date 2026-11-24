@@ -1,6 +1,6 @@
 package com.kingsandmonsters;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 /**
  * Server-authoritative configuration for Kings and Monsters.
@@ -9,103 +9,103 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * field names stay stable for callers inside the mod.</p>
  */
 public final class Config {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_ATTACK_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_ARMOR;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_ATTACK_KNOCKBACK;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_STEP_HEIGHT;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_SAFE_FALL_DISTANCE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_ATTACK_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_ATTACK_KNOCKBACK;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_STEP_HEIGHT;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_SAFE_FALL_DISTANCE;
 
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_CAPTAIN_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_GRUNT_CAPTAIN_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_CAPTAIN_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GRUNT_CAPTAIN_ARMOR;
 
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_MELEE_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_ARROW_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_ARCHER_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_MELEE_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_ARROW_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_ARCHER_ARMOR;
 
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_MELEE_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_SPEAR_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_GUARD_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_MELEE_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_SPEAR_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GUARD_ARMOR;
 
-    public static final ModConfigSpec.DoubleValue OGRE_MAGE_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_MAGE_ATTACK_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_MAGE_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_MAGE_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_MAGE_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_MAGE_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_MAGE_ATTACK_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_MAGE_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_MAGE_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_MAGE_ARMOR;
 
-    public static final ModConfigSpec.DoubleValue OGRE_BRUTE_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_BRUTE_ATTACK_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_BRUTE_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_BRUTE_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_BRUTE_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_BRUTE_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_BRUTE_ATTACK_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_BRUTE_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_BRUTE_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_BRUTE_ARMOR;
 
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_MAX_HEALTH;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_ATTACK_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_MOVEMENT_SPEED;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_FOLLOW_RANGE;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_ARMOR;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_PULL_OUT_BONUS_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_CLUB_UPSWING_BONUS_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE;
-    public static final ModConfigSpec.DoubleValue OGRE_LORD_SINGLE_OVERHEAD_BONUS_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_MAX_HEALTH;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_ATTACK_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_MOVEMENT_SPEED;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_FOLLOW_RANGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_ARMOR;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_PULL_OUT_BONUS_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_CLUB_UPSWING_BONUS_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue OGRE_LORD_SINGLE_OVERHEAD_BONUS_DAMAGE;
 
-    public static final ModConfigSpec.IntValue CRIPPLED_BITE_DURATION_TICKS;
-    public static final ModConfigSpec.IntValue CRIPPLED_SPEAR_DURATION_TICKS;
-    public static final ModConfigSpec.DoubleValue HUNTERS_SPEAR_CRIPPLE_CHANCE;
-    public static final ModConfigSpec.IntValue DAZED_HEAVY_ATTACK_DURATION_TICKS;
-    public static final ModConfigSpec.DoubleValue HEAVY_THROW_DAMAGE_PER_LEVEL;
-    public static final ModConfigSpec.DoubleValue HEAVY_THROW_KNOCKBACK_PER_LEVEL;
-    public static final ModConfigSpec.DoubleValue HEAVY_THROW_SPEED_PENALTY_PER_LEVEL;
-    public static final ModConfigSpec.DoubleValue BARBED_BLEED_CHANCE;
-    public static final ModConfigSpec.IntValue BARBED_BLEED_DURATION_TICKS;
-    public static final ModConfigSpec.DoubleValue BARBED_BLEED_DAMAGE;
-    public static final ModConfigSpec.DoubleValue TYRANT_SEARCH_RADIUS;
-    public static final ModConfigSpec.IntValue CROWN_ARMY_DURATION_SECONDS;
-    public static final ModConfigSpec.IntValue CROWN_ARMY_COOLDOWN_SECONDS;
-    public static final ModConfigSpec.DoubleValue GLANCING_BLOW_CHANCE;
-    public static final ModConfigSpec.IntValue GLANCING_BLOW_COOLDOWN_SECONDS;
-    public static final ModConfigSpec.DoubleValue OGRE_GLANCING_BLOW_CHANCE;
+    public static final ForgeConfigSpec.IntValue CRIPPLED_BITE_DURATION_TICKS;
+    public static final ForgeConfigSpec.IntValue CRIPPLED_SPEAR_DURATION_TICKS;
+    public static final ForgeConfigSpec.DoubleValue HUNTERS_SPEAR_CRIPPLE_CHANCE;
+    public static final ForgeConfigSpec.IntValue DAZED_HEAVY_ATTACK_DURATION_TICKS;
+    public static final ForgeConfigSpec.DoubleValue HEAVY_THROW_DAMAGE_PER_LEVEL;
+    public static final ForgeConfigSpec.DoubleValue HEAVY_THROW_KNOCKBACK_PER_LEVEL;
+    public static final ForgeConfigSpec.DoubleValue HEAVY_THROW_SPEED_PENALTY_PER_LEVEL;
+    public static final ForgeConfigSpec.DoubleValue BARBED_BLEED_CHANCE;
+    public static final ForgeConfigSpec.IntValue BARBED_BLEED_DURATION_TICKS;
+    public static final ForgeConfigSpec.DoubleValue BARBED_BLEED_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue TYRANT_SEARCH_RADIUS;
+    public static final ForgeConfigSpec.IntValue CROWN_ARMY_DURATION_SECONDS;
+    public static final ForgeConfigSpec.IntValue CROWN_ARMY_COOLDOWN_SECONDS;
+    public static final ForgeConfigSpec.DoubleValue GLANCING_BLOW_CHANCE;
+    public static final ForgeConfigSpec.IntValue GLANCING_BLOW_COOLDOWN_SECONDS;
+    public static final ForgeConfigSpec.DoubleValue OGRE_GLANCING_BLOW_CHANCE;
 
-    public static final ModConfigSpec.IntValue TRIBUTE_MAX_ANGER;
-    public static final ModConfigSpec.IntValue TRIBUTE_DEFAULT_ANGER_DELTA;
-    public static final ModConfigSpec.IntValue TRIBUTE_CHEST_ANGER_DELTA;
-    public static final ModConfigSpec.IntValue TRIBUTE_CAMP_KILL_ANGER;
-    public static final ModConfigSpec.IntValue TRIBUTE_CAMP_KILL_RADIUS;
-    public static final ModConfigSpec.DoubleValue TRIBUTE_PATROL_CHANCE;
-    public static final ModConfigSpec.IntValue ANGER_DECAY_INTERVAL_TICKS;
-    public static final ModConfigSpec.IntValue ANGER_HUD_RADIUS;
-    public static final ModConfigSpec.IntValue TRIBUTE_BASELINE_ANGER;
-    public static final ModConfigSpec.IntValue TRIBUTE_APPEASED_FAVOR;
-    public static final ModConfigSpec.IntValue TRIBUTE_TRADE_FAVOR;
-    public static final ModConfigSpec.IntValue TRIBUTE_DUEL_FAVOR;
-    public static final ModConfigSpec.IntValue TRIBUTE_DUEL_COOLDOWN_MINUTES;
-    public static final ModConfigSpec.DoubleValue SWAMP_OUTPOST_FORT_MAP_CHANCE;
-    public static final ModConfigSpec.BooleanValue CARTOGRAPHER_FORT_MAP_ENABLED;
-    public static final ModConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_PRICE;
-    public static final ModConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_LEVEL;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_MAX_ANGER;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_DEFAULT_ANGER_DELTA;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_CHEST_ANGER_DELTA;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_CAMP_KILL_ANGER;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_CAMP_KILL_RADIUS;
+    public static final ForgeConfigSpec.DoubleValue TRIBUTE_PATROL_CHANCE;
+    public static final ForgeConfigSpec.IntValue ANGER_DECAY_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.IntValue ANGER_HUD_RADIUS;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_BASELINE_ANGER;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_APPEASED_FAVOR;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_TRADE_FAVOR;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_DUEL_FAVOR;
+    public static final ForgeConfigSpec.IntValue TRIBUTE_DUEL_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.DoubleValue SWAMP_OUTPOST_FORT_MAP_CHANCE;
+    public static final ForgeConfigSpec.BooleanValue CARTOGRAPHER_FORT_MAP_ENABLED;
+    public static final ForgeConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_PRICE;
+    public static final ForgeConfigSpec.IntValue CARTOGRAPHER_FORT_MAP_LEVEL;
 
-    public static final ModConfigSpec.BooleanValue SHOW_CAPTAIN_NAMETAGS;
-    public static final ModConfigSpec.BooleanValue GIVE_COMPENDIUM_ON_JOIN;
+    public static final ForgeConfigSpec.BooleanValue SHOW_CAPTAIN_NAMETAGS;
+    public static final ForgeConfigSpec.BooleanValue GIVE_COMPENDIUM_ON_JOIN;
 
-    public static final ModConfigSpec.BooleanValue PATROLS_ENABLED;
-    public static final ModConfigSpec.IntValue PATROL_CHECK_INTERVAL_TICKS;
-    public static final ModConfigSpec.IntValue PATROL_MIN_COOLDOWN_TICKS;
-    public static final ModConfigSpec.IntValue PATROL_MAX_COOLDOWN_TICKS;
-    public static final ModConfigSpec.IntValue PATROL_PLAYER_SEARCH_RADIUS;
-    public static final ModConfigSpec.IntValue PATROL_MIN_SPAWN_DISTANCE;
-    public static final ModConfigSpec.IntValue PATROL_MAX_SPAWN_DISTANCE;
+    public static final ForgeConfigSpec.BooleanValue PATROLS_ENABLED;
+    public static final ForgeConfigSpec.IntValue PATROL_CHECK_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.IntValue PATROL_MIN_COOLDOWN_TICKS;
+    public static final ForgeConfigSpec.IntValue PATROL_MAX_COOLDOWN_TICKS;
+    public static final ForgeConfigSpec.IntValue PATROL_PLAYER_SEARCH_RADIUS;
+    public static final ForgeConfigSpec.IntValue PATROL_MIN_SPAWN_DISTANCE;
+    public static final ForgeConfigSpec.IntValue PATROL_MAX_SPAWN_DISTANCE;
 
-    static final ModConfigSpec SPEC;
+    static final ForgeConfigSpec SPEC;
 
     static {
         BUILDER.comment("Configure regular ogre stats.").push("Mob Config");

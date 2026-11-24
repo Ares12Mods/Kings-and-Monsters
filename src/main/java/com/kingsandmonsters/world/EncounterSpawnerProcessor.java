@@ -1,7 +1,6 @@
 package com.kingsandmonsters.world;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -25,9 +24,9 @@ import java.util.Map;
  * a slow, small trickle so they can't be farmed the way a vanilla default spawner can.</p>
  */
 public final class EncounterSpawnerProcessor extends StructureProcessor {
-    public static final MapCodec<EncounterSpawnerProcessor> CODEC =
+    public static final Codec<EncounterSpawnerProcessor> CODEC =
             Codec.STRING.optionalFieldOf("variant", "supply_1")
-                    .xmap(EncounterSpawnerProcessor::new, processor -> processor.variant);
+                    .xmap(EncounterSpawnerProcessor::new, processor -> processor.variant).codec();
 
     private static final String GRUNT = "kingsandmonsters:ogre_grunt";
     private static final String ARCHER = "kingsandmonsters:ogre_archer";
@@ -75,7 +74,7 @@ public final class EncounterSpawnerProcessor extends StructureProcessor {
             };
             return trickle == null ? relativeInfo : withNbt(relativeInfo, spawnerNbt(relativeInfo, trickle));
         }
-        if (relativeInfo.state().is(Blocks.TRIAL_SPAWNER)) {
+        if (relativeInfo.nbt() != null && "minecraft:trial_spawner".equals(relativeInfo.nbt().getString("id"))) {
             String entityId = switch (variant) {
                 case "moving" -> MOVING_TRIALS.get(rawInfo.pos());
                 case "quarry" -> QUARRY_TRIALS.get(rawInfo.pos());

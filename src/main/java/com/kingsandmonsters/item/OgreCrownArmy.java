@@ -52,7 +52,7 @@ public final class OgreCrownArmy {
     private static final java.util.ArrayList<Pending> PENDING = new java.util.ArrayList<>();
 
     /** Brings in whichever units of a called warband are due. */
-    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+    public static void onServerTick(com.kingsandmonsters.event.ServerTickEvent.Post event) {
         if (PENDING.isEmpty()) {
             return;
         }
@@ -72,7 +72,7 @@ public final class OgreCrownArmy {
     }
 
     /** An army never hurts what it was called to protect: its summoner, players, villagers or anyone's pets. */
-    public static void onIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
+    public static void onIncomingDamage(com.kingsandmonsters.event.LivingIncomingDamageEvent event) {
         net.minecraft.world.entity.Entity attacker = event.getSource().getEntity();
         boolean army = attacker instanceof OgreGrunt ogre && ogre.isArmyAlly()
                 || attacker instanceof MudsnoutBoar boar && boar.getArmyOwnerId() != null;
@@ -82,9 +82,9 @@ public final class OgreCrownArmy {
     }
 
     /** Nor do its splash potions: a harmful effect thrown by an army Mage is stripped from those it spares. */
-    public static void onMobEffectAdded(net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added event) {
+    public static void onMobEffectAdded(net.minecraftforge.event.entity.living.MobEffectEvent.Added event) {
         var effect = event.getEffectInstance();
-        if (effect.getEffect().value().getCategory() != net.minecraft.world.effect.MobEffectCategory.HARMFUL
+        if (effect.getEffect().getCategory() != net.minecraft.world.effect.MobEffectCategory.HARMFUL
                 || !OgreGrunt.spareByArmy(event.getEntity())) {
             return;
         }
@@ -135,7 +135,7 @@ public final class OgreCrownArmy {
 
         player.getPersistentData().putLong(READY_AT_TAG, now + Config.CROWN_ARMY_COOLDOWN_SECONDS.get() * 20L);
         player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                com.kingsandmonsters.ModMobEffects.WARBAND, ticks, 0, false, false, true));
+                com.kingsandmonsters.ModMobEffects.WARBAND.get(), ticks, 0, false, false, true));
         level.playSound(null, player.blockPosition(), SoundEvents.RAID_HORN.value(), SoundSource.PLAYERS, 1.4F, 0.7F);
         level.playSound(null, player.blockPosition(), ModSoundEvents.OGRE_LORD_HUFF.get(), SoundSource.PLAYERS, 1.0F, 0.9F);
         player.displayClientMessage(Component.translatable("message.kingsandmonsters.army." + warband.key())
@@ -172,7 +172,7 @@ public final class OgreCrownArmy {
                 boar.discard();
                 return false;
             }
-            boar.finalizeSpawn(level, difficulty, MobSpawnType.MOB_SUMMONED, null);
+            boar.finalizeSpawn(level, difficulty, MobSpawnType.MOB_SUMMONED, null, null);
             boar.joinArmy(player, ticks);
             level.addFreshEntity(boar);
             // The same Archer a boar jockey normally carries, put in the army with it.
@@ -201,7 +201,7 @@ public final class OgreCrownArmy {
             ogre.discard();
             return false;
         }
-        ogre.finalizeSpawn(level, difficulty, MobSpawnType.MOB_SUMMONED, null);
+        ogre.finalizeSpawn(level, difficulty, MobSpawnType.MOB_SUMMONED, null, null);
         ogre.joinArmy(player, ticks);
         level.addFreshEntity(ogre);
         puff(level, x, y, z);

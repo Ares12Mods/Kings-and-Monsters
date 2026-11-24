@@ -16,7 +16,7 @@ public final class RoastedMudsnoutHaunchItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity consumer) {
         ItemStack result = super.finishUsingItem(stack, level, consumer);
-        if (consumer.hasInfiniteMaterials()) return result;
+        if (com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer)) return result;
 
         ItemStack bone = new ItemStack(ModItems.MUDSNOUT_BONE.get());
         if (result.isEmpty()) return bone;

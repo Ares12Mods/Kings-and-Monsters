@@ -9,16 +9,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import com.kingsandmonsters.event.EntityTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 /** Server side of Dazed and bleeding synchronization; see {@link CombatEffectSyncPayload}. */
 public final class CombatEffectSyncEvents {
     /** Position in this list is the effect's id on the wire. */
-    public static final List<Holder<MobEffect>> SYNCED = List.of(
-            ModMobEffects.DAZED, ModMobEffects.LESSER_BLEEDING, ModMobEffects.BLEEDING, ModMobEffects.GREATER_BLEEDING);
+    public static final List<MobEffect> SYNCED = List.of(
+            ModMobEffects.DAZED.get(), ModMobEffects.LESSER_BLEEDING.get(), ModMobEffects.BLEEDING.get(), ModMobEffects.GREATER_BLEEDING.get());
     private static final int RESYNC_INTERVAL_TICKS = 20;
     /** Entities that gained one of these effects and should sync on their next tick. */
     private static final IntOpenHashSet DIRTY = new IntOpenHashSet();
@@ -27,7 +27,7 @@ public final class CombatEffectSyncEvents {
 
     private static int indexOf(MobEffectInstance instance) {
         for (int i = 0; i < SYNCED.size(); i++) {
-            if (instance.is(SYNCED.get(i))) return i;
+            if (instance.getEffect() == SYNCED.get(i)) return i;
         }
         return -1;
     }
@@ -53,7 +53,8 @@ public final class CombatEffectSyncEvents {
     }
 
     public static void onEntityTick(EntityTickEvent.Post event) {
-        if (!(event.getEntity() instanceof LivingEntity living) || living.level().isClientSide()) return;
+        LivingEntity living = event.getEntity();
+        if (living.level().isClientSide()) return;
         boolean dirty = !DIRTY.isEmpty() && DIRTY.remove(living.getId());
         if (!dirty && living.tickCount % RESYNC_INTERVAL_TICKS != 0) return;
         for (int i = 0; i < SYNCED.size(); i++) {
@@ -67,7 +68,7 @@ public final class CombatEffectSyncEvents {
             for (int i = 0; i < SYNCED.size(); i++) {
                 MobEffectInstance instance = living.getEffect(SYNCED.get(i));
                 if (instance != null) {
-                    PacketDistributor.sendToPlayer(viewer,
+                    ModNetwork.sendToPlayer(viewer,
                             new CombatEffectSyncPayload(living.getId(), i, instance.getDuration()));
                 }
             }
@@ -76,7 +77,7 @@ public final class CombatEffectSyncEvents {
 
     private static void send(LivingEntity living, int index, int duration) {
         // Players keep their own effects from vanilla; this reaches everyone else tracking the entity.
-        PacketDistributor.sendToPlayersTrackingEntity(living,
+        ModNetwork.sendToPlayersTrackingEntity(living,
                 new CombatEffectSyncPayload(living.getId(), index, duration));
     }
 }

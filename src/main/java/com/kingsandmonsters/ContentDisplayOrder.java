@@ -155,6 +155,6 @@ public final class ContentDisplayOrder {
     }
 
     private static void add(List<ItemStack> output, net.minecraft.world.level.ItemLike... items) {
-        for (var item : items) output.add(new ItemStack(item));
+        for (var item : items) output.add(item.asItem().getDefaultInstance());
     }
 }

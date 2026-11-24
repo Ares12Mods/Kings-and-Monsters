@@ -9,8 +9,8 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import com.kingsandmonsters.event.PlayerTickEvent;
 
 public final class KingsCleaverEvents {
     private static final String MAWS_FEAST_LAST_PROC_TAG = "KingsAndMonstersMawsFeastLastProc";

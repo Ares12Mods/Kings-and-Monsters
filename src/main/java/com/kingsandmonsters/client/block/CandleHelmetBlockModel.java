@@ -27,6 +27,6 @@ public final class CandleHelmetBlockModel extends GeoModel<CandleHelmetBlockEnti
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

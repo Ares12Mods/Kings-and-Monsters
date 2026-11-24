@@ -2,7 +2,7 @@ package com.kingsandmonsters.entity.client;
 
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.entity.PlagueOgre;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 /** Uses its own geo, texture and animations: geo/plague_ogre, textures/entity/plague_ogre and animations/plague_ogre. */
 public class PlagueOgreModel extends OgreModel<PlagueOgre> {

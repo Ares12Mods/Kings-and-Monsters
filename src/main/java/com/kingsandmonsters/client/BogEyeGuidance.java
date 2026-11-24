@@ -22,8 +22,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 /**
  * Client-only feedback for a successful Bog-Eye Charm use: a particle trail plus an outline on the

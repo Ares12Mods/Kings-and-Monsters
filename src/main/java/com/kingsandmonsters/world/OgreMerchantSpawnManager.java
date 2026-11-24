@@ -20,8 +20,8 @@ import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.event.ServerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +42,7 @@ public final class OgreMerchantSpawnManager {
     private static final int REQUIRED_LOADED_RADIUS = 5;
     private static final double ARRIVAL_MESSAGE_RADIUS = 128.0;
     private static final TagKey<Biome> SPAWN_BIOMES = TagKey.create(Registries.BIOME,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_merchant_spawns"));
+            new ResourceLocation(KingsAndMonsters.MODID, "ogre_merchant_spawns"));
     private static int tickDelay = 20;
 
     private OgreMerchantSpawnManager() {}
@@ -84,7 +84,7 @@ public final class OgreMerchantSpawnManager {
         if (merchant == null) return null;
         merchant.moveTo(position.getX() + .5, position.getY(), position.getZ() + .5,
                 level.random.nextFloat() * 360, 0);
-        merchant.finalizeSpawn(level, level.getCurrentDifficultyAt(position), MobSpawnType.NATURAL, null);
+        merchant.finalizeSpawn(level, level.getCurrentDifficultyAt(position), MobSpawnType.NATURAL, null, null);
         if (!level.addFreshEntity(merchant)) {
             // The escort is created while the merchant is finalized, so a failed add must not strand it.
             merchant.despawnGuards();
@@ -94,7 +94,7 @@ public final class OgreMerchantSpawnManager {
         double messageRadiusSq = ARRIVAL_MESSAGE_RADIUS * ARRIVAL_MESSAGE_RADIUS;
         for (ServerPlayer player : level.getPlayers(candidate -> !candidate.isSpectator()
                 && candidate.distanceToSqr(merchant) <= messageRadiusSq)) {
-            PacketDistributor.sendToPlayer(player, OgreOverlayPayload.major(
+            ModNetwork.sendToPlayer(player, OgreOverlayPayload.major(
                     "You have been visited by the Ogre Merchant.",
                     ""));
         }
@@ -126,7 +126,7 @@ public final class OgreMerchantSpawnManager {
                     || !level.getBlockState(pos.below()).is(BlockTags.VALID_SPAWN)
                     || !NaturalSpawner.isValidEmptySpawnBlock(level, pos, level.getBlockState(pos),
                     level.getFluidState(pos), type)
-                    || !level.noCollision(type.getSpawnAABB(pos.getX() + .5, pos.getY(), pos.getZ() + .5))) return false;
+                    || !level.noCollision(type.getAABB(pos.getX() + .5, pos.getY(), pos.getZ() + .5))) return false;
         }
         return true;
     }
@@ -155,9 +155,8 @@ public final class OgreMerchantSpawnManager {
     }
 
     private static OgreMerchantSpawnData getData(ServerLevel level) {
-        SavedData.Factory<OgreMerchantSpawnData> factory = new SavedData.Factory<>(OgreMerchantSpawnData::new,
-                OgreMerchantSpawnData::load);
-        return level.getDataStorage().computeIfAbsent(factory, OgreMerchantSpawnData.FILE_ID);
+        return level.getDataStorage().computeIfAbsent(
+                OgreMerchantSpawnData::load, OgreMerchantSpawnData::new, OgreMerchantSpawnData.FILE_ID);
     }
 
     public static void reset() { tickDelay = 20; }

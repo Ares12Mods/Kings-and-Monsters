@@ -21,7 +21,7 @@ final class EffectIngredientRenderer implements IIngredientRenderer<EffectIngred
 
     @Override
     public List<Component> getTooltip(EffectIngredient ingredient, TooltipFlag tooltipFlag) {
-        MobEffect effect = ingredient.effect().value();
+        MobEffect effect = ingredient.effect();
         Component name = effect.getDisplayName().copy().withStyle(effect.getCategory().getTooltipFormatting());
         Component description = KingsAndMonstersJeiPlugin.effectDescription(ingredient)
                 .copy().withStyle(ChatFormatting.GRAY);

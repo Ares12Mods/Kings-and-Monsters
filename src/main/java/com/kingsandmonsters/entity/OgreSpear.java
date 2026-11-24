@@ -11,7 +11,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -46,6 +45,7 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
     private static final EntityDataAccessor<Float> ID_POST_HIT_PITCH =
             SynchedEntityData.defineId(OgreSpear.class, EntityDataSerializers.FLOAT);
 
+    private ItemStack spearItem = new ItemStack(ModItems.HUNTERS_SPEAR.get());
     private float damage = 10.0F;
     private boolean dealtDamage;
     private int clientSideReturnTickCount;
@@ -60,31 +60,27 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
 
     public OgreSpear(Level level, LivingEntity owner, ItemStack spearStack, Vec3 position, Vec3 velocity,
                      double damage, Pickup pickup) {
-        super(ModEntities.OGRE_SPEAR.get(), position.x, position.y, position.z, level, spearStack.copy(), null);
+        super(ModEntities.OGRE_SPEAR.get(), position.x, position.y, position.z, level);
+        this.spearItem = spearStack.copy();
         this.damage = (float) damage;
         this.pickup = pickup;
         setOwner(owner);
         setDeltaMovement(velocity);
-        this.entityData.set(ID_LOYALTY, getLoyaltyFromItem(getPickupItemStackOrigin()));
+        this.entityData.set(ID_LOYALTY, getLoyaltyFromItem(spearItem));
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(ID_LOYALTY, (byte) 0);
-        builder.define(ID_STABLE_POST_HIT_ROTATION, false);
-        builder.define(ID_POST_HIT_YAW, 0.0F);
-        builder.define(ID_POST_HIT_PITCH, 0.0F);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(ID_LOYALTY, (byte) 0);
+        this.entityData.define(ID_STABLE_POST_HIT_ROTATION, false);
+        this.entityData.define(ID_POST_HIT_YAW, 0.0F);
+        this.entityData.define(ID_POST_HIT_PITCH, 0.0F);
     }
 
     @Override
-    protected ItemStack getDefaultPickupItem() {
-        return new ItemStack(ModItems.HUNTERS_SPEAR.get());
-    }
-
-    @Override
-    protected double getDefaultGravity() {
-        return 0.05;
+    protected ItemStack getPickupItem() {
+        return spearItem.copy();
     }
 
     @Override
@@ -94,13 +90,12 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
 
     @Override
     public ItemStack getItem() {
-        return getPickupItemStackOrigin();
+        return spearItem.copy();
     }
 
-    @Override
+    /** The spear is the weapon itself (no separate launcher item), same as ThrownTrident. */
     public ItemStack getWeaponItem() {
-        // The spear is the weapon itself (no separate launcher item), same as ThrownTrident.
-        return getPickupItemStackOrigin();
+        return spearItem.copy();
     }
 
     public boolean hasStablePostHitRotation() {
@@ -171,8 +166,8 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
 
         float appliedDamage = damage;
         DamageSource damageSource = damageSources().thrown(this, owner != null ? owner : this);
-        if (level() instanceof ServerLevel serverLevel) {
-            appliedDamage = EnchantmentHelper.modifyDamage(serverLevel, getWeaponItem(), target, damageSource, appliedDamage);
+        if (target instanceof LivingEntity livingTarget) {
+            appliedDamage += EnchantmentHelper.getDamageBonus(spearItem, livingTarget.getMobType());
         }
 
         dealtDamage = true;
@@ -182,12 +177,13 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
             this.entityData.set(ID_POST_HIT_PITCH, getXRot());
         }
         if (target.hurt(damageSource, appliedDamage)) {
-            if (level() instanceof ServerLevel serverLevel) {
-                EnchantmentHelper.doPostAttackEffectsWithItemSource(serverLevel, target, damageSource, getWeaponItem());
-            }
-
             if (target instanceof LivingEntity livingTarget) {
-                doKnockback(livingTarget, damageSource);
+                Vec3 push = getDeltaMovement().normalize();
+                livingTarget.knockback(0.4, -push.x, -push.z);
+                if (owner instanceof LivingEntity livingOwner) {
+                    EnchantmentHelper.doPostHurtEffects(livingTarget, livingOwner);
+                    EnchantmentHelper.doPostDamageEffects(livingOwner, livingTarget);
+                }
                 int heavyThrow = ModEnchantmentEffects.level(level(), getWeaponItem(), ModEnchantments.HEAVY_THROW);
                 double bonusKnockback = ModEnchantmentEffects.heavyThrowKnockback(heavyThrow);
                 if (bonusKnockback > 0.0 && owner instanceof LivingEntity livingOwner) {
@@ -211,13 +207,11 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
     }
 
     private byte getLoyaltyFromItem(ItemStack stack) {
-        return level() instanceof ServerLevel serverLevel
-                ? (byte) Mth.clamp(EnchantmentHelper.getTridentReturnToOwnerAcceleration(serverLevel, stack, this), 0, 127)
-                : 0;
+        return (byte) Mth.clamp(EnchantmentHelper.getLoyalty(stack), 0, 127);
     }
 
     @Override
-    public void tickDespawn() {
+    protected void tickDespawn() {
         int loyalty = this.entityData.get(ID_LOYALTY);
         if (pickup != Pickup.ALLOWED || loyalty <= 0) {
             super.tickDespawn();
@@ -227,6 +221,7 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.put("Spear", spearItem.save(new CompoundTag()));
         tag.putFloat("Damage", damage);
         tag.putBoolean("DealtDamage", dealtDamage);
         if (this.entityData.get(ID_STABLE_POST_HIT_ROTATION)) {
@@ -239,6 +234,9 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        if (tag.contains("Spear")) {
+            spearItem = ItemStack.of(tag.getCompound("Spear"));
+        }
         if (tag.contains("Damage")) {
             damage = tag.getFloat("Damage");
         }
@@ -248,6 +246,6 @@ public class OgreSpear extends AbstractArrow implements ItemSupplier {
             this.entityData.set(ID_POST_HIT_YAW, tag.getFloat("PostHitYaw"));
             this.entityData.set(ID_POST_HIT_PITCH, tag.getFloat("PostHitPitch"));
         }
-        this.entityData.set(ID_LOYALTY, getLoyaltyFromItem(getPickupItemStackOrigin()));
+        this.entityData.set(ID_LOYALTY, getLoyaltyFromItem(spearItem));
     }
 }

@@ -10,7 +10,7 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 /**
  * Keeps swamp water populated with Bog Poles near players. Vanilla's natural spawning picks a

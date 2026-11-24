@@ -4,8 +4,8 @@ import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import software.bernie.geckolib.animatable.GeoAnimatable;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animatable.GeoAnimatable;
+import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.model.data.EntityModelData;
@@ -31,9 +31,9 @@ abstract class OgreModel<T extends Entity & GeoAnimatable> extends GeoModel<T> {
     }
 
     protected OgreModel(String name, boolean proceduralHeadTracking) {
-        this.modelResource = ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "geo/" + name + ".geo.json");
-        this.textureResource = ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "textures/entity/" + name + ".png");
-        this.animationResource = ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "animations/" + name + ".animation.json");
+        this.modelResource = new ResourceLocation(KingsAndMonsters.MODID, "geo/" + name + ".geo.json");
+        this.textureResource = new ResourceLocation(KingsAndMonsters.MODID, "textures/entity/" + name + ".png");
+        this.animationResource = new ResourceLocation(KingsAndMonsters.MODID, "animations/" + name + ".animation.json");
         this.proceduralHeadTracking = proceduralHeadTracking;
     }
 

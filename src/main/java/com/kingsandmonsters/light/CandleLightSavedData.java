@@ -3,7 +3,6 @@ package com.kingsandmonsters.light;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -16,16 +15,13 @@ import net.minecraft.world.level.saveddata.SavedData;
  */
 public final class CandleLightSavedData extends SavedData {
     private static final String NAME = "kingsandmonsters_candle_lights";
-    private static final SavedData.Factory<CandleLightSavedData> FACTORY =
-            new SavedData.Factory<>(CandleLightSavedData::new, CandleLightSavedData::load, null);
-
-    private final Long2IntOpenHashMap lights = new Long2IntOpenHashMap();
+        private final Long2IntOpenHashMap lights = new Long2IntOpenHashMap();
 
     public static CandleLightSavedData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(FACTORY, NAME);
+        return level.getDataStorage().computeIfAbsent(CandleLightSavedData::load, CandleLightSavedData::new, NAME);
     }
 
-    private static CandleLightSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
+    private static CandleLightSavedData load(CompoundTag tag) {
         CandleLightSavedData data = new CandleLightSavedData();
         long[] positions = tag.getLongArray("positions");
         int[] levels = tag.getIntArray("levels");
@@ -36,7 +32,7 @@ public final class CandleLightSavedData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         long[] positions = new long[lights.size()];
         int[] levels = new int[lights.size()];
         int i = 0;

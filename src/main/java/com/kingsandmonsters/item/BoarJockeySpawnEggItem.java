@@ -8,10 +8,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.DeferredSpawnEggItem;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 
 /** Spawns a Mudsnout Boar with an Ogre Archer riding it, for testing the jockeys. */
-public class BoarJockeySpawnEggItem extends DeferredSpawnEggItem {
+public class BoarJockeySpawnEggItem extends ForgeSpawnEggItem {
     public BoarJockeySpawnEggItem(int backgroundColor, int highlightColor, Properties properties) {
         super(ModEntities.MUDSNOUT_BOAR, backgroundColor, highlightColor, properties);
     }
@@ -29,10 +29,10 @@ public class BoarJockeySpawnEggItem extends DeferredSpawnEggItem {
             return InteractionResult.FAIL;
         }
         boar.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, server.random.nextFloat() * 360.0F, 0.0F);
-        boar.finalizeSpawn(server, server.getCurrentDifficultyAt(pos), MobSpawnType.SPAWN_EGG, null);
+        boar.finalizeSpawn(server, server.getCurrentDifficultyAt(pos), MobSpawnType.SPAWN_EGG, null, null);
         boar.addJockey(server, server.getCurrentDifficultyAt(pos));
         server.addFreshEntityWithPassengers(boar);
-        context.getItemInHand().consume(1, context.getPlayer());
+        com.kingsandmonsters.item.ItemUtil.consume(context.getItemInHand(), 1, context.getPlayer());
         return InteractionResult.CONSUME;
     }
 }

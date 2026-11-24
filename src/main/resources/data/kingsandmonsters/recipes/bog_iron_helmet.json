@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "X": {
+      "item": "kingsandmonsters:bog_iron"
+    },
+    "W": {
+      "item": "minecraft:green_wool"
+    }
+  },
+  "pattern": [
+    "XWX",
+    "X X"
+  ],
+  "result": {
+    "item": "kingsandmonsters:bog_iron_helmet",
+    "count": 1
+  }
+}

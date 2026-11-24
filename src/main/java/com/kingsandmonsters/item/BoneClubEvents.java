@@ -6,10 +6,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.CombatRules;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import com.kingsandmonsters.event.LivingDamageEvent;
+import com.kingsandmonsters.event.LivingIncomingDamageEvent;
+import net.minecraftforge.event.entity.player.CriticalHitEvent;
+import com.kingsandmonsters.event.PlayerTickEvent;
 
 /** Charged Bone Club hits crush armor; the first charged falling critical each jump also Dazes. */
 public final class BoneClubEvents {
@@ -49,15 +49,14 @@ public final class BoneClubEvents {
         float toughness = (float) target.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
         if (armor <= 0.0F) return;
         float raw = event.getAmount();
-        float normal = CombatRules.getDamageAfterAbsorb(target, raw, event.getSource(), armor, toughness);
-        float pierced = CombatRules.getDamageAfterAbsorb(target, raw, event.getSource(),
-                armor * (1.0F - ARMOR_PIERCE), toughness);
+        float normal = CombatRules.getDamageAfterAbsorb(raw, armor, toughness);
+        float pierced = CombatRules.getDamageAfterAbsorb(raw, armor * (1.0F - ARMOR_PIERCE), toughness);
         if (normal > 0.0F && pierced > normal) event.setAmount(raw * pierced / normal);
     }
 
     public static void onLivingDamagePost(LivingDamageEvent.Post event) {
+        LivingEntity target = event.getEntity();
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)
-                || !(event.getEntity() instanceof LivingEntity target)
                 || player.getPersistentData().getInt(CRIT_TARGET) != target.getId()
                 || player.getPersistentData().getLong(CRIT_TICK) != player.level().getGameTime()) return;
         player.getPersistentData().remove(CRIT_TARGET);

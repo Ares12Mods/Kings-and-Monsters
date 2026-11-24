@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import snownee.jade.api.EntityAccessor;
-import snownee.jade.api.IComponentProvider;
+import snownee.jade.api.IEntityComponentProvider;
 import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.ITooltip;
@@ -20,9 +20,9 @@ import snownee.jade.api.config.IPluginConfig;
 @WailaPlugin(KingsAndMonsters.MODID)
 public class BogfumeRageJadePlugin implements IWailaPlugin {
     private static final ResourceLocation BOGFUME_RAGE =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bogfume_rage");
+            new ResourceLocation(KingsAndMonsters.MODID, "bogfume_rage");
     private static final ResourceLocation BOGROT =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bogrot");
+            new ResourceLocation(KingsAndMonsters.MODID, "bogrot");
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
@@ -36,12 +36,12 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
      * Bleeding is applied without vanilla's particle flag, which is also what Jade's own effect list keys
      * on, so the worst active tier is listed here instead.
      */
-    private enum BleedingProvider implements IComponentProvider<EntityAccessor> {
+    private enum BleedingProvider implements IEntityComponentProvider {
         INSTANCE;
 
         @Override
         public ResourceLocation getUid() {
-            return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bleeding");
+            return new ResourceLocation(KingsAndMonsters.MODID, "bleeding");
         }
 
         @Override
@@ -49,12 +49,12 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
             if (!(accessor.getEntity() instanceof LivingEntity entity) || entity instanceof OgreLord) {
                 return;
             }
-            for (var effect : java.util.List.of(ModMobEffects.GREATER_BLEEDING, ModMobEffects.BLEEDING,
-                    ModMobEffects.LESSER_BLEEDING)) {
+            for (var effect : java.util.List.of(ModMobEffects.GREATER_BLEEDING.get(), ModMobEffects.BLEEDING.get(),
+                    ModMobEffects.LESSER_BLEEDING.get())) {
                 var active = entity.getEffect(effect);
                 if (active != null && active.getDuration() > 0) {
                     tooltip.add(Component.translatable("jade.kingsandmonsters.bleeding",
-                            effect.value().getDisplayName(), Math.max(1, (active.getDuration() + 19) / 20))
+                            effect.getDisplayName(), Math.max(1, (active.getDuration() + 19) / 20))
                             .withStyle(ChatFormatting.RED));
                     return;
                 }
@@ -62,7 +62,7 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
         }
     }
 
-    private enum BogfumeRageProvider implements IComponentProvider<EntityAccessor> {
+    private enum BogfumeRageProvider implements IEntityComponentProvider {
         INSTANCE;
 
         @Override
@@ -72,19 +72,19 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
 
         @Override
         public void appendTooltip(ITooltip tooltip, EntityAccessor accessor, IPluginConfig config) {
-            if (accessor.getEntity() instanceof LivingEntity entity && entity.hasEffect(ModMobEffects.BOGFUME_RAGE)) {
+            if (accessor.getEntity() instanceof LivingEntity entity && entity.hasEffect(ModMobEffects.BOGFUME_RAGE.get())) {
                 tooltip.add(Component.translatable("jade.kingsandmonsters.bogfume_rage").withStyle(ChatFormatting.GREEN));
             }
         }
     }
 
     /** A tame adult boar shows its speed and health tier, so a breeder can compare animals at a glance. */
-    private enum BoarTraitsProvider implements IComponentProvider<EntityAccessor> {
+    private enum BoarTraitsProvider implements IEntityComponentProvider {
         INSTANCE;
 
         @Override
         public ResourceLocation getUid() {
-            return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "boar_traits");
+            return new ResourceLocation(KingsAndMonsters.MODID, "boar_traits");
         }
 
         @Override
@@ -97,7 +97,7 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
         }
     }
 
-    private enum BogrotProvider implements IComponentProvider<EntityAccessor> {
+    private enum BogrotProvider implements IEntityComponentProvider {
         INSTANCE;
 
         @Override
@@ -108,7 +108,7 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
         @Override
         public void appendTooltip(ITooltip tooltip, EntityAccessor accessor, IPluginConfig config) {
             if (accessor.getEntity() instanceof LivingEntity entity && !(entity instanceof OgreLord)) {
-                var bogrot = entity.getEffect(ModMobEffects.BOGROT);
+                var bogrot = entity.getEffect(ModMobEffects.BOGROT.get());
                 if (bogrot != null && bogrot.getDuration() > 0) {
                     tooltip.add(Component.translatable("jade.kingsandmonsters.bogrot",
                             bogrot.getAmplifier() + 1,

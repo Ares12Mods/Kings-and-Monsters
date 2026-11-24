@@ -15,9 +15,9 @@ import java.util.Set;
  */
 final class OptionalVegetationCompat {
     private static final ResourceLocation NO_MANS_LAND_CUT_VINE =
-            ResourceLocation.fromNamespaceAndPath("nomansland", "cut_vine");
+            new ResourceLocation("nomansland", "cut_vine");
     private static final ResourceLocation NO_MANS_LAND_SHELF_MUSHROOM_BLOCK =
-            ResourceLocation.fromNamespaceAndPath("nomansland", "shelf_mushroom_block");
+            new ResourceLocation("nomansland", "shelf_mushroom_block");
 
     /**
      * Wildscapes decorates the vanilla swamp after structures are placed: duckweed and rushes along
@@ -87,7 +87,7 @@ final class OptionalVegetationCompat {
     private static Set<Block> lookup(String[] paths) {
         Set<Block> found = new HashSet<>();
         for (String path : paths) {
-            BuiltInRegistries.BLOCK.getOptional(ResourceLocation.fromNamespaceAndPath(WILDSCAPES, path))
+            BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(WILDSCAPES, path))
                     .ifPresent(found::add);
         }
         return Set.copyOf(found);

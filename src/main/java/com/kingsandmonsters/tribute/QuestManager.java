@@ -14,10 +14,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
+import com.kingsandmonsters.network.ModNetwork;
 
 import java.util.HashMap;
 import java.util.List;
@@ -127,7 +127,7 @@ public final class QuestManager {
             giver.beginErrandTalk(player);
         }
         View view = view(player, giver);
-        PacketDistributor.sendToPlayer(player, new QuestDialoguePayload(
+        ModNetwork.sendToPlayer(player, new QuestDialoguePayload(
                 giver.getId(), king, view.state(), view.quest(), view.progress(), view.choices(),
                 TributeManager.getFavor(player.serverLevel(), player.getUUID()),
                 com.kingsandmonsters.Config.TRIBUTE_APPEASED_FAVOR.get(),
@@ -233,7 +233,7 @@ public final class QuestManager {
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
             QuestTrackerPayload payload = tracker(player);
             if (!payload.equals(LAST_SENT.get(player.getUUID()))) {
-                PacketDistributor.sendToPlayer(player, payload);
+                ModNetwork.sendToPlayer(player, payload);
                 LAST_SENT.put(player.getUUID(), payload);
             }
         }

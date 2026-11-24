@@ -30,6 +30,6 @@ public class BogIronArmorModel extends GeoModel<BogIronArmorItem> {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

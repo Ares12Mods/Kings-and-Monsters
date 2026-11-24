@@ -1,0 +1,27 @@
+{
+  "replace": false,
+  "values": [
+    "kingsandmonsters:bog_toad",
+    "kingsandmonsters:bog_pole",
+    "kingsandmonsters:plague_ogre",
+    "minecraft:slime",
+    "minecraft:magma_cube",
+    {
+      "id": "minecraft:breeze",
+      "required": false
+    },
+    "minecraft:blaze",
+    "minecraft:vex",
+    "minecraft:allay",
+    "minecraft:iron_golem",
+    "minecraft:snow_golem",
+    "minecraft:skeleton",
+    "minecraft:stray",
+    {
+      "id": "minecraft:bogged",
+      "required": false
+    },
+    "minecraft:wither_skeleton",
+    "minecraft:skeleton_horse"
+  ]
+}

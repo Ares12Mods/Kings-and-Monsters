@@ -4,9 +4,9 @@ import com.kingsandmonsters.entity.MudsnoutBoar;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RenderLivingEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.RenderLivingEvent;
+import com.kingsandmonsters.network.ModNetwork;
 import com.kingsandmonsters.network.BoarHeadbuttPayload;
 
 /** Client-only pieces of riding the Mudsnout Boar, kept out of the common entity class. */
@@ -21,7 +21,7 @@ public final class MudsnoutBoarClient {
      * ready; this only reports the press and the release, once each rather than every tick it is held.
      * Getting off or opening a menu while it is held counts as a release.
      */
-    public static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+    public static void onClientTick(com.kingsandmonsters.event.ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         Player player = minecraft.player;
         if (player == null) {
@@ -31,7 +31,7 @@ public final class MudsnoutBoarClient {
         boolean riding = player.getControlledVehicle() instanceof MudsnoutBoar;
         boolean down = riding && minecraft.screen == null && minecraft.options.keyJump.isDown();
         if (down != jumpWasDown) {
-            PacketDistributor.sendToServer(new com.kingsandmonsters.network.BoarChargePayload(down));
+            ModNetwork.sendToServer(new com.kingsandmonsters.network.BoarChargePayload(down));
         }
         jumpWasDown = down;
     }
@@ -58,7 +58,7 @@ public final class MudsnoutBoarClient {
         }
         if (event.isAttack()) {
             // The boar does the attacking: the rider neither punches nor swings their arm.
-            PacketDistributor.sendToServer(new BoarHeadbuttPayload());
+            ModNetwork.sendToServer(new BoarHeadbuttPayload());
             event.setCanceled(true);
             event.setSwingHand(false);
         } else if (event.isUseItem() && player.getItemInHand(event.getHand()).isEmpty()) {

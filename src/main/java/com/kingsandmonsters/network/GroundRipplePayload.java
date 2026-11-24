@@ -1,22 +1,20 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.GroundRippleRenderer;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /** Starts one render-only, terrain-conforming ground wave on nearby clients. */
 public record GroundRipplePayload(double x, double y, double z, float radius, float propagationSpeed,
                                   int blockDurationTicks, float maxLift)
         implements CustomPacketPayload {
     public static final Type<GroundRipplePayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ground_ripple"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, GroundRipplePayload> STREAM_CODEC = StreamCodec.of(
+            new ResourceLocation(KingsAndMonsters.MODID, "ground_ripple"));
+    public static final StreamCodec<FriendlyByteBuf, GroundRipplePayload> STREAM_CODEC = StreamCodec.of(
             (buffer, payload) -> {
                 buffer.writeDouble(payload.x());
                 buffer.writeDouble(payload.y());

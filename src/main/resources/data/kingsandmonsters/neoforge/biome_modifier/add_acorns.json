@@ -1,6 +1,0 @@
-{
-  "type": "neoforge:add_features",
-  "biomes": "#kingsandmonsters:acorn_biomes",
-  "features": ["kingsandmonsters:acorns"],
-  "step": "vegetal_decoration"
-}

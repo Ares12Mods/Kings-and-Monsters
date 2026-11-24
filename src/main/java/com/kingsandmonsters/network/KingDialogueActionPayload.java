@@ -1,14 +1,11 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.entity.OgreLord;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** A button pressed on the Ogre King's dialogue screen. */
 public record KingDialogueActionPayload(int kingId, int action) implements CustomPacketPayload {
@@ -19,8 +16,8 @@ public record KingDialogueActionPayload(int kingId, int action) implements Custo
     public static final int DUEL = 4;
 
     public static final Type<KingDialogueActionPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "king_dialogue_action"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, KingDialogueActionPayload> STREAM_CODEC =
+            new ResourceLocation(KingsAndMonsters.MODID, "king_dialogue_action"));
+    public static final StreamCodec<FriendlyByteBuf, KingDialogueActionPayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.VAR_INT, KingDialogueActionPayload::kingId,
                     ByteBufCodecs.VAR_INT, KingDialogueActionPayload::action,

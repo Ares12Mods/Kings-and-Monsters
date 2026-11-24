@@ -1,0 +1,23 @@
+{
+  "parent": "kingsandmonsters:swamp/root",
+  "display": {
+    "icon": {
+      "item": "kingsandmonsters:bogfang_blade"
+    },
+    "title": {
+      "translate": "advancement.kingsandmonsters.the_swamp_has_teeth.title"
+    },
+    "description": {
+      "translate": "advancement.kingsandmonsters.the_swamp_has_teeth.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "ruptured": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

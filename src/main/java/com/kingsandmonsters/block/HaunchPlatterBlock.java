@@ -1,5 +1,6 @@
 package com.kingsandmonsters.block;
 
+import net.minecraft.world.InteractionResult;
 import com.kingsandmonsters.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -7,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -23,7 +23,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import com.kingsandmonsters.block.entity.HaunchPlatterBlockEntity;
-import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,7 +35,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /** A whole roast on a plate. Four servings come off it with a bowl, then the empty plate is cleared away. */
 public final class HaunchPlatterBlock extends BaseEntityBlock {
-    public static final MapCodec<HaunchPlatterBlock> CODEC = simpleCodec(HaunchPlatterBlock::new);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final int MAX_SERVINGS = 4;
     public static final IntegerProperty SERVINGS = IntegerProperty.create("servings", 0, MAX_SERVINGS);
@@ -51,12 +49,7 @@ public final class HaunchPlatterBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
-    }
-
-    @Override
-    protected RenderShape getRenderShape(BlockState state) {
+    public RenderShape getRenderShape(BlockState state) {
         return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
@@ -67,12 +60,12 @@ public final class HaunchPlatterBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    public void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, SERVINGS);
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         int servings = state.getValue(SERVINGS);
         return servings >= 2 ? FULL_SHAPE : servings == 1 ? LOW_SHAPE : EMPTY_SHAPE;
     }
@@ -84,12 +77,12 @@ public final class HaunchPlatterBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+    public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
         return level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP);
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
                                      LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
         return direction == Direction.DOWN && !canSurvive(state, level, pos)
                 ? Blocks.AIR.defaultBlockState()
@@ -97,8 +90,9 @@ public final class HaunchPlatterBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
-                                              Player player, InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos,
+                                 Player player, InteractionHand hand, BlockHitResult hit) {
+        ItemStack stack = player.getItemInHand(hand);
         int servings = state.getValue(SERVINGS);
         if (servings == 0) {
             // Nothing left on it: pick the plate up as a bowl.
@@ -110,36 +104,38 @@ public final class HaunchPlatterBlock extends BaseEntityBlock {
                     player.drop(bowl, false);
                 }
             }
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.sidedSuccess(level.isClientSide);
         }
         if (!stack.is(Items.BOWL)) {
             if (!level.isClientSide) {
                 player.displayClientMessage(Component.translatable("message.kingsandmonsters.haunch_platter.bowl"), true);
             }
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.sidedSuccess(level.isClientSide);
         }
         if (!level.isClientSide) {
             level.setBlock(pos, state.setValue(SERVINGS, servings - 1), Block.UPDATE_ALL);
             level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
-            level.playSound(null, pos, SoundEvents.ARMOR_EQUIP_GENERIC.value(), SoundSource.BLOCKS, 1.0F, 0.8F);
+            level.playSound(null, pos, SoundEvents.ARMOR_EQUIP_GENERIC, SoundSource.BLOCKS, 1.0F, 0.8F);
             ItemStack serving = new ItemStack(ModItems.HAUNCH_PLATTER_SERVING.get());
-            stack.consume(1, player);
+            if (!player.getAbilities().instabuild) {
+                stack.shrink(1);
+            }
             if (stack.isEmpty()) {
                 player.setItemInHand(hand, serving);
             } else if (!player.getInventory().add(serving)) {
                 player.drop(serving, false);
             }
         }
-        return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
-    protected boolean hasAnalogOutputSignal(BlockState state) {
+    public boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+    public int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
         return state.getValue(SERVINGS);
     }
 }

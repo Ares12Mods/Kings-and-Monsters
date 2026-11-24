@@ -9,7 +9,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
 
 import java.util.Comparator;
 

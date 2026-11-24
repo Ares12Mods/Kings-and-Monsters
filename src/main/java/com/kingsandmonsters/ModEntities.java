@@ -21,12 +21,11 @@ import com.kingsandmonsters.entity.MudsnoutBoar;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
-import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 public class ModEntities {
 
@@ -37,19 +36,19 @@ public class ModEntities {
     //  Entities                                                            //
     // ------------------------------------------------------------------ //
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreGrunt>> OGRE_GRUNT =
+    public static final RegistryObject<EntityType<OgreGrunt>> OGRE_GRUNT =
             ENTITY_TYPES.register("ogre_grunt", () -> EntityType.Builder
                     .<OgreGrunt>of(OgreGrunt::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.8f)
                     .build("ogre_grunt"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<PlagueOgre>> PLAGUE_OGRE =
+    public static final RegistryObject<EntityType<PlagueOgre>> PLAGUE_OGRE =
             ENTITY_TYPES.register("plague_ogre", () -> EntityType.Builder
                     .<PlagueOgre>of(PlagueOgre::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.8f)
                     .build("plague_ogre"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<BogToad>> BOG_TOAD =
+    public static final RegistryObject<EntityType<BogToad>> BOG_TOAD =
             ENTITY_TYPES.register("bog_toad", () -> EntityType.Builder
                     .<BogToad>of(BogToad::new, MobCategory.CREATURE)
                     // Authored model bounds are ~2 blocks across the legs, 1.5 blocks tall, and
@@ -60,14 +59,14 @@ public class ModEntities {
                     .updateInterval(1)
                     .build("bog_toad"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<MudsnoutBoar>> MUDSNOUT_BOAR =
+    public static final RegistryObject<EntityType<MudsnoutBoar>> MUDSNOUT_BOAR =
             ENTITY_TYPES.register("mudsnout_boar", () -> EntityType.Builder
                     .<MudsnoutBoar>of(MudsnoutBoar::new, MobCategory.CREATURE)
                     .sized(1.6F, 1.9F)
                     .clientTrackingRange(48)
                     .build("mudsnout_boar"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<BogPole>> BOG_POLE =
+    public static final RegistryObject<EntityType<BogPole>> BOG_POLE =
             ENTITY_TYPES.register("bog_pole", () -> EntityType.Builder
                     .<BogPole>of(BogPole::new, MobCategory.WATER_CREATURE)
                     .sized(0.75F, 0.8F)
@@ -75,13 +74,13 @@ public class ModEntities {
                     .updateInterval(2)
                     .build("bog_pole"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreGruntCaptain>> OGRE_GRUNT_CAPTAIN =
+    public static final RegistryObject<EntityType<OgreGruntCaptain>> OGRE_GRUNT_CAPTAIN =
             ENTITY_TYPES.register("ogre_grunt_captain", () -> EntityType.Builder
                     .<OgreGruntCaptain>of(OgreGruntCaptain::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.8f)
                     .build("ogre_grunt_captain"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreMage>> OGRE_MAGE =
+    public static final RegistryObject<EntityType<OgreMage>> OGRE_MAGE =
             ENTITY_TYPES.register("ogre_mage", () -> EntityType.Builder
                     .<OgreMage>of(OgreMage::new, MobCategory.MONSTER)
                     // The physical torso/head reaches roughly 29 model pixels (1.82 blocks).
@@ -89,20 +88,20 @@ public class ModEntities {
                     .sized(1.25f, 1.9f)
                     .build("ogre_mage"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreBrute>> OGRE_BRUTE =
+    public static final RegistryObject<EntityType<OgreBrute>> OGRE_BRUTE =
             ENTITY_TYPES.register("ogre_brute", () -> EntityType.Builder
                     .<OgreBrute>of(OgreBrute::new, MobCategory.MONSTER)
                     .sized(1.7f, 3.4f)
                     .build("ogre_brute"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreTrapper>> OGRE_TRAPPER =
+    public static final RegistryObject<EntityType<OgreTrapper>> OGRE_TRAPPER =
             ENTITY_TYPES.register("ogre_trapper", () -> EntityType.Builder
                     .<OgreTrapper>of(OgreTrapper::new, MobCategory.MONSTER)
                     // Body 22 px wide and 15 deep, head top at 39 px; the arms and the trap on his back are not collision.
                     .sized(1.4f, 2.45f)
                     .build("ogre_trapper"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<BogjawTrap>> BOGJAW_TRAP =
+    public static final RegistryObject<EntityType<BogjawTrap>> BOGJAW_TRAP =
             ENTITY_TYPES.register("bogjaw_trap", () -> EntityType.Builder
                     .<BogjawTrap>of(BogjawTrap::new, MobCategory.MISC)
                     .sized(1.0f, 0.3f)
@@ -110,13 +109,13 @@ public class ModEntities {
                     .updateInterval(1)
                     .build("bogjaw_trap"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreArcher>> OGRE_ARCHER =
+    public static final RegistryObject<EntityType<OgreArcher>> OGRE_ARCHER =
             ENTITY_TYPES.register("ogre_archer", () -> EntityType.Builder
                     .<OgreArcher>of(OgreArcher::new, MobCategory.MONSTER)
                     .sized(0.95f, 2.45f)
                     .build("ogre_archer"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreGuard>> OGRE_GUARD =
+    public static final RegistryObject<EntityType<OgreGuard>> OGRE_GUARD =
             ENTITY_TYPES.register("ogre_guard", () -> EntityType.Builder
                     .<OgreGuard>of(OgreGuard::new, MobCategory.MONSTER)
                     // The physical legs, torso, and head span 28 model pixels (1.75 blocks).
@@ -124,13 +123,13 @@ public class ModEntities {
                     .sized(1.05f, 1.85f)
                     .build("ogre_guard"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreMerchant>> OGRE_MERCHANT =
+    public static final RegistryObject<EntityType<OgreMerchant>> OGRE_MERCHANT =
             ENTITY_TYPES.register("ogre_merchant", () -> EntityType.Builder
                     .<OgreMerchant>of(OgreMerchant::new, MobCategory.CREATURE)
                     .sized(1.4F, 2.65F)
                     .build("ogre_merchant"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreSpear>> OGRE_SPEAR =
+    public static final RegistryObject<EntityType<OgreSpear>> OGRE_SPEAR =
             ENTITY_TYPES.register("ogre_spear", () -> EntityType.Builder
                     .<OgreSpear>of(OgreSpear::new, MobCategory.MISC)
                     .sized(0.35f, 0.35f)
@@ -138,7 +137,7 @@ public class ModEntities {
                     .updateInterval(1)
                     .build("ogre_spear"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<OgreLord>> OGRE_LORD =
+    public static final RegistryObject<EntityType<OgreLord>> OGRE_LORD =
             ENTITY_TYPES.register("ogre_lord", () -> EntityType.Builder
                     .<OgreLord>of(OgreLord::new, MobCategory.MONSTER)
                     // Measured off the model bounds (~5.4 wide arm to arm, ~2.9 deep, ~6.1 tall) and
@@ -149,7 +148,7 @@ public class ModEntities {
                     .sized(2.75f, 4.67f)
                     .build("ogre_lord"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<PoisonFogCloud>> POISON_FOG_CLOUD =
+    public static final RegistryObject<EntityType<PoisonFogCloud>> POISON_FOG_CLOUD =
             ENTITY_TYPES.register("poison_fog_cloud", () -> EntityType.Builder
                     .<PoisonFogCloud>of(PoisonFogCloud::new, MobCategory.MISC)
                     .sized(PoisonFogCloud.RADIUS * 2.0F, 0.25F)
@@ -157,7 +156,7 @@ public class ModEntities {
                     .updateInterval(2)
                     .build("poison_fog_cloud"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<BogfumeBolt>> BOGFUME_BOLT =
+    public static final RegistryObject<EntityType<BogfumeBolt>> BOGFUME_BOLT =
             ENTITY_TYPES.register("bogfume_bolt", () -> EntityType.Builder
                     .<BogfumeBolt>of(BogfumeBolt::new, MobCategory.MISC)
                     .sized(0.35F, 0.35F)
@@ -165,7 +164,7 @@ public class ModEntities {
                     .updateInterval(1)
                     .build("bogfume_bolt"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<BogFangs>> BOG_FANGS =
+    public static final RegistryObject<EntityType<BogFangs>> BOG_FANGS =
             ENTITY_TYPES.register("bog_fangs", () -> EntityType.Builder
                     .<BogFangs>of(BogFangs::new, MobCategory.MISC)
                     .sized(0.5F, 0.8F)
@@ -193,18 +192,14 @@ public class ModEntities {
         event.put(OGRE_LORD.get(), OgreLord.createAttributes().build());
     }
 
-    public static void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
-        event.register(PLAGUE_OGRE.get(), SpawnPlacementTypes.ON_GROUND,
-                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, PlagueOgre::checkPlagueOgreSpawnRules,
-                RegisterSpawnPlacementsEvent.Operation.REPLACE);
-        event.register(BOG_POLE.get(), SpawnPlacementTypes.IN_WATER,
-                Heightmap.Types.OCEAN_FLOOR, BogPole::checkBogPoleSpawnRules,
-                RegisterSpawnPlacementsEvent.Operation.REPLACE);
-        event.register(MUDSNOUT_BOAR.get(), SpawnPlacementTypes.ON_GROUND,
-                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, MudsnoutBoar::checkMudsnoutSpawnRules,
-                RegisterSpawnPlacementsEvent.Operation.REPLACE);
-        event.register(BOG_TOAD.get(), SpawnPlacementTypes.NO_RESTRICTIONS,
-                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, BogToad::checkBogToadSpawnRules,
-                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+    public static void registerSpawnPlacements() {
+        SpawnPlacements.register(PLAGUE_OGRE.get(), SpawnPlacements.Type.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, PlagueOgre::checkPlagueOgreSpawnRules);
+        SpawnPlacements.register(BOG_POLE.get(), SpawnPlacements.Type.IN_WATER,
+                Heightmap.Types.OCEAN_FLOOR, BogPole::checkBogPoleSpawnRules);
+        SpawnPlacements.register(MUDSNOUT_BOAR.get(), SpawnPlacements.Type.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, MudsnoutBoar::checkMudsnoutSpawnRules);
+        SpawnPlacements.register(BOG_TOAD.get(), SpawnPlacements.Type.NO_RESTRICTIONS,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, BogToad::checkBogToadSpawnRules);
     }
 }

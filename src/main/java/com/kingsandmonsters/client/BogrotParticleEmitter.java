@@ -12,8 +12,8 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
 
 /** Client-only ambient particles for entities currently afflicted by Bogrot. */
 public final class BogrotParticleEmitter {
@@ -61,8 +61,8 @@ public final class BogrotParticleEmitter {
         }
 
         ParticleStatus status = minecraft.options.particles().get();
-        int amplifier = living.hasEffect(ModMobEffects.BOGROT)
-                ? living.getEffect(ModMobEffects.BOGROT).getAmplifier() : 1;
+        int amplifier = living.hasEffect(ModMobEffects.BOGROT.get())
+                ? living.getEffect(ModMobEffects.BOGROT.get()).getAmplifier() : 1;
         int desiredFlies = status == ParticleStatus.MINIMAL ? 1 : (amplifier >= 1 ? 2 : 1);
         int cadence = living.tickCount + living.getId();
         if (!ClientConfig.useCustomEffectParticles()) {
@@ -84,7 +84,7 @@ public final class BogrotParticleEmitter {
         int interval = status == ParticleStatus.MINIMAL ? 24 : status == ParticleStatus.DECREASED ? 16 : 8;
         if (cadence % interval != 0) return;
         double width = Math.max(0.35, entity.getBbWidth());
-        double angle = entity.getRandom().nextDouble() * Math.TAU;
+        double angle = entity.getRandom().nextDouble() * (Math.PI * 2.0);
         double radius = width * Mth.lerp(entity.getRandom().nextDouble(), 0.2, 0.55);
         double x = entity.getX() + Math.cos(angle) * radius;
         double y = entity.getY() + entity.getBbHeight() * Mth.lerp(entity.getRandom().nextDouble(), 0.25, 0.9);
@@ -98,7 +98,7 @@ public final class BogrotParticleEmitter {
     private static void spawnBubble(ClientLevel level, LivingEntity entity) {
         double width = Math.max(0.35, entity.getBbWidth());
         float scale = particleScale(entity);
-        double angle = entity.getRandom().nextDouble() * Math.TAU;
+        double angle = entity.getRandom().nextDouble() * (Math.PI * 2.0);
         // Spawn just outside the hitbox so bubbles don't start inside the model.
         double modelEdge = width * 0.5;
         double visualClearance = 0.18 * scale;

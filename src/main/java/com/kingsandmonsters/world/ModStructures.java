@@ -6,9 +6,9 @@ import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 public class ModStructures {
 
@@ -24,72 +24,72 @@ public class ModStructures {
     public static final DeferredRegister<StructurePlacementType<?>> STRUCTURE_PLACEMENT_TYPES =
             DeferredRegister.create(Registries.STRUCTURE_PLACEMENT, KingsAndMonsters.MODID);
 
-    public static final DeferredHolder<StructureType<?>, StructureType<OgreOutpostStructure>> OGRE_OUTPOST =
+    public static final RegistryObject<StructureType<OgreOutpostStructure>> OGRE_OUTPOST =
             STRUCTURE_TYPES.register("ogre_outpost", () -> () -> OgreOutpostStructure.CODEC);
 
-    public static final DeferredHolder<StructureType<?>, StructureType<OgreKingsFortStructure>> OGRE_KINGS_FORT =
+    public static final RegistryObject<StructureType<OgreKingsFortStructure>> OGRE_KINGS_FORT =
             STRUCTURE_TYPES.register("ogre_kings_fort", () -> () -> OgreKingsFortStructure.CODEC);
 
-    public static final DeferredHolder<StructureType<?>, StructureType<OgreEncounterStructure>> OGRE_ENCOUNTER =
+    public static final RegistryObject<StructureType<OgreEncounterStructure>> OGRE_ENCOUNTER =
             STRUCTURE_TYPES.register("ogre_encounter", () -> () -> OgreEncounterStructure.CODEC);
 
-    public static final DeferredHolder<StructureType<?>, StructureType<MudWallowStructure>> MUD_WALLOW =
+    public static final RegistryObject<StructureType<MudWallowStructure>> MUD_WALLOW =
             STRUCTURE_TYPES.register("mud_wallow", () -> () -> MudWallowStructure.CODEC);
 
-    public static final DeferredHolder<StructurePieceType, StructurePieceType> TRAPPER_GRADING_PIECE =
+    public static final RegistryObject<StructurePieceType> TRAPPER_GRADING_PIECE =
             STRUCTURE_PIECE_TYPES.register("trapper_grading",
                     () -> (StructurePieceType.ContextlessType) TrapperGradingPiece::new);
 
-    public static final DeferredHolder<StructurePieceType, StructurePieceType> MUD_WALLOW_PIECE =
+    public static final RegistryObject<StructurePieceType> MUD_WALLOW_PIECE =
             STRUCTURE_PIECE_TYPES.register("mud_wallow",
                     () -> (StructurePieceType.ContextlessType) MudWallowStructure.Piece::new);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<EncounterAirProcessor>> ENCOUNTER_AIR =
+    public static final RegistryObject<StructureProcessorType<EncounterAirProcessor>> ENCOUNTER_AIR =
             STRUCTURE_PROCESSOR_TYPES.register("encounter_air", () -> () -> EncounterAirProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<EncounterLootProcessor>> ENCOUNTER_LOOT =
+    public static final RegistryObject<StructureProcessorType<EncounterLootProcessor>> ENCOUNTER_LOOT =
             STRUCTURE_PROCESSOR_TYPES.register("encounter_loot", () -> () -> EncounterLootProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<EncounterSpawnerProcessor>> ENCOUNTER_SPAWNER =
+    public static final RegistryObject<StructureProcessorType<EncounterSpawnerProcessor>> ENCOUNTER_SPAWNER =
             STRUCTURE_PROCESSOR_TYPES.register("encounter_spawner", () -> () -> EncounterSpawnerProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<FortFootprintProcessor>> FORT_FOOTPRINT_RECORDER =
+    public static final RegistryObject<StructureProcessorType<FortFootprintProcessor>> FORT_FOOTPRINT_RECORDER =
             STRUCTURE_PROCESSOR_TYPES.register("fort_footprint_recorder", () -> () -> FortFootprintProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<FortChestLootProcessor>> FORT_CHEST_LOOT =
+    public static final RegistryObject<StructureProcessorType<FortChestLootProcessor>> FORT_CHEST_LOOT =
             STRUCTURE_PROCESSOR_TYPES.register("fort_chest_loot", () -> () -> FortChestLootProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<OutpostMobLootProcessor>> OUTPOST_MOB_LOOT =
+    public static final RegistryObject<StructureProcessorType<OutpostMobLootProcessor>> OUTPOST_MOB_LOOT =
             STRUCTURE_PROCESSOR_TYPES.register("outpost_mob_loot", () -> () -> OutpostMobLootProcessor.CODEC);
 
-    public static final DeferredHolder<StructureProcessorType<?>, StructureProcessorType<OgreTrialSpawnerProcessor>> OGRE_TRIAL_SPAWNER =
+    public static final RegistryObject<StructureProcessorType<OgreTrialSpawnerProcessor>> OGRE_TRIAL_SPAWNER =
             STRUCTURE_PROCESSOR_TYPES.register("ogre_trial_spawner", () -> () -> OgreTrialSpawnerProcessor.CODEC);
 
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<MultiExclusionRandomSpreadStructurePlacement>>
+    public static final RegistryObject<StructurePlacementType<MultiExclusionRandomSpreadStructurePlacement>>
             MULTI_EXCLUSION_RANDOM_SPREAD =
             STRUCTURE_PLACEMENT_TYPES.register(
                     "multi_exclusion_random_spread",
                     () -> () -> MultiExclusionRandomSpreadStructurePlacement.CODEC);
 
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<FortTerritoryStructurePlacement>>
+    public static final RegistryObject<StructurePlacementType<FortTerritoryStructurePlacement>>
             FORT_TERRITORY_RANDOM_SPREAD =
             STRUCTURE_PLACEMENT_TYPES.register(
                     "fort_territory_random_spread",
                     () -> () -> FortTerritoryStructurePlacement.CODEC);
 
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<FortNeighborStructurePlacement>>
+    public static final RegistryObject<StructurePlacementType<FortNeighborStructurePlacement>>
             FORT_NEIGHBOR_RANDOM_SPREAD =
             STRUCTURE_PLACEMENT_TYPES.register(
                     "fort_neighbor_random_spread",
                     () -> () -> FortNeighborStructurePlacement.CODEC);
 
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<SwampFortStructurePlacement>>
+    public static final RegistryObject<StructurePlacementType<SwampFortStructurePlacement>>
             SWAMP_FORT_RANDOM_SPREAD =
             STRUCTURE_PLACEMENT_TYPES.register(
                     "swamp_fort_random_spread",
                     () -> () -> SwampFortStructurePlacement.CODEC);
 
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<TrapperPairedStructurePlacement>>
+    public static final RegistryObject<StructurePlacementType<TrapperPairedStructurePlacement>>
             TRAPPER_PAIRED_SPREAD =
             STRUCTURE_PLACEMENT_TYPES.register(
                     "trapper_paired_spread",

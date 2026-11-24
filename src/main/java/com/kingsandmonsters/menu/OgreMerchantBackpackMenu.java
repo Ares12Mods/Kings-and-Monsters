@@ -1,17 +1,18 @@
 package com.kingsandmonsters.menu;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModMenus;
 import com.kingsandmonsters.item.OgreMerchantBackpackItem;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.SlotItemHandler;
+import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.items.SlotItemHandler;
 
 public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
     private static final int COLUMNS = 9;
@@ -21,7 +22,7 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
     private final ItemStackHandler contents;
     private final Inventory inventory;
 
-    public OgreMerchantBackpackMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
+    public OgreMerchantBackpackMenu(int containerId, Inventory inventory, FriendlyByteBuf buffer) {
         this(containerId, inventory, ItemStack.EMPTY, buffer.readVarInt());
     }
 
@@ -32,7 +33,7 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
         this.inventory = inventory;
         this.contents = backpack.isEmpty()
                 ? new ItemStackHandler(OgreMerchantBackpackItem.SLOT_COUNT)
-                : OgreMerchantBackpackItem.loadInventory(backpack, inventory.player.registryAccess());
+                : OgreMerchantBackpackItem.loadInventory(backpack);
 
         for (int row = 0; row < ROWS; row++) {
             for (int column = 0; column < COLUMNS; column++) {
@@ -86,7 +87,7 @@ public class OgreMerchantBackpackMenu extends AbstractContainerMenu {
     private void saveContents() {
         // Client-side menus are built with an empty backpack stack; only the server copy persists.
         if (!backpack.isEmpty()) {
-            OgreMerchantBackpackItem.saveInventory(backpack, contents, inventory.player.registryAccess());
+            OgreMerchantBackpackItem.saveInventory(backpack, contents);
         }
     }
 

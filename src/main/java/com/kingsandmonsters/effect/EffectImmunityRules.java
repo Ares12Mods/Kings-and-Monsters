@@ -19,17 +19,17 @@ import net.minecraft.world.entity.LivingEntity;
 public final class EffectImmunityRules {
     /** Elemental, amorphous and swamp creatures that cannot rot; extensible by datapacks and mods. */
     public static final TagKey<EntityType<?>> BOGROT_IMMUNE = TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "bogrot_immune"));
+            new ResourceLocation(KingsAndMonsters.MODID, "bogrot_immune"));
 
     private EffectImmunityRules() {
     }
 
-    public static boolean rejects(LivingEntity entity, Holder<MobEffect> effect) {
-        if (effect.equals(ModMobEffects.BOGROT) && entity.getType().is(BOGROT_IMMUNE)) {
+    public static boolean rejects(LivingEntity entity, MobEffect effect) {
+        if (effect.equals(ModMobEffects.BOGROT.get()) && entity.getType().is(BOGROT_IMMUNE)) {
             return true;
         }
         // Toadskin: a full Boghide set keeps the rot off its wearer.
-        if (effect.equals(ModMobEffects.BOGROT) && BoghideSet.hasFullSet(entity)) {
+        if (effect.equals(ModMobEffects.BOGROT.get()) && BoghideSet.hasFullSet(entity)) {
             return true;
         }
         if ((entity instanceof BogToad || entity instanceof BogPole) && isToxin(effect)) {
@@ -39,14 +39,14 @@ public final class EffectImmunityRules {
     }
 
     public static boolean rejectsBogrot(LivingEntity entity) {
-        return rejects(entity, ModMobEffects.BOGROT);
+        return rejects(entity, ModMobEffects.BOGROT.get());
     }
 
-    private static boolean isToxin(Holder<MobEffect> effect) {
-        return effect.equals(MobEffects.POISON) || effect.equals(ModMobEffects.BOGROT);
+    private static boolean isToxin(MobEffect effect) {
+        return effect.equals(MobEffects.POISON) || effect.equals(ModMobEffects.BOGROT.get());
     }
 
-    private static boolean isLegacyOgreDebuff(Holder<MobEffect> effect) {
+    private static boolean isLegacyOgreDebuff(MobEffect effect) {
         return effect.equals(MobEffects.POISON)
                 || effect.equals(MobEffects.MOVEMENT_SLOWDOWN)
                 || effect.equals(MobEffects.WEAKNESS);

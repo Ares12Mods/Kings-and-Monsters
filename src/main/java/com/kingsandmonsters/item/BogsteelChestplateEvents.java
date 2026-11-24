@@ -14,7 +14,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import com.kingsandmonsters.event.LivingIncomingDamageEvent;
 
 /**
  * The Bogsteel Chestplate's Glancing Blow: now and then a physical attack skids off the plate and does
@@ -70,7 +70,7 @@ public final class BogsteelChestplateEvents {
         level.playSound(null, x, y, z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.45F, 1.8F);
         // The plate still takes the knock: a point of wear, as for any other hit.
         if (plated) {
-            wearer.getItemBySlot(EquipmentSlot.CHEST).hurtAndBreak(1, wearer, EquipmentSlot.CHEST);
+            com.kingsandmonsters.item.ItemUtil.hurt(wearer.getItemBySlot(EquipmentSlot.CHEST), 1, wearer, EquipmentSlot.CHEST);
         }
     }
 

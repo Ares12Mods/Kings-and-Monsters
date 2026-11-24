@@ -8,8 +8,8 @@ import com.kingsandmonsters.item.OgrebloodTotemEvents;
 import com.kingsandmonsters.item.RattleboneRingEvents;
 import com.kingsandmonsters.tribute.BogIronArmorEffects;
 import com.kingsandmonsters.tribute.BogIronProgression;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import com.kingsandmonsters.tribute.PatrolManager;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 /**
  * Static trackers outlive a world: leaving a single-player world and opening another keeps the JVM

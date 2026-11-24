@@ -15,9 +15,9 @@ import org.joml.Matrix4f;
 
 public class PoisonFogCloudRenderer extends EntityRenderer<PoisonFogCloud> {
     private static final ResourceLocation WARNING_CIRCLE_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "textures/entity/spell/poison_warning_circle.png");
+            new ResourceLocation(KingsAndMonsters.MODID, "textures/entity/spell/poison_warning_circle.png");
     private static final ResourceLocation CLOUD_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "textures/entity/spell/poison_cloud.png");
+            new ResourceLocation(KingsAndMonsters.MODID, "textures/entity/spell/poison_cloud.png");
     private static final float CIRCLE_SIZE = PoisonFogCloud.VISUAL_RING_RADIUS * 2.0F;
     private static final float CLOUD_GROWTH_FRACTION = 0.25F;
     private static final float CLOUD_MIN_SCALE = 0.15F;
@@ -178,12 +178,13 @@ public class PoisonFogCloudRenderer extends EntityRenderer<PoisonFogCloud> {
 
     private void addVertex(VertexConsumer consumer, Matrix4f matrix, float x, float y, float z,
                            float u, float v, float alpha, int packedLight) {
-        consumer.addVertex(matrix, x, y, z)
-                .setColor(255, 255, 255, (int) (alpha * 255.0F))
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(packedLight)
-                .setNormal(0.0F, 1.0F, 0.0F);
+        consumer.vertex(matrix, x, y, z)
+                .color(255, 255, 255, (int) (alpha * 255.0F))
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(packedLight)
+                .normal(0.0F, 1.0F, 0.0F)
+                .endVertex();
     }
 
     private record CloudPuff(float x, float y, float z, float size, int loopOffset) {

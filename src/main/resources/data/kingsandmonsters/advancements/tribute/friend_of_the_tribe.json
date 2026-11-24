@@ -1,0 +1,27 @@
+{
+  "parent": "kingsandmonsters:tribute/toll_paid",
+  "display": {
+    "icon": {
+      "item": "kingsandmonsters:ogre_kings_banner",
+      "nbt": "{BlockEntityTag:{Patterns:[{Pattern:\"kmk\",Color:0}]}}"
+    },
+    "title": {
+      "translate": "advancement.kingsandmonsters.friend_of_the_tribe.title"
+    },
+    "description": {
+      "translate": "advancement.kingsandmonsters.friend_of_the_tribe.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "rewards": {
+    "experience": 50
+  }
+}

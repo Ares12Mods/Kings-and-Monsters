@@ -1,0 +1,35 @@
+{
+  "parent": "kingsandmonsters:tribute/root",
+  "display": {
+    "icon": {
+      "item": "kingsandmonsters:gold_coin"
+    },
+    "title": {
+      "translate": "advancement.kingsandmonsters.loose_change.title"
+    },
+    "description": {
+      "translate": "advancement.kingsandmonsters.loose_change.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "kingsandmonsters:gold_coin"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "experience": 10
+  }
+}

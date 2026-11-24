@@ -1,6 +1,6 @@
 package com.kingsandmonsters.entity.animation;
 
-import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationController;
 
 import java.util.function.IntUnaryOperator;
 

@@ -1,6 +1,6 @@
 package com.kingsandmonsters.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
@@ -27,7 +27,7 @@ import java.util.Arrays;
  * done by {@link MudWallowGenerator}, which settles it into the terrain and spawns its boars.
  */
 public final class MudWallowStructure extends Structure {
-    public static final MapCodec<MudWallowStructure> CODEC = simpleCodec(MudWallowStructure::new);
+    public static final Codec<MudWallowStructure> CODEC = simpleCodec(MudWallowStructure::new);
 
     private static final int REACH = MudWallowGenerator.HALF_SIZE + MudWallowGenerator.BLEND_WIDTH;
 

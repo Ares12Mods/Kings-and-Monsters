@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "X": {
+      "item": "kingsandmonsters:bog_iron"
+    },
+    "W": {
+      "item": "minecraft:green_wool"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "pattern": [
+    "XLX",
+    "W W",
+    "X X"
+  ],
+  "result": {
+    "item": "kingsandmonsters:bog_iron_leggings",
+    "count": 1
+  }
+}

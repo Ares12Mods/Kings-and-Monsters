@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public final class FortTargetAuthority {
     static final ResourceLocation FORT_STRUCTURE_SET_ID =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_kings_fort");
+            new ResourceLocation(KingsAndMonsters.MODID, "ogre_kings_fort");
 
     private FortTargetAuthority() {
     }

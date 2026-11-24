@@ -1,14 +1,14 @@
 package com.kingsandmonsters.item;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.ItemLore;
-
-import java.util.List;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 /**
  * Fresh food: it fills a drumstick more and keeps more of it as saturation. Raw meat from a
@@ -23,28 +23,35 @@ public final class FreshFood {
     private FreshFood() {}
 
     public static boolean isFresh(ItemStack stack) {
-        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).contains(FRESH_TAG);
+        return stack.hasTag() && stack.getTag().getBoolean(FRESH_TAG);
     }
 
     /** Makes a food fresh: it fills more when eaten, and says so. Anything that is not food is left alone. */
     public static void freshen(ItemStack stack) {
-        FoodProperties food = stack.get(DataComponents.FOOD);
-        if (food == null || isFresh(stack)) {
+        if (!stack.getItem().isEdible() || isFresh(stack)) {
             return;
         }
-        stack.set(DataComponents.FOOD, new FoodProperties(food.nutrition() + FRESH_NUTRITION,
-                food.saturation() + FRESH_SATURATION, food.canAlwaysEat(), food.eatSeconds(),
-                food.usingConvertsTo(), food.effects()));
-        stack.set(DataComponents.CUSTOM_DATA, stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                .update(tag -> tag.putBoolean(FRESH_TAG, true)));
-        stack.set(DataComponents.LORE, new ItemLore(List.of(
+        stack.getOrCreateTag().putBoolean(FRESH_TAG, true);
+        CompoundTag display = stack.getOrCreateTagElement("display");
+        ListTag lore = new ListTag();
+        lore.add(StringTag.valueOf(Component.Serializer.toJson(
                 Component.translatable("tooltip.kingsandmonsters.fresh_meat")
                         .withStyle(ChatFormatting.GREEN, ChatFormatting.ITALIC))));
+        display.put("Lore", lore);
+    }
+
+    /** Fresh food tops up the hunger bar when it is finished, on top of what the item gives. */
+    @SubscribeEvent
+    public static void onFinishEating(LivingEntityUseItemEvent.Finish event) {
+        if (event.getEntity() instanceof Player player && !player.level().isClientSide() && isFresh(event.getItem())) {
+            // Saturation added by eat() is nutrition * modifier * 2.
+            player.getFoodData().eat(FRESH_NUTRITION, FRESH_SATURATION / (2.0F * FRESH_NUTRITION));
+        }
     }
 
     /** What a recipe makes is fresh when any food that went into it was. */
     public static ItemStack carry(Iterable<ItemStack> ingredients, ItemStack result) {
-        if (!result.has(DataComponents.FOOD) || isFresh(result)) {
+        if (!result.getItem().isEdible() || isFresh(result)) {
             return result;
         }
         for (ItemStack ingredient : ingredients) {

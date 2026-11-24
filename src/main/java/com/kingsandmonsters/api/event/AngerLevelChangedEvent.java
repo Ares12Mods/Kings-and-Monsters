@@ -3,10 +3,10 @@ package com.kingsandmonsters.api.event;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Fired on {@link net.neoforged.neoforge.common.NeoForge#EVENT_BUS} after
+ * Fired on {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS} after
  * the ogre faction's shared anger level has changed and been saved.
  *
  * <p>This event is <em>not</em> cancellable — the change has already been

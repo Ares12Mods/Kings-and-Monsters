@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -12,11 +13,11 @@ import java.util.List;
 /** Clearly labelled development utility; deliberately has no survival acquisition path. */
 public final class CreativeDestroyerItem extends SwordItem {
     public CreativeDestroyerItem(Tier tier, Properties properties) {
-        super(tier, properties);
+        super(tier, 3, -2.4F, properties);
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.literal("Development testing tool").withStyle(ChatFormatting.RED));
         tooltip.add(Component.literal("Creative attacks instantly kill living targets")

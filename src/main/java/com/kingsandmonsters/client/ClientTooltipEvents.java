@@ -5,20 +5,17 @@ import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModBlocks;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.neoforged.neoforge.client.event.GatherEffectScreenTooltipsEvent;
-import net.neoforged.neoforge.client.event.RenderTooltipEvent;
-import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.client.event.RenderTooltipEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 /** Adds concise mechanics and a distinct bog-iron presentation to ogre relic tooltips. */
 public final class ClientTooltipEvents {
     private static final ResourceLocation OGRE_FONT =
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre");
+            new ResourceLocation(KingsAndMonsters.MODID, "ogre");
 
     // Bog Iron equipment palette: dark bog + moss + mud + tarnished iron, deliberately less
     // saturated and less "magical" than the Ogre artifact palette below. Reuses the same
@@ -89,11 +86,9 @@ public final class ClientTooltipEvents {
             addedHeader = true;
         }
 
-        var enchantments = EnchantmentHelper.getEnchantmentsForCrafting(event.getItemStack());
+        var enchantments = EnchantmentHelper.getEnchantments(event.getItemStack());
         for (var enchantment : enchantments.keySet()) {
-            var key = enchantment.unwrapKey().orElse(null);
-            Component description = key == null ? null
-                    : CombatDescriptionComponents.enchantment(key, enchantments.getLevel(enchantment));
+            Component description = CombatDescriptionComponents.enchantment(enchantment, enchantments.get(enchantment));
             if (description != null) {
                 if (!addedHeader) {
                     event.getToolTip().add(Component.empty());
@@ -107,9 +102,9 @@ public final class ClientTooltipEvents {
             }
         }
 
-        PotionContents contents = event.getItemStack().get(DataComponents.POTION_CONTENTS);
-        if (contents != null) {
-            for (var effect : contents.getAllEffects()) {
+        if (event.getItemStack().getItem() instanceof net.minecraft.world.item.PotionItem
+                || event.getItemStack().getItem() instanceof net.minecraft.world.item.TippedArrowItem) {
+            for (var effect : net.minecraft.world.item.alchemy.PotionUtils.getMobEffects(event.getItemStack())) {
                 Component description = CombatDescriptionComponents.effect(effect.getEffect());
                 if (description != null) {
                     if (!addedHeader) {
@@ -186,8 +181,8 @@ public final class ClientTooltipEvents {
 
     /** A bog iron axe the King has enchanted carries Timber; any item with the enchantment counts. */
     private static boolean hasTimber(ItemStack stack) {
-        return EnchantmentHelper.getEnchantmentsForCrafting(stack).keySet().stream()
-                .anyMatch(holder -> holder.is(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER));
+        return EnchantmentHelper.getEnchantments(stack).keySet().stream()
+                .anyMatch(enchantment -> enchantment == com.kingsandmonsters.enchantment.ModEnchantments.TIMBER.get());
     }
 
     private static void addNewOgreItemAbilities(ItemTooltipEvent event) {
@@ -430,7 +425,7 @@ public final class ClientTooltipEvents {
             event.getToolTip().set(i, line.copy().withStyle(style -> style.withFont(OGRE_FONT)));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("\u25C6 ")
                     .withStyle(royal ? ChatFormatting.DARK_PURPLE
                             : ChatFormatting.DARK_GREEN)
@@ -446,7 +441,7 @@ public final class ClientTooltipEvents {
             event.getToolTip().set(i, line.copy().withStyle(style -> style.withFont(OGRE_FONT)));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("\u2726 ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(0xB87516))
                     .append(name.copy().withStyle(style -> style
@@ -475,7 +470,7 @@ public final class ClientTooltipEvents {
             }));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("◆ ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(FOOD_GLYPH_COLOR))
                     .append(name.copy().withStyle(style -> style
@@ -504,7 +499,7 @@ public final class ClientTooltipEvents {
             }));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("✦ ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(BOG_TOAD_GLYPH_COLOR))
                     .append(name.copy().withStyle(style -> style
@@ -532,7 +527,7 @@ public final class ClientTooltipEvents {
             }));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("◆ ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(GOBLIN_GLYPH_COLOR))
                     .append(name.copy().withStyle(style -> style
@@ -569,7 +564,7 @@ public final class ClientTooltipEvents {
             }));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("❖ ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(BOG_IRON_EQUIPMENT_GLYPH_COLOR))
                     .append(name.copy().withStyle(style -> style
@@ -601,7 +596,7 @@ public final class ClientTooltipEvents {
             }));
         }
         if (!event.getToolTip().isEmpty()) {
-            Component name = event.getToolTip().getFirst();
+            Component name = event.getToolTip().get(0);
             event.getToolTip().set(0, Component.literal("◆ ")
                     .withStyle(style -> style.withFont(OGRE_FONT).withColor(BLACKHIDE_GLYPH_COLOR))
                     .append(name.copy().withStyle(style -> style
@@ -715,9 +710,9 @@ public final class ClientTooltipEvents {
                 || isKingsGear(stack)) {
             return true;
         }
-        return EnchantmentHelper.getEnchantmentsForCrafting(stack).keySet().stream()
-                .map(holder -> holder.unwrapKey().orElse(null))
-                .anyMatch(key -> key != null && KingsAndMonsters.MODID.equals(key.location().getNamespace()));
+        return EnchantmentHelper.getEnchantments(stack).keySet().stream()
+                .map(net.minecraftforge.registries.ForgeRegistries.ENCHANTMENTS::getKey)
+                .anyMatch(key -> key != null && KingsAndMonsters.MODID.equals(key.getNamespace()));
     }
 
     private static boolean isMajorOgreRelic(ItemStack stack) {
@@ -801,13 +796,5 @@ public final class ClientTooltipEvents {
     /** The Bogfang Blade is dressed like the Bog Iron set: same swamp-forged palette. */
     private static boolean isBogfangBlade(ItemStack stack) {
         return stack.is(ModItems.BOGFANG_BLADE.get());
-    }
-
-    public static void onEffectScreenTooltip(GatherEffectScreenTooltipsEvent event) {
-        if (!ClientConfig.showCustomTooltips()) return;
-        Component description = CombatDescriptionComponents.effect(event.getEffectInstance().getEffect());
-        if (description != null) {
-            event.getTooltip().add(description.copy().withStyle(ChatFormatting.GRAY));
-        }
     }
 }

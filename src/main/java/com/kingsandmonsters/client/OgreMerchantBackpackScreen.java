@@ -10,7 +10,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 public class OgreMerchantBackpackScreen extends AbstractContainerScreen<OgreMerchantBackpackMenu> {
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
+            new ResourceLocation("textures/gui/container/generic_54.png");
 
     public OgreMerchantBackpackScreen(OgreMerchantBackpackMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);

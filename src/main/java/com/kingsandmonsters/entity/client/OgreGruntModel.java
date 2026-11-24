@@ -4,7 +4,7 @@ import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.entity.OgreGrunt;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public class OgreGruntModel extends OgreModel<OgreGrunt> {
     // The bones the swings thrown over the combat walk animate.
@@ -12,9 +12,9 @@ public class OgreGruntModel extends OgreModel<OgreGrunt> {
             OgreGrunt.ATTACK_OVERLAY_FADE_OUT_TICKS,
             "body", "head", "jaw", "left_eyebrow", "right_eyebrow", "left_arm", "right_arm");
 
-    private static final ResourceLocation BASE_MODEL = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation BASE_MODEL = new ResourceLocation(
             KingsAndMonsters.MODID, "geo/ogre_grunt.geo.json");
-    private static final ResourceLocation HAT_MODEL = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation HAT_MODEL = new ResourceLocation(
             KingsAndMonsters.MODID, "geo/ogre_grunt_hat.geo.json");
     private static final ResourceLocation[] VARIANT_TEXTURES = {
             texture("ogre_grunt"),
@@ -54,7 +54,7 @@ public class OgreGruntModel extends OgreModel<OgreGrunt> {
     }
 
     private static ResourceLocation texture(String name) {
-        return ResourceLocation.fromNamespaceAndPath(
+        return new ResourceLocation(
                 KingsAndMonsters.MODID, "textures/entity/" + name + ".png");
     }
 }

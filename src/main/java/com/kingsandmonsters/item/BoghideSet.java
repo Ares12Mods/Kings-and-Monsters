@@ -26,7 +26,7 @@ public final class BoghideSet {
     public static final float AMBUSH_DAMAGE_MULTIPLIER = 1.25F;
 
     private static final TagKey<Item> BOGHIDE_ARMOR = TagKey.create(Registries.ITEM,
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "boghide_armor"));
+            new ResourceLocation(KingsAndMonsters.MODID, "boghide_armor"));
 
     private BoghideSet() {
     }

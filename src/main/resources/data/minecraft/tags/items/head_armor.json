@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "kingsandmonsters:bog_iron_helmet",
+    "kingsandmonsters:boghide_helmet",
+    "kingsandmonsters:blackhide_helmet",
+    "kingsandmonsters:ogre_kings_crown",
+    "kingsandmonsters:candle_helmet",
+    "kingsandmonsters:brutes_helm"
+  ]
+}

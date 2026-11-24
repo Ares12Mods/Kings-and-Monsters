@@ -21,12 +21,12 @@ public final class BleedingEffect extends MobEffect {
     }
 
     @Override
-    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
+    public boolean isDurationEffectTick(int duration, int amplifier) {
         return duration % DAMAGE_INTERVAL_TICKS == 0;
     }
 
     @Override
-    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
         if (entity.level() instanceof ServerLevel level) {
             DamageSource wound = entity.damageSources().wither();
             // Credit the one who opened the wound, so a kill it finishes still counts for them: quests,
@@ -38,7 +38,6 @@ public final class BleedingEffect extends MobEffect {
             }
             entity.hurt(wound, severity.damagePerTick);
         }
-        return true;
     }
 
     /** The three fixed severities. A spear starts at Lesser and Barbed raises it. */

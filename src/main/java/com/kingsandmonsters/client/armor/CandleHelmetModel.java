@@ -28,6 +28,6 @@ public class CandleHelmetModel extends GeoModel<CandleHelmetItem> {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, path);
+        return new ResourceLocation(KingsAndMonsters.MODID, path);
     }
 }

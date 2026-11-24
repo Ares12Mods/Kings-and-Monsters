@@ -1,6 +1,6 @@
 package com.kingsandmonsters.entity;
 
-import net.neoforged.neoforge.event.entity.living.LivingShieldBlockEvent;
+import net.minecraftforge.event.entity.living.ShieldBlockEvent;
 
 public final class OgreLordCombatEvents {
 
@@ -9,7 +9,7 @@ public final class OgreLordCombatEvents {
 
     private OgreLordCombatEvents() {}
 
-    public static void onShieldBlock(LivingShieldBlockEvent event) {
+    public static void onShieldBlock(ShieldBlockEvent event) {
         if (!(event.getDamageSource().getEntity() instanceof OgreLord)) {
             return;
         }

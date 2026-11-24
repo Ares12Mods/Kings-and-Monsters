@@ -14,17 +14,12 @@ final class EffectIngredientHelper implements IIngredientHelper<EffectIngredient
 
     @Override
     public String getDisplayName(EffectIngredient ingredient) {
-        return ingredient.effect().value().getDisplayName().getString();
+        return ingredient.effect().getDisplayName().getString();
     }
 
     @Override
     @SuppressWarnings("removal")
     public String getUniqueId(EffectIngredient ingredient, UidContext context) {
-        return ingredient.id().toString();
-    }
-
-    @Override
-    public Object getUid(EffectIngredient ingredient, UidContext context) {
         return ingredient.id().toString();
     }
 

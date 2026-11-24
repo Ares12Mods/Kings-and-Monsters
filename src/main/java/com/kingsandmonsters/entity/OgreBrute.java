@@ -31,15 +31,15 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -297,6 +297,15 @@ public class OgreBrute extends OgreGrunt {
         tag.putBoolean(TANTRUM_MILESTONE_CONSUMED_TAG, temperTantrumMilestoneConsumed);
     }
 
+    @Override
+
+    public float maxUpStep() {
+
+        return 1.2F;
+
+    }
+
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 150.0)
@@ -305,13 +314,10 @@ public class OgreBrute extends OgreGrunt {
                 .add(Attributes.FOLLOW_RANGE, 30.0)
                 .add(Attributes.ARMOR, 20.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.9)
-                .add(Attributes.ATTACK_KNOCKBACK, 1.5)
-                .add(Attributes.STEP_HEIGHT, 1.2)
-                .add(Attributes.SAFE_FALL_DISTANCE, 5.0)
+                .add(Attributes.ATTACK_KNOCKBACK, 1.5);
                 // See OgreGrunt#createAttributes — default 0 caps water acceleration at a tiny fixed
                 // baseline regardless of requested speed, which would make applyShallowWaterSpeedFactor's
-                // 50% reduction meaningless since he's already moving slower than that.
-                .add(Attributes.WATER_MOVEMENT_EFFICIENCY, 1.0);
+                // 50% reduction meaningless since he's already moving slower than that.;
     }
 
     @Override
@@ -342,10 +348,10 @@ public class OgreBrute extends OgreGrunt {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_BRUTE_ATTACK_ID, 0);
-        builder.define(DATA_BRUTE_ATTACK_START_TICK, 0L);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_BRUTE_ATTACK_ID, 0);
+        this.entityData.define(DATA_BRUTE_ATTACK_START_TICK, 0L);
     }
 
     @Override
@@ -1003,7 +1009,7 @@ public class OgreBrute extends OgreGrunt {
         playGauntletSwipeImpact();
         if (level() instanceof ServerLevel serverLevel) {
             Vec3 at = gauntletImpactPoint();
-            PacketDistributor.sendToPlayersNear(serverLevel, null, at.x, at.y, at.z, 24.0,
+            ModNetwork.sendToPlayersNear(serverLevel, null, at.x, at.y, at.z, 24.0,
                     new ScreenShakePayload(at.x, at.y, at.z, 0.4F));
         }
     }
@@ -1171,7 +1177,7 @@ public class OgreBrute extends OgreGrunt {
         OgreGroundBreaker.breakAround(serverLevel, this, impact, 2.0, 3, 0.4F);
         serverLevel.sendParticles(ParticleTypes.POOF, impact.x, impact.y + 0.3, impact.z,
                 24, 2.4, 0.15, 2.4, 0.03);
-        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 28.0,
+        ModNetwork.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 28.0,
                 new ScreenShakePayload(impact.x, impact.y, impact.z, 1.0F));
     }
 
@@ -1195,7 +1201,7 @@ public class OgreBrute extends OgreGrunt {
         }
         serverLevel.sendParticles(ParticleTypes.POOF, impact.x, impact.y + 0.2, impact.z,
                 10, 0.8, 0.1, 0.8, 0.02);
-        PacketDistributor.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 24.0,
+        ModNetwork.sendToPlayersNear(serverLevel, null, impact.x, impact.y, impact.z, 24.0,
                 new ScreenShakePayload(impact.x, impact.y, impact.z, 0.6F));
     }
 
@@ -1216,7 +1222,7 @@ public class OgreBrute extends OgreGrunt {
      * and the ground's own crack. Lighter than the King's slam, but it still has to land hard.
      */
     private void playGauntletSlamImpact(Vec3 at) {
-        level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(),
+        level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 0.9F, 0.7F);
         level().playSound(null, at.x, at.y, at.z, SoundEvents.ANVIL_LAND,
                 SoundSource.HOSTILE, 0.6F, 0.6F);

@@ -34,20 +34,20 @@ import com.kingsandmonsters.client.particle.SleepZParticle;
 import com.kingsandmonsters.client.particle.DialogueExclamationParticle;
 import com.kingsandmonsters.client.particle.GrazingCrumbParticle;
 import com.kingsandmonsters.ModParticles;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import com.kingsandmonsters.event.ClientTickEvent;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraft.client.KeyMapping;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.item.ItemProperties;
 import com.kingsandmonsters.KingsAndMonsters;
 import org.lwjgl.glfw.GLFW;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import com.kingsandmonsters.network.OpenBackpackPayload;
 import top.theillusivec4.curios.api.client.CuriosRendererRegistry;
 
@@ -75,9 +75,9 @@ public class ClientEvents {
         event.register(SUMMON_ARMY);
     }
 
-    public static void registerMenuScreens(RegisterMenuScreensEvent event) {
-        event.register(com.kingsandmonsters.ModMenus.OGRE_MERCHANT_BACKPACK.get(), OgreMerchantBackpackScreen::new);
-        event.register(com.kingsandmonsters.ModMenus.MUDSNOUT_BOAR.get(), MudsnoutBoarScreen::new);
+    public static void registerMenuScreens() {
+        MenuScreens.register(com.kingsandmonsters.ModMenus.OGRE_MERCHANT_BACKPACK.get(), OgreMerchantBackpackScreen::new);
+        MenuScreens.register(com.kingsandmonsters.ModMenus.MUDSNOUT_BOAR.get(), MudsnoutBoarScreen::new);
     }
 
     public static void registerItemProperties() {
@@ -85,13 +85,13 @@ public class ClientEvents {
         CuriosRendererRegistry.register(ModItems.BRUTE_GAUNTLETS.get(), BruteGauntletsCurioRenderer::new);
         ItemProperties.register(
                 ModItems.HUNTERS_SPEAR.get(),
-                ResourceLocation.withDefaultNamespace("throwing"),
+                new ResourceLocation("throwing"),
                 (stack, level, entity, seed) -> entity != null
                         && entity.isUsingItem()
                         && entity.getUseItem() == stack ? 1.0F : 0.0F);
         ItemProperties.register(
                 ModItems.BOAR_CALLING_HORN.get(),
-                ResourceLocation.withDefaultNamespace("tooting"),
+                new ResourceLocation("tooting"),
                 (stack, level, entity, seed) -> entity != null
                         && entity.isUsingItem()
                         && entity.getUseItem() == stack ? 1.0F : 0.0F);
@@ -144,41 +144,34 @@ public class ClientEvents {
         event.registerLayerDefinition(BogFangsRenderer.LAYER, BogFangsRenderer::createLayer);
     }
 
-    public static void registerGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAboveAll(
-                ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "anger_hud"),
-                new AngerHudLayer());
-        event.registerAboveAll(
-                ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "quest_tracker"),
-                new QuestTrackerLayer());
-        event.registerAboveAll(
-                ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_event_overlay"),
-                OgreOverlayState::render);
+    public static void registerGuiLayers(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("anger_hud", new AngerHudLayer());
+        event.registerAboveAll("quest_tracker", new QuestTrackerLayer());
+        event.registerAboveAll("ogre_event_overlay", OgreOverlayState::render);
     }
 
     public static void registerClientRuntimeEvents() {
-        NeoForge.EVENT_BUS.addListener(ClientEvents::onClientTick);
-        NeoForge.EVENT_BUS.addListener(CinematicDialogueScreen::onRenderHand);
-        NeoForge.EVENT_BUS.addListener(CinematicDialogueScreen::onClientTick);
-        NeoForge.EVENT_BUS.addListener(ScreenShakeHandler::onClientTick);
-        NeoForge.EVENT_BUS.addListener(ScreenShakeHandler::onCameraAngles);
-        NeoForge.EVENT_BUS.addListener(GroundRippleRenderer::render);
-        NeoForge.EVENT_BUS.addListener(BogEyeGuidance::onClientTick);
-        NeoForge.EVENT_BUS.addListener(BogEyeGuidance::render);
-        NeoForge.EVENT_BUS.addListener(BossMusicController::onClientTick);
-        NeoForge.EVENT_BUS.addListener(RoyalDefensesHud::onBossBarRender);
-        NeoForge.EVENT_BUS.addListener(BleedingParticleEmitter::onClientTick);
-        NeoForge.EVENT_BUS.addListener(BleedingParticleEmitter::onLoggingOut);
-        NeoForge.EVENT_BUS.addListener(BogrotParticleEmitter::onClientTick);
-        NeoForge.EVENT_BUS.addListener(BogrotParticleEmitter::onLoggingOut);
-        NeoForge.EVENT_BUS.addListener(DazedParticleEmitter::onClientTick);
-        NeoForge.EVENT_BUS.addListener(CandleHelmetFlameParticles::onClientTick);
-        NeoForge.EVENT_BUS.addListener(ClientTooltipEvents::onItemTooltip);
-        NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onRenderLivingPre);
-        NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onInteractionKey);
-        NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTick);
-        NeoForge.EVENT_BUS.addListener(ClientTooltipEvents::onEffectScreenTooltip);
-        NeoForge.EVENT_BUS.addListener(ClientTooltipEvents::onTooltipColor);
+        MinecraftForge.EVENT_BUS.addListener(ClientEvents::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(CinematicDialogueScreen::onRenderHand);
+        MinecraftForge.EVENT_BUS.addListener(CinematicDialogueScreen::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(ScreenShakeHandler::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(ScreenShakeHandler::onCameraAngles);
+        MinecraftForge.EVENT_BUS.addListener(GroundRippleRenderer::render);
+        MinecraftForge.EVENT_BUS.addListener(BogEyeGuidance::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(BogEyeGuidance::render);
+        MinecraftForge.EVENT_BUS.addListener(BossMusicController::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(RoyalDefensesHud::onBossBarRender);
+        MinecraftForge.EVENT_BUS.addListener(BleedingParticleEmitter::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(BleedingParticleEmitter::onLoggingOut);
+        MinecraftForge.EVENT_BUS.addListener(BogrotParticleEmitter::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(BogrotParticleEmitter::onLoggingOut);
+        MinecraftForge.EVENT_BUS.addListener(DazedParticleEmitter::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(CandleHelmetFlameParticles::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(ClientTooltipEvents::onItemTooltip);
+        MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onRenderLivingPre);
+        MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onInteractionKey);
+        MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(ClientTooltipEvents::onTooltipColor);
     }
 
     private static void onClientTick(ClientTickEvent.Post event) {
@@ -186,14 +179,14 @@ public class ClientEvents {
         QuestTrackerState.setHeld(VIEW_ANGER_HUD.isDown());
         OgreOverlayState.tick();
         while (OPEN_BACKPACK.consumeClick()) {
-            PacketDistributor.sendToServer(new OpenBackpackPayload());
+            ModNetwork.sendToServer(new OpenBackpackPayload());
         }
         while (SUMMON_ARMY.consumeClick()) {
             // Only worth a packet while the crown is worn; the server checks it again.
             var player = net.minecraft.client.Minecraft.getInstance().player;
             if (player != null && player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD)
                     .is(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get())) {
-                PacketDistributor.sendToServer(new com.kingsandmonsters.network.SummonArmyPayload());
+                ModNetwork.sendToServer(new com.kingsandmonsters.network.SummonArmyPayload());
             }
         }
     }

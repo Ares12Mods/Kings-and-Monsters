@@ -1,19 +1,17 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.OgrebloodTotemActivation;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 public record OgrebloodTotemActivationPayload() implements CustomPacketPayload {
     public static final Type<OgrebloodTotemActivationPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogreblood_totem_activation"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, OgrebloodTotemActivationPayload> STREAM_CODEC =
+            new ResourceLocation(KingsAndMonsters.MODID, "ogreblood_totem_activation"));
+    public static final StreamCodec<FriendlyByteBuf, OgrebloodTotemActivationPayload> STREAM_CODEC =
             StreamCodec.of((buffer, payload) -> { }, buffer -> new OgrebloodTotemActivationPayload());
 
     @Override

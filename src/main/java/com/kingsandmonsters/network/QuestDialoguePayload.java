@@ -1,15 +1,12 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.QuestDialogueScreen;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 /**
  * Opens (or refreshes) the errand dialogue with the King or a captain. It also carries the player's favor
@@ -20,13 +17,13 @@ public record QuestDialoguePayload(int giverId, boolean king, int state, int que
                                   boolean appeased)
         implements CustomPacketPayload {
     public static final Type<QuestDialoguePayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "quest_dialogue"));
-    private static final StreamCodec<io.netty.buffer.ByteBuf, java.util.List<Integer>> CHOICES =
+            new ResourceLocation(KingsAndMonsters.MODID, "quest_dialogue"));
+    private static final StreamCodec<FriendlyByteBuf, java.util.List<Integer>> CHOICES =
             ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list());
-    public static final StreamCodec<RegistryFriendlyByteBuf, QuestDialoguePayload> STREAM_CODEC =
+    public static final StreamCodec<FriendlyByteBuf, QuestDialoguePayload> STREAM_CODEC =
             StreamCodec.of(QuestDialoguePayload::write, QuestDialoguePayload::read);
 
-    private static void write(RegistryFriendlyByteBuf buf, QuestDialoguePayload payload) {
+    private static void write(FriendlyByteBuf buf, QuestDialoguePayload payload) {
         buf.writeVarInt(payload.giverId);
         buf.writeBoolean(payload.king);
         buf.writeVarInt(payload.state);
@@ -38,7 +35,7 @@ public record QuestDialoguePayload(int giverId, boolean king, int state, int que
         buf.writeBoolean(payload.appeased);
     }
 
-    private static QuestDialoguePayload read(RegistryFriendlyByteBuf buf) {
+    private static QuestDialoguePayload read(FriendlyByteBuf buf) {
         int giverId = buf.readVarInt();
         boolean king = buf.readBoolean();
         int state = buf.readVarInt();

@@ -1,21 +1,18 @@
 package com.kingsandmonsters.network;
 
+import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.tribute.QuestManager;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** A button pressed on the errand dialogue: accept, turn in or abandon (see QuestManager). */
 public record QuestActionPayload(int giverId, int action, int quest) implements CustomPacketPayload {
     public static final Type<QuestActionPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "quest_action"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, QuestActionPayload> STREAM_CODEC =
+            new ResourceLocation(KingsAndMonsters.MODID, "quest_action"));
+    public static final StreamCodec<FriendlyByteBuf, QuestActionPayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.VAR_INT, QuestActionPayload::giverId,
                     ByteBufCodecs.VAR_INT, QuestActionPayload::action,

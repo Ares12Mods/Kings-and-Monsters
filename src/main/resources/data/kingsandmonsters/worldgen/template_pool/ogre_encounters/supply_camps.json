@@ -1,26 +1,24 @@
 {
-    "name":  "kingsandmonsters:ogre_encounters/supply_camps",
-    "fallback":  "minecraft:empty",
-    "elements":  [
-                     {
-                         "weight":  1,
-                         "element":  {
-                                         "location":  "kingsandmonsters:ogre_encounters/supply_camp_1",
-                                         "processors":  "kingsandmonsters:ogre_supply_camp_1",
-                                         "projection":  "rigid",
-                                         "override_liquid_settings":  "ignore_waterlogging",
-                                         "element_type":  "minecraft:single_pool_element"
-                                     }
-                     },
-                     {
-                         "weight":  1,
-                         "element":  {
-                                         "location":  "kingsandmonsters:ogre_encounters/supply_camp_2",
-                                         "processors":  "kingsandmonsters:ogre_supply_camp_2",
-                                         "projection":  "rigid",
-                                         "override_liquid_settings":  "ignore_waterlogging",
-                                         "element_type":  "minecraft:single_pool_element"
-                                     }
-                     }
-                 ]
+  "name": "kingsandmonsters:ogre_encounters/supply_camps",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "kingsandmonsters:ogre_encounters/supply_camp_1",
+        "processors": "kingsandmonsters:ogre_supply_camp_1",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "kingsandmonsters:ogre_encounters/supply_camp_2",
+        "processors": "kingsandmonsters:ogre_supply_camp_2",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
 }

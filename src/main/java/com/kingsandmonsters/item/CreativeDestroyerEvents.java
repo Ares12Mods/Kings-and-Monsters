@@ -3,7 +3,7 @@ package com.kingsandmonsters.item;
 import com.kingsandmonsters.ModItems;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 
 /** Isolated Creative-only kill switch for rapidly cycling development encounters. */
 public final class CreativeDestroyerEvents {

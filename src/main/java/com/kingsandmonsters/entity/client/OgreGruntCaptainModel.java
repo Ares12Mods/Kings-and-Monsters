@@ -3,7 +3,7 @@ package com.kingsandmonsters.entity.client;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.entity.OgreGruntCaptain;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimationState;
 
 public class OgreGruntCaptainModel extends OgreModel<OgreGruntCaptain> {
     // The bones his swings thrown over the combat walk animate.

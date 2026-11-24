@@ -10,7 +10,7 @@ import com.kingsandmonsters.entity.OgreGruntCaptain;
 import com.kingsandmonsters.entity.OgreMage;
 import com.kingsandmonsters.entity.OgreTrapper;
 import com.kingsandmonsters.network.OgreOverlayPayload;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.kingsandmonsters.network.ModNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.MinecraftServer;
@@ -26,7 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -217,7 +217,7 @@ public final class PatrolManager {
     private static int spawnPatrol(ServerLevel level, BlockPos campOrigin, ServerPlayer target,
                                    BlockPos targetPos, PatrolTier tier, boolean tributeRetaliation) {
         List<EntityType<? extends OgreGrunt>> composition = createComposition(tier);
-        Optional<BlockPos> baseSpawn = findSpawnPos(level, campOrigin, targetPos, composition.getFirst());
+        Optional<BlockPos> baseSpawn = findSpawnPos(level, campOrigin, targetPos, composition.get(0));
         if (baseSpawn.isEmpty()) {
             return 0;
         }
@@ -258,7 +258,7 @@ public final class PatrolManager {
         if (spawned > 0 && target != null) {
             String title = patrolTitle(tier, tributeRetaliation);
             String subtitle = patrolSubtitle(tier, tributeRetaliation);
-            PacketDistributor.sendToPlayer(target, OgreOverlayPayload.location(
+            ModNetwork.sendToPlayer(target, OgreOverlayPayload.location(
                     title, subtitle, false));
         }
 
@@ -359,7 +359,7 @@ public final class PatrolManager {
         OgreGrunt leader = group.stream()
                 .filter(ogre -> ogre.getPersistentData().getBoolean(PATROL_COHESION_ANCHOR_TAG))
                 .findFirst()
-                .orElse(group.getFirst());
+                .orElse(group.get(0));
         long gameTime = level.getGameTime();
         long reengageTime = group.stream()
                 .mapToLong(ogre -> ogre.getPersistentData().getLong(PATROL_REENGAGE_TIME_TAG))
@@ -382,7 +382,7 @@ public final class PatrolManager {
                 }
                 reengageTime = 0L;
             }
-            BlockPos engagementPos = BlockPos.of(group.getFirst().getPersistentData()
+            BlockPos engagementPos = BlockPos.of(group.get(0).getPersistentData()
                     .getLong(PATROL_ENGAGEMENT_POS_TAG));
             if (gameTime < reengageTime
                     || sharedTarget.distanceToSqr(
@@ -484,7 +484,7 @@ public final class PatrolManager {
         double angle = Math.atan2(dz, dx);
 
         if (dx * dx + dz * dz < 1.0) {
-            angle = random.nextDouble() * Math.TAU;
+            angle = random.nextDouble() * (Math.PI * 2.0);
         }
 
         for (int attempt = 0; attempt < 12; attempt++) {
@@ -583,8 +583,11 @@ public final class PatrolManager {
     }
 
     private static boolean isInsideGeneratedStructure(ServerLevel level, BlockPos pos) {
-        StructureStart structure = level.structureManager()
-                .getStructureWithPieceAt(pos, holder -> true);
-        return structure != StructureStart.INVALID_START && structure.isValid();
+        for (var structure : level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)) {
+            if (level.structureManager().getStructureWithPieceAt(pos, structure).isValid()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

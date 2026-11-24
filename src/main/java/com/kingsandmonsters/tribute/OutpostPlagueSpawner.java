@@ -14,7 +14,7 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kingsandmonsters.event.ServerTickEvent;
 
 /** Rare infected wanderers at the edge of inhabited Ogre outposts. */
 public final class OutpostPlagueSpawner {
@@ -95,7 +95,7 @@ public final class OutpostPlagueSpawner {
                     || !level.getFluidState(pos).isEmpty()
                     || !level.getFluidState(pos.below()).isEmpty()
                     || !level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
-                    || !level.noCollision(ModEntities.PLAGUE_OGRE.get().getSpawnAABB(x + 0.5, y, z + 0.5))
+                    || !level.noCollision(ModEntities.PLAGUE_OGRE.get().getAABB(x + 0.5, y, z + 0.5))
                     || !(wanderer ? canWanderTo(level, pos)
                     : PlagueOgre.checkPlagueOgreSpawnRules(ModEntities.PLAGUE_OGRE.get(), level,
                     MobSpawnType.NATURAL, pos, level.random))) continue;

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 
@@ -17,25 +18,25 @@ import java.util.List;
 
 public class KingsCleaverItem extends SwordItem {
     public KingsCleaverItem(Tier tier, Properties properties) {
-        super(tier, properties);
+        super(tier, 3, -2.4F, properties);
     }
 
     @Override
-    public boolean supportsEnchantment(ItemStack stack, Holder<Enchantment> enchantment) {
-        return enchantment.is(Enchantments.UNBREAKING)
-                || enchantment.is(Enchantments.MENDING)
-                || enchantment.is(Enchantments.SWEEPING_EDGE)
-                || enchantment.is(Enchantments.LOOTING)
-                || enchantment.is(Enchantments.KNOCKBACK)
-                || enchantment.is(Enchantments.SHARPNESS)
-                || enchantment.is(Enchantments.SMITE)
-                || enchantment.is(Enchantments.BANE_OF_ARTHROPODS)
-                || enchantment.is(ModEnchantments.TYRANT);
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        return enchantment == Enchantments.UNBREAKING
+                || enchantment == Enchantments.MENDING
+                || enchantment == Enchantments.SWEEPING_EDGE
+                || enchantment == Enchantments.MOB_LOOTING
+                || enchantment == Enchantments.KNOCKBACK
+                || enchantment == Enchantments.SHARPNESS
+                || enchantment == Enchantments.SMITE
+                || enchantment == Enchantments.BANE_OF_ARTHROPODS
+                || enchantment == ModEnchantments.TYRANT.get();
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());
         tooltip.add(Component.literal("Maw's Feast").withStyle(ChatFormatting.GOLD));

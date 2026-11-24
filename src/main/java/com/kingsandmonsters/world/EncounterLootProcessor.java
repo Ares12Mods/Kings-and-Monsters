@@ -1,7 +1,6 @@
 package com.kingsandmonsters.world;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelReader;
@@ -21,9 +20,9 @@ import java.util.Map;
  * handled here: they're the tribute chests and get their loot from the rule in the processor list.
  */
 public final class EncounterLootProcessor extends StructureProcessor {
-    public static final MapCodec<EncounterLootProcessor> CODEC =
+    public static final Codec<EncounterLootProcessor> CODEC =
             Codec.STRING.optionalFieldOf("variant", "supply_1")
-                    .xmap(EncounterLootProcessor::new, processor -> processor.variant);
+                    .xmap(EncounterLootProcessor::new, processor -> processor.variant).codec();
 
     private static final String SUPPLY = "kingsandmonsters:chests/ogre_supply_camp";
     private static final String SUPPLY_LARDER = "kingsandmonsters:chests/ogre_supply_camp_larder";
