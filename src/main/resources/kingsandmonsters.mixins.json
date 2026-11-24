@@ -1,5 +1,6 @@
 {
   "required": true,
+  "refmap": "kingsandmonsters.refmap.json",
   "minVersion": "0.8",
   "package": "com.kingsandmonsters.mixin",
   "compatibilityLevel": "JAVA_17",
