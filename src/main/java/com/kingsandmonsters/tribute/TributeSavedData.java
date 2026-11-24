@@ -314,6 +314,17 @@ public class TributeSavedData extends SavedData {
         return camp != null && camp.profile == OutpostProfile.ABANDONED_CAMP;
     }
 
+    /** Only the full outposts, the King's fort and the moving camps send patrols; every other camp stays quiet. */
+    public boolean canSendPatrols(BlockPos campOrigin) {
+        CampTributeData camp = camps.get(campOrigin.asLong());
+        if (camp == null) {
+            return false;
+        }
+        return camp.structureKind == StructureKind.OUTPOST
+                || camp.structureKind == StructureKind.FORT
+                || (camp.structureKind == StructureKind.ENCOUNTER && camp.profile == OutpostProfile.MOVING_CAMP);
+    }
+
     public Optional<BlockPos> findOutpostCampOrigin(BlockPos pos) {
         return findOwningOutpostCamp(pos).map(camp -> camp.campOrigin);
     }

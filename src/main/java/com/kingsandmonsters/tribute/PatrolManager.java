@@ -53,6 +53,9 @@ public final class PatrolManager {
     // earliest a retaliation patrol targeting that player becomes eligible to actually spawn — the
     // tribe "learning what happened and organizing a patrol" instead of an instant response.
     public static final int PATROL_RETALIATION_DELAY_TICKS = 20 * 60;
+    // Every camp keeps its own timer, so a player near several of them used to be hunted by each in
+    // turn. One patrol per player per minimum cooldown, whichever camp sends it.
+    private static final Map<UUID, Long> LAST_PATROL_AGAINST = new HashMap<>();
     private static int ticksUntilNextCheck;
     private static int ticksUntilNextCohesionUpdate;
 
@@ -76,6 +79,10 @@ public final class PatrolManager {
         ticksUntilNextCheck = Config.PATROL_CHECK_INTERVAL_TICKS.get();
         tickPatrols(event.getServer());
         tickPatrolRetaliations(event.getServer());
+    }
+
+    public static void resetState() {
+        LAST_PATROL_AGAINST.clear();
     }
 
     private static void tickPatrols(MinecraftServer server) {
@@ -129,6 +136,10 @@ public final class PatrolManager {
                 scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
                 continue;
             }
+            if (!TributeManager.canSendPatrols(level, camp.campOrigin())) {
+                scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
+                continue;
+            }
             if (gameTime < camp.nextPatrolGameTime()) {
                 continue;
             }
@@ -138,10 +149,16 @@ public final class PatrolManager {
                 scheduleNextPatrol(level, camp.campOrigin(), gameTime, false);
                 continue;
             }
+            Long lastPatrol = LAST_PATROL_AGAINST.get(target.get().getUUID());
+            if (lastPatrol != null && gameTime - lastPatrol < Config.PATROL_MIN_COOLDOWN_TICKS.get()) {
+                scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
+                continue;
+            }
 
             TributeManager.preparePatrol(level, camp.campOrigin())
                     .ifPresent(tier -> {
                         spawnPatrol(level, camp.campOrigin(), target.get(), tier);
+                        LAST_PATROL_AGAINST.put(target.get().getUUID(), gameTime);
                         scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
                     });
         }

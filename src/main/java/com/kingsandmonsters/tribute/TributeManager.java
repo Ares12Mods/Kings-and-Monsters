@@ -392,6 +392,10 @@ public final class TributeManager {
         return getData(level).findOutpostFortMapTarget(pos);
     }
 
+    public static boolean canSendPatrols(ServerLevel level, BlockPos campOrigin) {
+        return getData(level).canSendPatrols(campOrigin);
+    }
+
     public static boolean isAbandonedCamp(ServerLevel level, BlockPos campOrigin) {
         return getData(level).isAbandonedCamp(campOrigin);
     }
