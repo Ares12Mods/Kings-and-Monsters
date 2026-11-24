@@ -18,6 +18,10 @@ public final class ClientConfig {
             .comment("Use Kings & Monsters animated particles for Bleeding, Dazed, and Bogrot. Turn off to use simpler vanilla particles instead.")
             .define("useCustomEffectParticles", true);
 
+    public static final ModConfigSpec.BooleanValue SHOW_JADE_FOR_OGRE_KING = BUILDER
+            .comment("Show the Jade overlay when looking at the Ogre King. Off by default because the King has its own boss bar.")
+            .define("showJadeForOgreKing", false);
+
     static final ModConfigSpec SPEC = BUILDER.build();
 
     private ClientConfig() {
@@ -29,6 +33,10 @@ public final class ClientConfig {
 
     public static boolean showCustomTooltips() {
         return !SPEC.isLoaded() || SHOW_CUSTOM_TOOLTIPS.get();
+    }
+
+    public static boolean showJadeForOgreKing() {
+        return SPEC.isLoaded() && SHOW_JADE_FOR_OGRE_KING.get();
     }
 
     public static boolean useCustomEffectParticles() {

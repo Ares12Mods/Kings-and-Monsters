@@ -30,6 +30,10 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
         registration.registerEntityComponent(BogrotProvider.INSTANCE, LivingEntity.class);
         registration.registerEntityComponent(BoarTraitsProvider.INSTANCE, MudsnoutBoar.class);
         registration.registerEntityComponent(BleedingProvider.INSTANCE, LivingEntity.class);
+        // The Ogre King has its own boss bar, so hide his Jade tooltip unless the client config turns it on.
+        registration.addRayTraceCallback((hit, accessor, original) ->
+                accessor instanceof EntityAccessor entityAccessor && entityAccessor.getEntity() instanceof OgreLord
+                        && !com.kingsandmonsters.ClientConfig.showJadeForOgreKing() ? null : accessor);
     }
 
     /**

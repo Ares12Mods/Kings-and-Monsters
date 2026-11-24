@@ -34,12 +34,10 @@ public final class RoyalDefensesHud {
     private static final int FILL_Y = 31;
     private static final int FILL_WIDTH = 132;
     private static final int FILL_HEIGHT = 5;
-    private static final int KING_BAR_WIDTH = 196;
-    private static final int KING_BAR_HEIGHT = 19;
-    private static final int KING_EMPTY_TEXTURE_HEIGHT = 32;
-    private static final int KING_FULL_TEXTURE_HEIGHT = 26;
-    private static final int KING_EMPTY_V = 13;
-    private static final int KING_FULL_V = 7;
+    private static final int KING_BAR_WIDTH = 256;
+    private static final int KING_BAR_HEIGHT = 32;
+    private static final int KING_FILL_X = 18;
+    private static final int KING_FILL_WIDTH = 220;
 
     private RoyalDefensesHud() {
     }
@@ -77,22 +75,19 @@ public final class RoyalDefensesHud {
 
     private static void renderOgreKingBar(CustomizeGuiOverlayEvent.BossEventProgress event, Component name) {
         event.setCanceled(true);
-        event.setIncrement(KING_BAR_HEIGHT + 13);
+        event.setIncrement(KING_BAR_HEIGHT + 2);
 
         GuiGraphics graphics = event.getGuiGraphics();
-        Minecraft minecraft = Minecraft.getInstance();
         int textureX = (event.getWindow().getGuiScaledWidth() - KING_BAR_WIDTH) / 2;
-        int textureY = event.getY();
-        int textX = (event.getWindow().getGuiScaledWidth() - minecraft.font.width(name)) / 2;
-        graphics.drawString(minecraft.font, name, textX, textureY - 10, 0xFFFFFFFF);
-        graphics.blit(OGRE_KING_EMPTY, textureX, textureY, 0, KING_EMPTY_V,
-                KING_BAR_WIDTH, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_EMPTY_TEXTURE_HEIGHT);
+        int textureY = event.getY() - 8;
+        graphics.blit(OGRE_KING_EMPTY, textureX, textureY, 0, 0,
+                KING_BAR_WIDTH, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_BAR_HEIGHT);
 
         int filledWidth = Mth.clamp(
-                Math.round(event.getBossEvent().getProgress() * KING_BAR_WIDTH), 0, KING_BAR_WIDTH);
+                Math.round(event.getBossEvent().getProgress() * KING_FILL_WIDTH), 0, KING_FILL_WIDTH);
         if (filledWidth > 0) {
-            graphics.blit(OGRE_KING_FULL, textureX, textureY, 0, KING_FULL_V,
-                    filledWidth, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_FULL_TEXTURE_HEIGHT);
+            graphics.blit(OGRE_KING_FULL, textureX + KING_FILL_X, textureY, KING_FILL_X, 0,
+                    filledWidth, KING_BAR_HEIGHT, KING_BAR_WIDTH, KING_BAR_HEIGHT);
         }
     }
 }
