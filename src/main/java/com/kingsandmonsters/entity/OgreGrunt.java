@@ -941,10 +941,10 @@ public class OgreGrunt extends Monster implements GeoEntity {
     @Override
     public boolean canAttack(LivingEntity target) {
         // An army ogre never turns on players, its summoner's pets, or its own army's boars.
-        if (armyOwnerId != null && (target instanceof Player
+        if (armyOwnerId != null && (spareByArmy(target)
                 || target instanceof MudsnoutBoar boar && armyOwnerId.equals(boar.getArmyOwnerId())
-                || target instanceof net.minecraft.world.entity.TamableAnimal pet && armyOwnerId.equals(
-                        pet.getOwnerUUID()))) {
+                || target instanceof net.minecraft.world.entity.OwnableEntity pet
+                        && armyOwnerId.equals(pet.getOwnerUUID()))) {
             return false;
         }
         return (!isMerchantGuard() || target.getUUID().equals(merchantThreatId)
@@ -952,6 +952,50 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 && canAttackOgreTarget(target)
                 && !tribeIsAppeasedWith(target)
                 && super.canAttack(target);
+    }
+
+    private int trapHeldUntil;
+
+    /** A Bogjaw Trap has clamped this ogre: for the hold it cannot walk, lunge or be pushed along the ground. */
+    public void holdInTrap(int ticks) {
+        trapHeldUntil = tickCount + ticks;
+    }
+
+    public boolean isHeldInTrap() {
+        return tickCount < trapHeldUntil;
+    }
+
+    @Override
+    public void travel(Vec3 travelVector) {
+        if (isHeldInTrap()) {
+            Vec3 motion = getDeltaMovement();
+            setDeltaMovement(0.0, Math.min(motion.y, 0.0), 0.0);
+            getNavigation().stop();
+            super.travel(Vec3.ZERO);
+            return;
+        }
+        super.travel(travelVector);
+    }
+
+    private static final float STRAY_FORGIVEN_FRACTION = 0.25F;
+    private static final long STRAY_MEMORY_TICKS = 20L * 30;
+    private UUID strayHitterId;
+    private float strayDamage;
+    private long strayDamageTime;
+    private boolean fightsToTheDeath;
+
+    /** Counts what an appeased player has done to this ogre by accident, and turns it on them past a quarter of its health. */
+    private void noteStrayHit(ServerLevel server, ServerPlayer hitter, float amount) {
+        long now = server.getGameTime();
+        if (!hitter.getUUID().equals(strayHitterId) || now - strayDamageTime > STRAY_MEMORY_TICKS) {
+            strayHitterId = hitter.getUUID();
+            strayDamage = 0.0F;
+        }
+        strayDamage += amount;
+        strayDamageTime = now;
+        if (strayDamage >= getMaxHealth() * STRAY_FORGIVEN_FRACTION) {
+            fightsToTheDeath = true;
+        }
     }
 
     /**
@@ -974,9 +1018,17 @@ public class OgreGrunt extends Monster implements GeoEntity {
     private boolean tribeIsAppeasedWith(LivingEntity target) {
         if (!(target instanceof Player player)
                 || this instanceof PlagueOgre || this instanceof OgreLord || royalTrialOgre
-                || target == getLastHurtByMob()
                 || !(level() instanceof ServerLevel server)
                 || TributeManager.isProvoked(server, player.getUUID())) {
+            return false;
+        }
+        // Someone the tribe likes who hits an ogre by accident is forgiven until that ogre has lost a
+        // quarter of its health to them; after that it fights them to the death, and never drops the
+        // fight and picks it up again.
+        if (player.getUUID().equals(strayHitterId) && fightsToTheDeath) {
+            return false;
+        }
+        if (target == getLastHurtByMob() && !TributeManager.isAppeased(server, player.getUUID())) {
             return false;
         }
         if (TributeManager.isAppeased(server, player.getUUID())) {
@@ -1290,6 +1342,13 @@ public class OgreGrunt extends Monster implements GeoEntity {
             return false;
         }
         boolean hurt = super.hurt(source, amount);
+        if (hurt && amount > 0.0F && armyOwnerId == null && source.getEntity() instanceof ServerPlayer hitter
+                && level() instanceof ServerLevel hurtLevel && !(this instanceof PlagueOgre)
+                && !(this instanceof OgreLord) && !royalTrialOgre
+                && TributeManager.isAppeased(hurtLevel, hitter.getUUID())
+                && !TributeManager.isProvoked(hurtLevel, hitter.getUUID())) {
+            noteStrayHit(hurtLevel, hitter, amount);
+        }
         if (hurt && armyOwnerId == null && source.getEntity() instanceof OgreGrunt striker && striker.isArmyAlly()) {
             rallyTribeAgainst(striker);
         }
@@ -1344,6 +1403,9 @@ public class OgreGrunt extends Monster implements GeoEntity {
         tag.putBoolean(ROYAL_PATROL_SQUAD_TAG, royalPatrolSquadLeader);
         tag.putBoolean(OUTPOST_REINFORCEMENT_SQUAD_TAG, outpostReinforcementSquadLeader);
         tag.putBoolean(ROYAL_TRIAL_OGRE_TAG, royalTrialOgre);
+        if (fightsToTheDeath && strayHitterId != null) {
+            tag.putUUID("StrayHitter", strayHitterId);
+        }
         tag.putInt(ROYAL_PATROL_GRUNTS_SPAWNED_TAG, royalPatrolGruntsSpawned);
         tag.putInt(ROYAL_PATROL_ARCHERS_SPAWNED_TAG, royalPatrolArchersSpawned);
         if (outpostHome != null) {
@@ -1367,6 +1429,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
         royalPatrolSquadLeader = tag.getBoolean(ROYAL_PATROL_SQUAD_TAG);
         outpostReinforcementSquadLeader = tag.getBoolean(OUTPOST_REINFORCEMENT_SQUAD_TAG);
         royalTrialOgre = tag.getBoolean(ROYAL_TRIAL_OGRE_TAG);
+        strayHitterId = tag.hasUUID("StrayHitter") ? tag.getUUID("StrayHitter") : null;
+        fightsToTheDeath = strayHitterId != null;
         armyOwnerId = tag.hasUUID(ARMY_OWNER_TAG) ? tag.getUUID(ARMY_OWNER_TAG) : null;
         armyTicksLeft = tag.getInt(ARMY_TICKS_TAG);
         royalPatrolGruntsSpawned = Mth.clamp(tag.getInt(ROYAL_PATROL_GRUNTS_SPAWNED_TAG),

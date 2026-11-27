@@ -22,12 +22,12 @@
     {
       "type": "patchouli:text",
       "title": "What They Pay",
-      "text": "Captains set the smaller jobs: thinning zombies, spiders and creepers, or feeding the camp. The King wants more: raiders, witches, Piglin Brutes, the Plague, and his own feasts.$(br2)Every quest pays favor and experience, usually a coin, and the harder ones pay $(item)Golden Ogre Teeth$()."
+      "text": "Captains set the smaller jobs: thinning zombies, spiders and creepers, or feeding the camp. The King wants more: raiders, witches, Piglin Brutes, the Plague, Evokers, Illusioners, and his own feasts.$(br2)Every quest pays favor and experience, usually a coin, and the harder ones pay $(item)Golden Ogre Teeth$()."
     },
     {
       "type": "patchouli:text",
       "title": "If You Are Bold",
-      "text": "Beside the King's three, one of his great quests may be offered: Ravagers, the Wither or the Warden. They pay the most.$(br2)A quest you have finished is not offered to you again for half an hour, or an hour for the King's, so the work keeps changing. After any finished quest, wait five minutes for the next."
+      "text": "Beside the King's three, one of his great quests may be offered: Ravagers, the Wither, the Warden or an Elder Guardian. They pay the most.$(br2)A quest you have finished is not offered to you again for half an hour, or an hour for the King's, so the work keeps changing. After any finished quest, wait five minutes for the next."
     }
   ]
 }

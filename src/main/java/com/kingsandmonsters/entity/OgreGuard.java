@@ -587,6 +587,11 @@ public class OgreGuard extends OgreGrunt {
         return STAB_SPEAR_TILT_DEGREES * Mth.clamp(weight, 0.0F, 1.0F);
     }
 
+    /** True while the swing in progress is the spear stab, not the bite or the slam. */
+    public boolean isSpearStab() {
+        return activeSwingId == STAB_ID;
+    }
+
     private void beginPunch(LivingEntity target) {
         cancelBowShot();
         pendingPunchTarget = target;

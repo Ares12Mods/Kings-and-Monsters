@@ -9,7 +9,6 @@ import com.kingsandmonsters.item.RattleboneRingEvents;
 import com.kingsandmonsters.tribute.BogIronArmorEffects;
 import com.kingsandmonsters.tribute.BogIronProgression;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import com.kingsandmonsters.tribute.PatrolManager;
 
 /**
  * Static trackers outlive a world: leaving a single-player world and opening another keeps the JVM
@@ -29,7 +28,6 @@ public final class ServerStateReset {
         BogIronProgression.resetState();
         OgreRallyEvents.resetState();
         OgreHookbladeEvents.resetState();
-        PatrolManager.resetState();
         com.kingsandmonsters.tribute.OutpostEvents.resetState();
     }
 }

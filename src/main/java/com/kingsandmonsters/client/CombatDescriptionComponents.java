@@ -29,6 +29,12 @@ public final class CombatDescriptionComponents {
         return Component.translatable("tooltip.kingsandmonsters.hunters_spear.bleed");
     }
 
+    public static Component huntersSpearCripple() {
+        double chance = Config.isLoaded() ? Config.HUNTERS_SPEAR_CRIPPLE_CHANCE.get()
+                : Config.HUNTERS_SPEAR_CRIPPLE_CHANCE.getDefault();
+        return Component.translatable("tooltip.kingsandmonsters.hunters_spear.cripple", number(chance * 100.0));
+    }
+
     @Nullable
     public static Component enchantment(Enchantment key, int level) {
         if (key == ModEnchantments.HEAVY_THROW.get()) {

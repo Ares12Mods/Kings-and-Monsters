@@ -371,6 +371,14 @@ public final class TributeManager {
         return getData(level).peekDuePatrolRetaliations(gameTime);
     }
 
+    public static boolean wasHuntedSince(ServerLevel level, UUID playerId, BlockPos pos, double radius, long since) {
+        return getData(level).wasHuntedSince(playerId, pos, radius, since);
+    }
+
+    public static void recordPatrol(ServerLevel level, UUID playerId, BlockPos pos, long keepTicks) {
+        getData(level).recordPatrol(playerId, pos, level.getGameTime(), keepTicks);
+    }
+
     public static void clearPatrolRetaliation(ServerLevel level, UUID playerId) {
         getData(level).clearPatrolRetaliation(playerId);
     }

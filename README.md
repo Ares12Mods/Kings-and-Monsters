@@ -9,7 +9,7 @@ and an Ogre King to challenge. Version 2.0 adds a swamp, tameable boars and much
 Current State
 -------------
 
-- Kings & Monsters version: 2.0.3
+- Kings & Monsters version: 2.0.4
 - Minecraft: 1.20.1
 - Forge: 47.4.0
 - Java: 17

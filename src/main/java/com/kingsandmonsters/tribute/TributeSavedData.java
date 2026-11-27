@@ -34,6 +34,8 @@ public class TributeSavedData extends SavedData {
     // One pending retaliation per player, keyed by UUID — a repeat provocation during the grace
     // period overwrites this rather than queuing a second one.
     private final Map<UUID, PendingRetaliation> pendingPatrolRetaliations = new HashMap<>();
+    // Patrols still inside their cooldown, saved so a restart doesn't let another camp pile on.
+    private final List<RecentPatrol> recentPatrols = new ArrayList<>();
     private int factionAngerLevel;
     private final Map<UUID, Integer> playerFavor = new HashMap<>();
     private final Map<UUID, QuestRecord> playerQuests = new HashMap<>();
@@ -145,6 +147,15 @@ public class TributeSavedData extends SavedData {
                     retaliationTag.getLong("eligibleGameTime")));
         }
 
+        ListTag recentTag = tag.getList("recentPatrols", Tag.TAG_COMPOUND);
+        for (int i = 0; i < recentTag.size(); i++) {
+            CompoundTag entry = recentTag.getCompound(i);
+            if (entry.hasUUID("player")) {
+                data.recentPatrols.add(new RecentPatrol(entry.getUUID("player"),
+                        BlockPos.of(entry.getLong("pos")), entry.getLong("time")));
+            }
+        }
+
         // Legacy reservedForts/pendingForts tags are intentionally ignored. They described
         // speculative targets that are not authoritative under the unconditional grid architecture.
         return data;
@@ -241,6 +252,15 @@ public class TributeSavedData extends SavedData {
         tag.put("camps", campsTag);
         tag.put("structureDiscoveries", discoveriesTag);
         tag.put("patrolRetaliations", retaliationsTag);
+        ListTag recentTag = new ListTag();
+        for (RecentPatrol patrol : recentPatrols) {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("player", patrol.playerId());
+            entry.putLong("pos", patrol.pos().asLong());
+            entry.putLong("time", patrol.time());
+            recentTag.add(entry);
+        }
+        tag.put("recentPatrols", recentTag);
         return tag;
     }
 
@@ -682,6 +702,22 @@ public class TributeSavedData extends SavedData {
         if (pendingPatrolRetaliations.remove(playerId) != null) {
             setDirty();
         }
+    }
+
+    /** True when a patrol after {@code since} hunted this player, or anyone within {@code radius} of {@code pos}. */
+    public boolean wasHuntedSince(UUID playerId, BlockPos pos, double radius, long since) {
+        return recentPatrols.stream().anyMatch(patrol -> patrol.time() > since
+                && (patrol.playerId().equals(playerId) || patrol.pos().distSqr(pos) <= radius * radius));
+    }
+
+    /** Remembers a patrol for {@code keepTicks}, dropping the ones older than that. */
+    public void recordPatrol(UUID playerId, BlockPos pos, long gameTime, long keepTicks) {
+        recentPatrols.removeIf(patrol -> gameTime - patrol.time() >= keepTicks);
+        recentPatrols.add(new RecentPatrol(playerId, pos.immutable(), gameTime));
+        setDirty();
+    }
+
+    private record RecentPatrol(UUID playerId, BlockPos pos, long time) {
     }
 
     public void setNextPatrolGameTime(BlockPos campOrigin, long gameTime) {

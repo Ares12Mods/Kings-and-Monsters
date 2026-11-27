@@ -171,6 +171,7 @@ public class ClientEvents {
         MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onRenderLivingPre);
         MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onInteractionKey);
         MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTickPre);
         MinecraftForge.EVENT_BUS.addListener(ClientTooltipEvents::onTooltipColor);
     }
 

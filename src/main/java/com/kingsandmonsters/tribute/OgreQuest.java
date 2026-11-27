@@ -47,7 +47,10 @@ public enum OgreQuest {
     KING_TOAD_HUNT("king_toad_hunt", 10, 10, true, hunt(victim -> victim instanceof BogToad && !victim.isBaby())),
     KING_FEAST("king_feast", 20, 8, true, items(OgreQuest::isCookedMeat)),
     // Proof of the kill: a Ghast only weeps its tears when it dies.
-    GHAST_TEARS("ghast_tears", 2, 15, true, items(stack -> stack.is(Items.GHAST_TEAR)));
+    GHAST_TEARS("ghast_tears", 2, 15, true, items(stack -> stack.is(Items.GHAST_TEAR))),
+    ELDER_GUARDIAN("elder_guardian", 1, 20, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.ElderGuardian)),
+    EVOKERS("evokers", 5, 12, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.Evoker)),
+    ILLUSIONERS("illusioners", 3, 10, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.Illusioner));
 
     public enum Kind { DELIVER, CULL }
 
@@ -100,6 +103,9 @@ public enum OgreQuest {
             case WITHER -> coinsAndTeeth(8, 4);
             case WARDEN -> coinsAndTeeth(9, 5);
             case GHAST_TEARS -> coinsAndTeeth(8, 3);
+            case ELDER_GUARDIAN -> coinsAndTeeth(8, 4);
+            case EVOKERS -> coins(9);
+            case ILLUSIONERS -> coins(7);
         };
     }
 

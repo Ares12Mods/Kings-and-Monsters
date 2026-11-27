@@ -273,7 +273,7 @@ public class ModItems {
     public static final RegistryObject<HunterSpearItem> HUNTERS_SPEAR = ITEMS.register("hunters_spear",
             () -> new HunterSpearItem(new Item.Properties().durability(384)));
     static {
-        ItemAttributes.mainHand(HUNTERS_SPEAR, 7.0, -2.9);
+        ItemAttributes.mainHand(HUNTERS_SPEAR, 9.0, -2.8);
     }
 
     // -------------------------------------------------------------------------

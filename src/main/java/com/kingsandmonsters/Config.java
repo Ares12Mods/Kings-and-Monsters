@@ -185,7 +185,7 @@ public final class Config {
         BUILDER.comment("Configure weapons, enchantments, and combat effects.").push("Combat");
         CRIPPLED_BITE_DURATION_TICKS = BUILDER.comment("Crippled duration from an Ogre Grunt bite.").defineInRange("crippledBiteDurationTicks", 80, 1, 1200);
         CRIPPLED_SPEAR_DURATION_TICKS = BUILDER.comment("Crippled duration from Hunter's Spear thrown hits.").defineInRange("crippledSpearDurationTicks", 100, 1, 1200);
-        HUNTERS_SPEAR_CRIPPLE_CHANCE = BUILDER.comment("Base chance (0.0-1.0) for any Hunter's Spear thrown hit to apply Crippled. Barbed guarantees the effect.").defineInRange("huntersSpearCrippleChance", 0.25, 0.0, 1.0);
+        HUNTERS_SPEAR_CRIPPLE_CHANCE = BUILDER.comment("Base chance (0.0-1.0) for any Hunter's Spear thrown hit to apply Crippled.").defineInRange("huntersSpearCrippleChance", 0.25, 0.0, 1.0);
         DAZED_HEAVY_ATTACK_DURATION_TICKS = BUILDER.comment("Dazed duration from Brute and Ogre King heavy attacks.").defineInRange("dazedHeavyAttackDurationTicks", 100, 1, 1200);
         HEAVY_THROW_DAMAGE_PER_LEVEL = BUILDER.comment("Bonus thrown damage per Heavy Throw level.").defineInRange("heavyThrowDamagePerLevel", 2.0, 0.0, 50.0);
         HEAVY_THROW_KNOCKBACK_PER_LEVEL = BUILDER.comment("Bonus knockback per Heavy Throw level.").defineInRange("heavyThrowKnockbackPerLevel", 0.35, 0.0, 5.0);
@@ -236,8 +236,8 @@ public final class Config {
         BUILDER.comment("Configure patrol spawning caused by ogre faction anger.").push("Patrols");
         PATROLS_ENABLED             = BUILDER.comment("Whether angered camps can send patrols after nearby players.").define("enabled", true);
         PATROL_CHECK_INTERVAL_TICKS = BUILDER.comment("How often loaded camps check whether to spawn a patrol (ticks).").defineInRange("checkIntervalTicks", 200, 20, 20 * 60 * 10);
-        PATROL_MIN_COOLDOWN_TICKS   = BUILDER.comment("Minimum cooldown between patrols from the same camp (ticks).").defineInRange("minCooldownTicks", 20 * 60 * 40, 20 * 10, 20 * 60 * 60);
-        PATROL_MAX_COOLDOWN_TICKS   = BUILDER.comment("Maximum cooldown between patrols from the same camp (ticks).").defineInRange("maxCooldownTicks", 20 * 60 * 60, 20 * 10, 20 * 60 * 60);
+        PATROL_MIN_COOLDOWN_TICKS   = BUILDER.comment("Minimum cooldown between patrols from the same camp, and between patrols hunting the same player or base (ticks).").defineInRange("patrolMinCooldownTicks", 20 * 60 * 40, 20 * 10, 20 * 60 * 60);
+        PATROL_MAX_COOLDOWN_TICKS   = BUILDER.comment("Maximum cooldown between patrols from the same camp (ticks).").defineInRange("patrolMaxCooldownTicks", 20 * 60 * 60, 20 * 10, 20 * 60 * 60);
         PATROL_PLAYER_SEARCH_RADIUS = BUILDER.comment("Maximum distance from a camp where players can be targeted for patrols.").defineInRange("playerSearchRadius", 160, 32, 1024);
         PATROL_MIN_SPAWN_DISTANCE   = BUILDER.comment("Minimum distance from the target player where patrols spawn.").defineInRange("minSpawnDistance", 28, 8, 128);
         PATROL_MAX_SPAWN_DISTANCE   = BUILDER.comment("Maximum distance from the target player where patrols spawn.").defineInRange("maxSpawnDistance", 48, 8, 192);

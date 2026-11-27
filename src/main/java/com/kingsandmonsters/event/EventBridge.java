@@ -31,7 +31,9 @@ public final class EventBridge {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
+        if (event.phase == TickEvent.Phase.START) {
+            MinecraftForge.EVENT_BUS.post(new ClientTickEvent.Pre());
+        } else {
             MinecraftForge.EVENT_BUS.post(new ClientTickEvent.Post());
         }
     }

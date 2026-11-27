@@ -53,9 +53,11 @@ public final class PatrolManager {
     // earliest a retaliation patrol targeting that player becomes eligible to actually spawn — the
     // tribe "learning what happened and organizing a patrol" instead of an instant response.
     public static final int PATROL_RETALIATION_DELAY_TICKS = 20 * 60;
-    // Every camp keeps its own timer, so a player near several of them used to be hunted by each in
-    // turn. One patrol per player per minimum cooldown, whichever camp sends it.
-    private static final Map<UUID, Long> LAST_PATROL_AGAINST = new HashMap<>();
+    // Every camp keeps its own timer, so patrols are also limited by who was hunted: one per minimum
+    // cooldown for the same player, or for anyone within this distance of that hunt (a shared base).
+    private static final double SHARED_BASE_RADIUS = 128.0;
+    // A theft retaliation may follow a patrol sooner than a camp can, but never right on top of one.
+    private static final int RETALIATION_SPACING_TICKS = 20 * 60 * 10;
     private static int ticksUntilNextCheck;
     private static int ticksUntilNextCohesionUpdate;
 
@@ -79,10 +81,6 @@ public final class PatrolManager {
         ticksUntilNextCheck = Config.PATROL_CHECK_INTERVAL_TICKS.get();
         tickPatrols(event.getServer());
         tickPatrolRetaliations(event.getServer());
-    }
-
-    public static void resetState() {
-        LAST_PATROL_AGAINST.clear();
     }
 
     private static void tickPatrols(MinecraftServer server) {
@@ -109,8 +107,14 @@ public final class PatrolManager {
                     continue;
                 }
 
-                PatrolTier tier = TributeManager.getOrCreate(level, due.campOrigin()).getCurrentPatrolTier();
-                spawnImmediatePatrol(level, due.campOrigin(), player, tier);
+                // A group robbing a camp together is answered once, not once per looter.
+                long spacing = Math.min(RETALIATION_SPACING_TICKS, Config.PATROL_MIN_COOLDOWN_TICKS.get());
+                if (!huntedWithin(level, player, spacing)) {
+                    PatrolTier tier = TributeManager.getOrCreate(level, due.campOrigin()).getCurrentPatrolTier();
+                    if (spawnImmediatePatrol(level, due.campOrigin(), player, tier) > 0) {
+                        recordHunt(level, player);
+                    }
+                }
                 TributeManager.clearPatrolRetaliation(level, due.playerId());
             }
         }
@@ -149,19 +153,29 @@ public final class PatrolManager {
                 scheduleNextPatrol(level, camp.campOrigin(), gameTime, false);
                 continue;
             }
-            Long lastPatrol = LAST_PATROL_AGAINST.get(target.get().getUUID());
-            if (lastPatrol != null && gameTime - lastPatrol < Config.PATROL_MIN_COOLDOWN_TICKS.get()) {
+            if (huntedWithin(level, target.get(), Config.PATROL_MIN_COOLDOWN_TICKS.get())) {
                 scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
                 continue;
             }
 
             TributeManager.preparePatrol(level, camp.campOrigin())
                     .ifPresent(tier -> {
-                        spawnPatrol(level, camp.campOrigin(), target.get(), tier);
-                        LAST_PATROL_AGAINST.put(target.get().getUUID(), gameTime);
+                        if (spawnPatrol(level, camp.campOrigin(), target.get(), tier) > 0) {
+                            recordHunt(level, target.get());
+                        }
                         scheduleNextPatrol(level, camp.campOrigin(), gameTime, true);
                     });
         }
+    }
+
+    private static boolean huntedWithin(ServerLevel level, ServerPlayer player, long ticks) {
+        return TributeManager.wasHuntedSince(level, player.getUUID(), player.blockPosition(),
+                SHARED_BASE_RADIUS, level.getGameTime() - ticks);
+    }
+
+    private static void recordHunt(ServerLevel level, ServerPlayer player) {
+        TributeManager.recordPatrol(level, player.getUUID(), player.blockPosition(),
+                Config.PATROL_MIN_COOLDOWN_TICKS.get());
     }
 
     private static Optional<ServerPlayer> findTargetPlayer(ServerLevel level, BlockPos campOrigin) {

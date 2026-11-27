@@ -5,6 +5,7 @@ import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.effect.BleedingEffect;
 import com.kingsandmonsters.enchantment.ModEnchantmentEffects;
 import com.kingsandmonsters.enchantment.ModEnchantments;
+import com.kingsandmonsters.entity.OgreGuard;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +19,11 @@ public final class HunterSpearEvents {
     public static void onLivingDamagePost(LivingDamageEvent.Post event) {
         if (event.getNewDamage() <= 0.0F
                 || !(event.getSource().getEntity() instanceof LivingEntity attacker)) {
+            return;
+        }
+        // A Guard holds his spear through every swing, but only the stab hits with it.
+        if (attacker instanceof OgreGuard guard && event.getSource().getDirectEntity() == guard
+                && !guard.isSpearStab()) {
             return;
         }
 

@@ -24,7 +24,7 @@ import net.minecraft.world.phys.Vec3;
 public final class HunterSpearItem extends Item {
     private static final int THROW_CHARGE_TICKS = 10;
     private static final int USE_DURATION_TICKS = 72_000;
-    private static final float BASE_THROW_DAMAGE = 8.0F;
+    private static final float BASE_THROW_DAMAGE = 10.0F;
     private static final float BASE_THROW_SPEED = 2.5F;
 
     public HunterSpearItem(Properties properties) {

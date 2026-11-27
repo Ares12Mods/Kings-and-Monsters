@@ -16,7 +16,7 @@
     {
       "type": "patchouli:text",
       "title": "Bleeding",
-      "text": "Bleeding comes in three severities: Lesser, normal and Greater. Each deals periodic damage, drains hunger and drips blood, more freely the worse it is.$(br2)Every hit from a Hunter's Spear opens a Lesser wound. Barbed I makes it Bleeding and Barbed II Greater. A worse wound is never replaced by a lighter one, and creatures with no blood, such as skeletons, slimes and golems, cannot bleed."
+      "text": "Bleeding comes in three severities: Lesser, normal and Greater. Each deals periodic damage, drains hunger and drips blood, more freely the worse it is.$(br2)Every hit from a Hunter's Spear applies Lesser Bleeding. Barbed I makes it Bleeding and Barbed II Greater Bleeding. Stronger bleeding is never replaced by weaker, and creatures with no blood, such as skeletons, slimes and golems, cannot bleed."
     },
     {
       "type": "patchouli:text",

@@ -71,6 +71,7 @@ patrol escalation, and ogre outposts to Minecraft.
 [[dependencies.${mod_id}]]
     modId="boss_checklist"
     mandatory=false
+    versionRange="[0,)"
     ordering="NONE"
     side="BOTH"
 
