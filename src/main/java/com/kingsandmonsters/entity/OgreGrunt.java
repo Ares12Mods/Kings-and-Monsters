@@ -2401,6 +2401,13 @@ public class OgreGrunt extends Monster implements GeoEntity {
                     shockwaveParticles ? 1.0F : 0.0F, false, 0.0, 0.0, 2.5, 0.0, 0.0);
         }
 
+        protected MeleeAttackHit withDamageMultiplier(float damageMultiplier) {
+            return new MeleeAttackHit(delayTicks, damageMultiplier, areaRadius, hitsOgreAllies, armorPierceFraction,
+                    knockbackStrength, coneDegrees, verticalKnockbackStrength, slownessTicks, nauseaTicks,
+                    shockwaveParticles, screenShakeIntensity, blockRippleParticles, forwardOffset, rightOffset, verticalHitRange,
+                    knockbackForward, knockbackRight);
+        }
+
         protected MeleeAttackHit withScreenShake(float screenShakeIntensity) {
             return new MeleeAttackHit(delayTicks, damageMultiplier, areaRadius, hitsOgreAllies, armorPierceFraction,
                     knockbackStrength, coneDegrees, verticalKnockbackStrength, slownessTicks, nauseaTicks,
@@ -3435,7 +3442,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 continue;
             }
             ripple.hitTargets.add(target.getUUID());
-            if (applyGroundRippleHit(target, ripple.hit, ripple.profile)) {
+            if (applyGroundRippleHit(target, ripple.hit, ripple.profile, ripple.origin)) {
                 shoveWithRipple(target, ripple);
             }
         }
@@ -3477,7 +3484,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
     }
 
     /** Returns true if the target was hurt, which is when the wave also shoves it. */
-    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
+    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile,
+                                           Vec3 origin) {
         boolean ogreAlly = isTribeAlly(target);
         float adjustedDamageMultiplier = ogreAlly ? hit.damageMultiplier() * 0.5F : hit.damageMultiplier();
         if (doScaledHurtTarget(target, adjustedDamageMultiplier, hit.armorPierceFraction())) {
@@ -3543,7 +3551,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
     private static final double RIPPLE_SHOVE_LIFT_SCALE = 0.45;
     private static final double RIPPLE_SHOVE_OUTWARD_RATIO = 1.4;
 
-    protected enum GroundRippleKind { STANDARD, KING_CLUB_DOUBLE, KING_CLUB_PULL_OUT, KING_STOMP_WAVE }
+    protected enum GroundRippleKind { STANDARD, KING_CLUB_DOUBLE, KING_CLUB_PULL_OUT, KING_STOMP_WAVE, KING_BUTT_SMASH }
 
     protected record GroundRippleProfile(float maxRadius, float propagationSpeed, float hitBandHalfWidth,
                                          float maxVisualLift, float particleIntensity, double verticalHitRange,

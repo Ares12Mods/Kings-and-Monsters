@@ -185,7 +185,7 @@ public class OgreLord extends OgreGrunt {
     private static final float DUEL_YIELD_FRACTION = 0.15F;
     // How long between Bogjaw traps catching him.
     private static final int TRAP_COOLDOWN_TICKS = 20 * 12;
-    private static final int PULL_OUT_BUFF_DURATION_TICKS = 60 * 20;
+    private static final int PULL_OUT_BUFF_DURATION_TICKS = 30 * 20;
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
     private static final RawAnimation IDLE_2 = RawAnimation.begin().thenLoop("idle 2");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
@@ -212,6 +212,7 @@ public class OgreLord extends OgreGrunt {
     private static final RawAnimation WAKE_UP = RawAnimation.begin().thenPlay("Stand up animation");
     private static final RawAnimation STARTLE_AWAKE = RawAnimation.begin().thenPlay("Startle awake");
     private static final RawAnimation SITTING_IDLE = RawAnimation.begin().thenLoop("Sitting Idle");
+    private static final RawAnimation BUTT_SMASH = RawAnimation.begin().thenPlay("Butt_smash");
 
     private static final int IDLE_VARIANT_TICKS = 40;
     private static final int ONE_ARM_UPSWING_ANIMATION_TICKS = 50;
@@ -284,6 +285,36 @@ public class OgreLord extends OgreGrunt {
     private static final int CLUB_VISIBILITY_SWAP_TICK = 108;
     // Offset the hit for the controller's 5-tick polling cadence so it matches the impact frame.
     private static final int ATTACK_SYNC_DELAY_TICKS = 3;
+    // The jumping butt smash. The clip itself lifts him, so he never leaves his spot.
+    private static final int ATTACK_ID_BUTT_SMASH = 20;
+    private static final int BUTT_SMASH_ANIMATION_TICKS = 120;
+    // In the clip he leaves the ground at 1.33s and lands at 2.42s.
+    private static final int BUTT_SMASH_TAKEOFF_TICK = 27 + ATTACK_SYNC_DELAY_TICKS;
+    // Both run 3 ticks past the keyframes (2.42s and 2.5s), which is when playtesting saw them land.
+    private static final int BUTT_SMASH_IMPACT_TICK = 51 + ATTACK_SYNC_DELAY_TICKS;
+    // His only grunt, as the mouth opens after the landing.
+    private static final int BUTT_SMASH_GRUNT_TICK = 53 + ATTACK_SYNC_DELAY_TICKS;
+    // He starts to get up at 4.25s.
+    private static final int BUTT_SMASH_RECOVER_HUFF_TICK = 85 + ATTACK_SYNC_DELAY_TICKS;
+    // He only tries it with at least this much open air above him.
+    private static final double BUTT_SMASH_MIN_HEADROOM = 4.0;
+    // How far above his hitbox the model rises, so it is still drawn when only that part is on screen.
+    private static final double BUTT_SMASH_VISUAL_HEIGHT = 6.0;
+    // Long on purpose: it is his big attack, and it should stay a surprise.
+    private static final int BUTT_SMASH_COOLDOWN_TICKS = 45 * 20;
+    private static final int PHASE_TWO_BUTT_SMASH_COOLDOWN_TICKS = 35 * 20;
+    // One in this many chances to use it whenever it is available.
+    private static final int BUTT_SMASH_CHANCE = 5;
+    private static final int BUTT_SMASH_SWING_COOLDOWN_TICKS = 140;
+    // The inner circle hits at once and can't be jumped. It is full strength under him and keeps this
+    // share at its rim, which is still a little more than the ripple outside it does.
+    private static final float BUTT_SMASH_INNER_RADIUS = 6.0F;
+    private static final float BUTT_SMASH_INNER_EDGE_SHARE = 0.75F;
+    private static final double BUTT_SMASH_CRUSH_THROW = 1.1;
+    private static final double BUTT_SMASH_CRUSH_LIFT = 0.7;
+    private static final float BUTT_SMASH_RIPPLE_RADIUS = 15.0F;
+    private static final double BUTT_SMASH_RIPPLE_LAUNCH = 1.35;
+    private static final int BUTT_SMASH_BLOCKS_DESTROYED = 4;
     private static final int SUMMON_POINT_PUNCH_SOUND_TICK = 22 + ATTACK_SYNC_DELAY_TICKS;
     // The point pose lands at 1.1667s. Retain the same small client animation
     // synchronization allowance used by the King's attack impacts.
@@ -340,7 +371,7 @@ public class OgreLord extends OgreGrunt {
     // Extra per-move cooldowns on top of the shared swing recovery above, so the big AOE moves
     // don't get reselected back-to-back the way the regular rotation can.
     private static final int DOUBLE_STOMP_COOLDOWN_TICKS = 300;
-    private static final int DOUBLE_OVERHEAD_SLAM_COOLDOWN_TICKS = 400;
+    private static final int DOUBLE_OVERHEAD_SLAM_COOLDOWN_TICKS = 600;
     private static final int ROAR_COOLDOWN_TICKS = 1800;
     private static final int PHASE_TWO_ROAR_COOLDOWN_TICKS = 1200;
     private static final int PHASE_TWO_FIRST_ROAR_DELAY_TICKS = 160;
@@ -437,6 +468,7 @@ public class OgreLord extends OgreGrunt {
     private static final int DOUBLE_ARM_UPSWING_COOLDOWN_TICKS = 200;
     private static final int CLUB_DOUBLE_OVERHEAD_COOLDOWN_TICKS = 360;
     private static final int SINGLE_OVERHEAD_COOLDOWN_TICKS = 180;
+    private static final int CLUB_HEAD_THRUST_COOLDOWN_TICKS = 200;
     private static final int LOCOMOTION_IDLE = 0;
     private static final int LOCOMOTION_WALK = 1;
     // Value 2 used to be the run; it is left unused so saved values keep their meaning.
@@ -461,7 +493,7 @@ public class OgreLord extends OgreGrunt {
     /** Ripples are 11-14 blocks across at 0.625 blocks per tick, so they outlast the attack by about 20 ticks. */
     private static final int JUMPABLE_RIPPLE_TAIL_TICKS = 24;
     private int jumpableRippleUntilTick;
-    private static final float DOUBLE_OVERHEAD_SLAM_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.CRUSHING);
+    private static final float DOUBLE_OVERHEAD_SLAM_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
     private static final float BELLY_BUMP_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
     private static final double BELLY_BUMP_HORIZONTAL_LAUNCH = 1.6;
     private static final float DOUBLE_ARM_UPSWING_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
@@ -482,6 +514,9 @@ public class OgreLord extends OgreGrunt {
     private static final int STOMP_WAVE_PULSE_INTERVAL_TICKS = 4;
     private static final double STOMP_WAVE_FIRST_DISTANCE = 1.8;
     private static final double STOMP_WAVE_SPACING = 2.5;
+    /** How far from the stomp the last pulse lands. */
+    private static final float STOMP_WAVE_REACH =
+            (float) (STOMP_WAVE_FIRST_DISTANCE + (STOMP_WAVE_PULSES - 1) * STOMP_WAVE_SPACING);
     private static final float STOMP_WAVE_PULSE_RADIUS = 2.3F;
     private static final double STOMP_WAVE_VERTICAL_HIT_RANGE = 1.6;
     private static final double STOMP_WAVE_LAUNCH = 0.55;
@@ -491,8 +526,18 @@ public class OgreLord extends OgreGrunt {
     private static final float DOUBLE_STOMP_AREA_RADIUS = 11.25F;
     private static final float DOUBLE_OVERHEAD_SLAM_AREA_RADIUS = 13.5F;
     private static final float PULL_OUT_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
-    private static final float CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.CRUSHING);
+    // Hits between the single overhead and the butt smash: a heavy blow plus half the config bonus.
+    private static final float CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
+    private static final float CLUB_DOUBLE_OVERHEAD_BONUS_SCALE = 0.5F;
     private static final float SINGLE_OVERHEAD_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
+
+    // Every ripple fades with distance, down to 10 raw damage against his default 18 attack.
+    private static final float RIPPLE_EDGE_DAMAGE_MULTIPLIER = 10.0F / 18.0F;
+
+    // The butt smash: its inner circle is the worst place to be, and its ripple leaves the circle
+    // hitting harder than the stomp's.
+    private static final float BUTT_SMASH_CRUSH_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.CRUSHING);
+    private static final float BUTT_SMASH_RIPPLE_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
 
     // Terrain destruction on the big ground smashes — kept small ("a couple" blocks), not a crater.
     private static final int DOUBLE_STOMP_BLOCKS_DESTROYED = 2;
@@ -516,6 +561,11 @@ public class OgreLord extends OgreGrunt {
     private int doubleArmUpswingCooldownTicks;
     private int clubDoubleOverheadCooldownTicks;
     private int singleOverheadCooldownTicks;
+    private int clubHeadThrustCooldownTicks;
+    private int buttSmashCooldownTicks;
+    private int buttSmashElapsedTicks;
+    /** From leaving the ground until the impact, while the animation has him in the air. */
+    private boolean buttSmashAirborne;
     private int closePressureTicks;
     // Starts on cooldown so he can't roar the instant a fight begins.
     private int roarCooldownTicks = ROAR_INITIAL_DELAY_TICKS;
@@ -640,7 +690,7 @@ public class OgreLord extends OgreGrunt {
                 // A little slower than OgreBrute's chase speed.
                 .add(Attributes.MOVEMENT_SPEED, 0.30)
                 .add(Attributes.FOLLOW_RANGE, 34.0)
-                .add(Attributes.ARMOR, 25.0)
+                .add(Attributes.ARMOR, 20.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
                 .add(Attributes.ATTACK_KNOCKBACK, 2.0)
                 .add(Attributes.STEP_HEIGHT, 1.3)
@@ -890,10 +940,11 @@ public class OgreLord extends OgreGrunt {
             // The attack id is cleared when the animation ends, but a stomp's ripple is still travelling
             // for up to ~18 ticks after that. Keep the jump dodge open for the ripple's whole journey.
             if (activeLordAttackId == 2 || activeLordAttackId == 3 || activeLordAttackId == 8
-                    || activeLordAttackId == 10) {
+                    || activeLordAttackId == 10 || activeLordAttackId == ATTACK_ID_BUTT_SMASH) {
                 jumpableRippleUntilTick = tickCount + JUMPABLE_RIPPLE_TAIL_TICKS;
             }
             tickClubAttackTimeline();
+            tickButtSmash();
             tickClubHeadThrustHitbox();
             tickStompWave();
             tickFrustration();
@@ -904,6 +955,8 @@ public class OgreLord extends OgreGrunt {
             doubleArmUpswingCooldownTicks = Math.max(doubleArmUpswingCooldownTicks - 1, 0);
             clubDoubleOverheadCooldownTicks = Math.max(clubDoubleOverheadCooldownTicks - 1, 0);
             singleOverheadCooldownTicks = Math.max(singleOverheadCooldownTicks - 1, 0);
+            clubHeadThrustCooldownTicks = Math.max(clubHeadThrustCooldownTicks - 1, 0);
+            buttSmashCooldownTicks = Math.max(buttSmashCooldownTicks - 1, 0);
             roarCooldownTicks = Math.max(roarCooldownTicks - 1, 0);
             summonCooldownTicks = Math.max(summonCooldownTicks - 1, 0);
             tickHealthGates();
@@ -1345,7 +1398,7 @@ public class OgreLord extends OgreGrunt {
     /** True while he can be caught in a Bogjaw trap: awake, fighting and not recently held. */
     public boolean canBeTrapped() {
         return !isFortEncounterDormant() && !isDyingAnimation() && !isPhaseTransitioning()
-                && tickCount >= trapReadyAtTick;
+                && !buttSmashAirborne && tickCount >= trapReadyAtTick;
     }
 
     /** A trap holds him only briefly, and not again for a while, so it can't be chained. */
@@ -1766,7 +1819,8 @@ public class OgreLord extends OgreGrunt {
     }
 
     private void enterPhaseTwo() {
-        if (isPhaseTwo() || isDyingAnimation()) {
+        // Mid-air the pull-out waits; the health check calls this again once he has landed.
+        if (isPhaseTwo() || isDyingAnimation() || buttSmashAirborne) {
             return;
         }
         entityData.set(DATA_LORD_PHASE_TWO, true);
@@ -1938,7 +1992,7 @@ public class OgreLord extends OgreGrunt {
         performOverheadClubStrike(
                 15.0, 13.5, 20.0F,
                 CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER,
-                Config.OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE.get().floatValue(),
+                Config.OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE.get().floatValue() * CLUB_DOUBLE_OVERHEAD_BONUS_SCALE,
                 4.0, 0.8,
                 2.4F, 3);
     }
@@ -2059,7 +2113,7 @@ public class OgreLord extends OgreGrunt {
     @Override
     protected boolean showsGroundRippleVisual(MeleeAttackHit hit, GroundRippleProfile profile) {
         return switch (profile.kind()) {
-            case KING_STOMP_WAVE, KING_CLUB_DOUBLE, KING_CLUB_PULL_OUT -> true;
+            case KING_STOMP_WAVE, KING_CLUB_DOUBLE, KING_CLUB_PULL_OUT, KING_BUTT_SMASH -> true;
             case STANDARD -> hit.areaRadius() == DOUBLE_OVERHEAD_SLAM_AREA_RADIUS
                     || hit.areaRadius() == DOUBLE_STOMP_AREA_RADIUS;
             default -> false;
@@ -3049,6 +3103,9 @@ public class OgreLord extends OgreGrunt {
         }
 
         LivingEntity target = getTarget();
+        if (shouldUseButtSmash(target)) {
+            return startButtSmash();
+        }
         if (canReachForBigAttack(target) && doubleOverheadSlamCooldownTicks <= 0 && getRandom().nextInt(5) == 0) {
             return startDoubleOverheadSlam();
         }
@@ -3085,6 +3142,9 @@ public class OgreLord extends OgreGrunt {
 
     private MeleeAttackPlan startPhaseTwoMeleeAttack() {
         LivingEntity target = getTarget();
+        if (shouldUseButtSmash(target)) {
+            return startButtSmash();
+        }
         // Slightly more club-favoring than before (was 1-in-8), per tuning feedback — still leaves
         // plenty of room for Double Stomp/Belly Bump/the varied pool below, not a takeover.
         if (canReachForBigAttack(target)
@@ -3099,7 +3159,7 @@ public class OgreLord extends OgreGrunt {
         }
         if (closePressureTicks >= BELLY_BUMP_CLOSE_PRESSURE_TICKS
                 && bellyBumpCooldownTicks <= 0) {
-            if (getRandom().nextBoolean()) {
+            if (clubHeadThrustCooldownTicks > 0 || getRandom().nextBoolean()) {
                 return startBellyBump();
             }
             // Share Belly Bump's close-pressure window and cooldown so these
@@ -3113,12 +3173,17 @@ public class OgreLord extends OgreGrunt {
             return startSingleLegStomp();
         }
         // The club phase keeps only the second regular slam. Single Overhead Slam (11) is listed
-        // twice so it is the most common pick while off cooldown; Club Head Thrust still gets its
-        // share, plus its own appearances via the Belly Bump alternative above.
-        if (singleOverheadCooldownTicks <= 0) {
-            return startNormalAttack(chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7, 11, 11));
+        // twice so it is the most common pick while off cooldown; Club Head Thrust (7) joins when
+        // it is ready, besides its appearances via the Belly Bump alternative above.
+        boolean overheadReady = singleOverheadCooldownTicks <= 0;
+        if (clubHeadThrustCooldownTicks <= 0) {
+            return startNormalAttack(overheadReady
+                    ? chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7, 11, 11)
+                    : chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7));
         }
-        return startNormalAttack(chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 7));
+        return startNormalAttack(overheadReady
+                ? chooseVariedNormalAttack(ATTACK_ID_REGULAR_ATTACK_2, 11, 11)
+                : ATTACK_ID_REGULAR_ATTACK_2);
     }
 
     private boolean shouldUsePhaseTwoSingleLegStomp() {
@@ -3149,6 +3214,145 @@ public class OgreLord extends OgreGrunt {
         }
 
         return choices.get(getRandom().nextInt(choices.size()));
+    }
+
+    private boolean shouldUseButtSmash(LivingEntity target) {
+        return buttSmashCooldownTicks <= 0
+                && canReachForBigAttack(target)
+                && onGround()
+                && !isInWater()
+                && hasButtSmashHeadroom()
+                && getRandom().nextInt(BUTT_SMASH_CHANCE) == 0;
+    }
+
+    private boolean hasButtSmashHeadroom() {
+        AABB body = getBoundingBox();
+        AABB above = new AABB(body.minX, body.maxY, body.minZ,
+                body.maxX, body.maxY + BUTT_SMASH_MIN_HEADROOM, body.maxZ).deflate(0.1);
+        return !level().getBlockCollisions(this, above).iterator().hasNext();
+    }
+
+    private MeleeAttackPlan startButtSmash() {
+        playAttackAnimation(ATTACK_ID_BUTT_SMASH);
+        // The silent wind-up replaces any vocal still queued from the last swing.
+        heavyAttackRoarDelayTicks = -1;
+        lockSpecialAnimationPose();
+        buttSmashElapsedTicks = 0;
+        buttSmashAirborne = false;
+        buttSmashCooldownTicks = isPhaseTwo() ? PHASE_TWO_BUTT_SMASH_COOLDOWN_TICKS : BUTT_SMASH_COOLDOWN_TICKS;
+        warmUpRippleBlockVisual();
+        return new MeleeAttackPlan(swingCooldown(BUTT_SMASH_SWING_COOLDOWN_TICKS), BUTT_SMASH_ANIMATION_TICKS,
+                List.of());
+    }
+
+    private void tickButtSmash() {
+        if (activeLordAttackId != ATTACK_ID_BUTT_SMASH) {
+            return;
+        }
+        // Planted for the whole clip.
+        freezeSpecialAnimationPose();
+        buttSmashElapsedTicks++;
+
+        if (buttSmashElapsedTicks == BUTT_SMASH_TAKEOFF_TICK) {
+            buttSmashAirborne = true;
+            playButtSmashTakeoff();
+        }
+        if (buttSmashAirborne && buttSmashElapsedTicks >= BUTT_SMASH_IMPACT_TICK) {
+            buttSmashAirborne = false;
+            performButtSmashImpact();
+        }
+        if (buttSmashElapsedTicks == BUTT_SMASH_GRUNT_TICK) {
+            playPreAttackGrunt();
+        }
+        if (buttSmashElapsedTicks == BUTT_SMASH_RECOVER_HUFF_TICK) {
+            playLordHuff(1.4F);
+        }
+    }
+    private void playButtSmashTakeoff() {
+        float shift = impactPitchShift();
+        level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_BRUTE_UPSWING_WHOOSH.get(),
+                SoundSource.HOSTILE, 1.5F * impactVolumeScale(), 0.6F + shift);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.HOSTILE_BIG_FALL,
+                SoundSource.HOSTILE, 1.4F, 0.5F + shift);
+        playSlamLayers(position(), 0.8F, shift);
+        if (level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.2, getZ(),
+                    30, 1.4, 0.15, 1.4, 0.05);
+        }
+    }
+
+    /**
+     * He comes down on his backside: everyone in the inner circle takes the crushing hit and is thrown
+     * clear, and a ripple breaks outward that everyone else can jump.
+     */
+    private void performButtSmashImpact() {
+        Vec3 impact = position();
+
+        directShockwaveWeaponHitTargets.clear();
+        for (LivingEntity target : getClubCandidates(BUTT_SMASH_INNER_RADIUS + 1.0, 4.0)) {
+            AABB bounds = target.getBoundingBox();
+            double distance = Math.hypot(target.getX() - impact.x, target.getZ() - impact.z);
+            if (distance > BUTT_SMASH_INNER_RADIUS
+                    || bounds.maxY < impact.y - 1.0 || bounds.minY > impact.y + 3.5) {
+                continue;
+            }
+            // Remembered so the ripple can't hit them a second time.
+            directShockwaveWeaponHitTargets.add(target.getUUID());
+            float share = OgreDamage.falloff(distance, BUTT_SMASH_INNER_RADIUS, BUTT_SMASH_INNER_EDGE_SHARE)
+                    * (isTribeAlly(target) ? 0.5F : 1.0F);
+            // His whole weight knocks a raised shield down, so it can't block the inner circle.
+            if (target instanceof Player player && player.isBlocking()) {
+                player.disableShield();
+            }
+            if (dealClubDamage(target, BUTT_SMASH_CRUSH_DAMAGE_MULTIPLIER * share, 0.0F)) {
+                applyHeavyClubHitEffects(target);
+                throwClearOfButtSmash(target);
+            }
+        }
+
+        playButtSmashImpactSound(impact);
+        spawnClubImpactEffects(impact, BUTT_SMASH_RIPPLE_RADIUS, 2.6F);
+        if (level() instanceof ServerLevel serverLevel) {
+            spawnGraduatedDustFill(serverLevel, impact, BUTT_SMASH_RIPPLE_RADIUS);
+            // A second ring of cloud marks the edge of the inner circle.
+            StaticShockwaveParticles.spawn(serverLevel, impact, BUTT_SMASH_INNER_RADIUS);
+        }
+        startClubGroundRipple(impact, BUTT_SMASH_RIPPLE_RADIUS, BUTT_SMASH_RIPPLE_LAUNCH,
+                GroundRippleKind.KING_BUTT_SMASH, directShockwaveWeaponHitTargets);
+        destroyNearbyBlocks(impact, BUTT_SMASH_BLOCKS_DESTROYED);
+    }
+
+    /** Full strength at the edge of the inner circle, fading evenly to the weakest at the ripple's end. */
+    private float buttSmashRippleDamageMultiplier(LivingEntity target, Vec3 origin) {
+        double distance = Math.hypot(target.getX() - origin.x, target.getZ() - origin.z);
+        float faded = (float) Mth.clamp((distance - BUTT_SMASH_INNER_RADIUS)
+                / (BUTT_SMASH_RIPPLE_RADIUS - BUTT_SMASH_INNER_RADIUS), 0.0, 1.0);
+        return Mth.lerp(faded, BUTT_SMASH_RIPPLE_DAMAGE_MULTIPLIER, RIPPLE_EDGE_DAMAGE_MULTIPLIER);
+    }
+
+    private void throwClearOfButtSmash(LivingEntity target) {
+        Vec3 outward = target.position().subtract(position()).multiply(1.0, 0.0, 1.0);
+        outward = outward.lengthSqr() < 1.0E-4
+                ? Vec3.directionFromRotation(0.0F, getYRot())
+                : outward.normalize();
+        target.setDeltaMovement(outward.x * BUTT_SMASH_CRUSH_THROW, BUTT_SMASH_CRUSH_LIFT,
+                outward.z * BUTT_SMASH_CRUSH_THROW);
+        target.hasImpulse = true;
+        target.hurtMarked = true;
+    }
+
+    private void playButtSmashImpactSound(Vec3 impact) {
+        float shift = impactPitchShift();
+        float volume = impactVolumeScale();
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.HOSTILE, 2.0F * volume, 0.4F + shift);
+        // The body hitting the ground, under the stone-breaking slam layers.
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.PLAYER_ATTACK_STRONG,
+                SoundSource.HOSTILE, 1.6F * volume, 0.5F + shift);
+        level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.HOSTILE_BIG_FALL,
+                SoundSource.HOSTILE, 1.8F * volume, 0.5F + shift);
+        playSlamLayers(impact, 2.0F, shift);
+        scheduleSlamRumble(impact, 1.9F);
     }
 
     private MeleeAttackPlan startClubDoubleOverhead() {
@@ -3284,6 +3488,7 @@ public class OgreLord extends OgreGrunt {
 
     private MeleeAttackPlan startClubHeadThrust() {
         playAttackAnimation(7);
+        clubHeadThrustCooldownTicks = CLUB_HEAD_THRUST_COOLDOWN_TICKS;
         // The quick thrust intentionally has no pre-attack vocal.
         heavyAttackRoarDelayTicks = -1;
         clubHeadThrustImpactSoundDelayTicks = CLUB_HEAD_THRUST_WHOOSH_DELAY_TICKS;
@@ -3749,24 +3954,41 @@ public class OgreLord extends OgreGrunt {
     }
 
     @Override
-    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
+    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile,
+                                           Vec3 origin) {
         if (profile.kind() == GroundRippleKind.STANDARD) {
-            return super.applyGroundRippleHit(target, hit, profile);
+            float share = rippleFadeShare(target, origin, profile.maxRadius(), hit.damageMultiplier());
+            return super.applyGroundRippleHit(target,
+                    hit.withDamageMultiplier(hit.damageMultiplier() * share), profile, origin);
         }
         if (profile.kind() == GroundRippleKind.KING_STOMP_WAVE) {
+            // Faded along the whole line, measured from the stomp rather than from each pulse.
+            float share = rippleFadeShare(target, stompWaveOrigin, STOMP_WAVE_REACH, hit.damageMultiplier());
             // Neighbouring pulses overlap, so make sure a target only takes the wave once.
             return stompWaveHitTargets.add(target.getUUID())
-                    && super.applyGroundRippleHit(target, hit, profile);
+                    && super.applyGroundRippleHit(target,
+                    hit.withDamageMultiplier(hit.damageMultiplier() * share), profile, origin);
         }
 
         float damageMultiplier;
         float bonusDamage;
-        if (profile.kind() == GroundRippleKind.KING_CLUB_DOUBLE) {
+        if (profile.kind() == GroundRippleKind.KING_BUTT_SMASH) {
+            damageMultiplier = buttSmashRippleDamageMultiplier(target, origin);
+            bonusDamage = 0.0F;
+        } else if (profile.kind() == GroundRippleKind.KING_CLUB_DOUBLE) {
             damageMultiplier = CLUB_DOUBLE_OVERHEAD_DAMAGE_MULTIPLIER * 0.5F;
             bonusDamage = Config.OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE.get().floatValue() * 0.5F;
         } else {
             damageMultiplier = PULL_OUT_DAMAGE_MULTIPLIER * 0.5F;
             bonusDamage = Config.OGRE_LORD_PULL_OUT_BONUS_DAMAGE.get().floatValue() * 0.5F;
+        }
+        if (profile.kind() != GroundRippleKind.KING_BUTT_SMASH) {
+            // The club ripples, whose flat bonus counts toward what fades. The butt smash has faded already.
+            float fullMultiplier = damageMultiplier
+                    + bonusDamage / (float) Math.max(0.01, getAttributeValue(Attributes.ATTACK_DAMAGE));
+            float share = rippleFadeShare(target, origin, profile.maxRadius(), fullMultiplier);
+            damageMultiplier *= share;
+            bonusDamage *= share;
         }
         if (isTribeAlly(target)) {
             // Tamed army ogres and ogre-ridden boars take the same halved ripple damage other ogres deal them.
@@ -3774,10 +3996,23 @@ public class OgreLord extends OgreGrunt {
             bonusDamage *= 0.5F;
         }
         if (dealClubDamage(target, damageMultiplier, bonusDamage)) {
-            applyHeavyClubHitEffects(target);
+            // The butt smash ripple leaves you able to hit back while he gets up; only its circle dazes.
+            if (profile.kind() != GroundRippleKind.KING_BUTT_SMASH) {
+                applyHeavyClubHitEffects(target);
+            }
             return true;
         }
         return false;
+    }
+
+    /**
+     * The share of a ripple's damage left where it reaches {@code target}: all of it close to where it
+     * started, then fading evenly to the weakest a ripple gets at {@code reach}.
+     */
+    private float rippleFadeShare(LivingEntity target, Vec3 origin, float reach, float fullMultiplier) {
+        double distance = Math.hypot(target.getX() - origin.x, target.getZ() - origin.z);
+        float edgeShare = Math.min(1.0F, RIPPLE_EDGE_DAMAGE_MULTIPLIER / fullMultiplier);
+        return OgreDamage.falloff(distance, reach, edgeShare);
     }
 
     @Override
@@ -3843,7 +4078,8 @@ public class OgreLord extends OgreGrunt {
     protected boolean shouldDodgeRippleHit(LivingEntity target) {
         if (!isPhaseTransitioning() && stompWaveElapsedTicks < 0
                 && activeLordAttackId != 2 && activeLordAttackId != 3 && activeLordAttackId != 8
-                && activeLordAttackId != 10 && tickCount >= jumpableRippleUntilTick) {
+                && activeLordAttackId != 10 && activeLordAttackId != ATTACK_ID_BUTT_SMASH
+                && tickCount >= jumpableRippleUntilTick) {
             return false;
         }
 
@@ -3938,7 +4174,7 @@ public class OgreLord extends OgreGrunt {
 
     @Override
     public void knockback(double strength, double x, double z) {
-        if (isFortEncounterDormant() || isPhaseTransitioning() || isDyingAnimation()) {
+        if (isFortEncounterDormant() || isPhaseTransitioning() || isDyingAnimation() || buttSmashAirborne) {
             return;
         }
         super.knockback(strength, x, z);
@@ -3946,7 +4182,12 @@ public class OgreLord extends OgreGrunt {
 
     @Override
     public boolean isPushable() {
-        return !isFortEncounterDormant() && super.isPushable();
+        return !isFortEncounterDormant() && !buttSmashAirborne && super.isPushable();
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().expandTowards(0.0, BUTT_SMASH_VISUAL_HEIGHT, 0.0);
     }
 
     @Override
@@ -4157,6 +4398,8 @@ public class OgreLord extends OgreGrunt {
 
     @Override
     protected void onMeleeAttackPlanFinished() {
+        // Covers death and a yielded duel as well: both drop the active attack through here.
+        buttSmashAirborne = false;
         if (!isRoaring() && !isPhaseTransitioning() && !isDyingAnimation()) {
             activeLordAttackId = 0;
         }
@@ -4200,6 +4443,7 @@ public class OgreLord extends OgreGrunt {
             case ATTACK_ID_STARTLE -> STARTLE_AWAKE;
             case ATTACK_ID_REGULAR_ATTACK -> REGULAR_ATTACK;
             case ATTACK_ID_REGULAR_ATTACK_2 -> REGULAR_ATTACK_2;
+            case ATTACK_ID_BUTT_SMASH -> BUTT_SMASH;
             default -> ONE_ARM_UPSWING;
         };
     }
@@ -4221,6 +4465,7 @@ public class OgreLord extends OgreGrunt {
             case 14 -> WAKE_UP_ANIMATION_TICKS;
             case ATTACK_ID_STARTLE -> STARTLE_ANIMATION_TICKS;
             case ATTACK_ID_REGULAR_ATTACK, ATTACK_ID_REGULAR_ATTACK_2 -> REGULAR_ATTACK_ANIMATION_TICKS;
+            case ATTACK_ID_BUTT_SMASH -> BUTT_SMASH_ANIMATION_TICKS;
             default -> ONE_ARM_UPSWING_ANIMATION_TICKS;
         };
     }

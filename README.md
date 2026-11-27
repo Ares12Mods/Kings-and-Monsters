@@ -9,7 +9,7 @@ and an Ogre King to challenge. Version 2.0 adds a swamp, tameable boars and much
 Current State
 -------------
 
-- Kings & Monsters version: 2.0.4
+- Kings & Monsters version: 2.1.0
 - Minecraft: 1.21.1
 - NeoForge: 21.1.230
 - Java: 21
@@ -25,7 +25,7 @@ Version 2.0 is the biggest update so far. Every ogre was animated again from scr
 with new attacks and sounds, mobs chase in straight lines instead of zigzagging along
 path nodes, and there is a lot of new content around them. The full list is in
 `release-notes/Kings-and-Monsters-2.0.0-Changelog.md`. See the
-[2.0.4 release notes](release-notes/Kings-and-Monsters-2.0.4-Changelog.md)
+[2.1.0 release notes](release-notes/Kings-and-Monsters-2.1.0-Changelog.md)
 for the current release.
 
 ### New creatures

@@ -186,6 +186,7 @@ public class OgreBrute extends OgreGrunt {
     private static final int BELLY_SLAM_GRUNT_SOUND_DELAY_TICKS = 23;
     private static final int BELLY_SLAM_IMPACT_SOUND_DELAY_TICKS = 38 + ATTACK_SYNC_DELAY_TICKS;
     private static final int BELLY_SLAM_COOLDOWN_TICKS = 600;
+    private static final int BELLY_SLAM_FLIGHT_TICKS = 14;
     private static final int TEMPER_TANTRUM_COOLDOWN_TICKS = 560;
     private static final int TEMPER_TANTRUM_WHINE_DELAY_TICKS = 5;
     // His gauntlets are iron: a slam's hit point sits about this far in front of him.
@@ -308,7 +309,7 @@ public class OgreBrute extends OgreGrunt {
                 .add(Attributes.ATTACK_DAMAGE, 11.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.325)
                 .add(Attributes.FOLLOW_RANGE, 30.0)
-                .add(Attributes.ARMOR, 20.0)
+                .add(Attributes.ARMOR, 18.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.9)
                 .add(Attributes.ATTACK_KNOCKBACK, 1.5)
                 .add(Attributes.STEP_HEIGHT, 1.2)
@@ -518,7 +519,7 @@ public class OgreBrute extends OgreGrunt {
         lockBellySlamDirection(target);
         // Windup lengthened by 10 ticks (0.5s) along with the rest of the animation timeline.
         bellySlamTakeoffDelayTicks = 24;
-        bellySlamFlightTicks = 14;
+        bellySlamFlightTicks = BELLY_SLAM_FLIGHT_TICKS;
         bellySlamFacingLockTicks = BELLY_SLAM_ANIMATION_TICKS;
         bellySlamGruntSoundDelayTicks = BELLY_SLAM_GRUNT_SOUND_DELAY_TICKS;
         bellySlamImpactSoundDelayTicks = BELLY_SLAM_IMPACT_SOUND_DELAY_TICKS;
@@ -827,7 +828,8 @@ public class OgreBrute extends OgreGrunt {
     }
 
     @Override
-    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile) {
+    protected boolean applyGroundRippleHit(LivingEntity target, MeleeAttackHit hit, GroundRippleProfile profile,
+                                           Vec3 origin) {
         boolean ogreAlly = target instanceof OgreGrunt;
         float multiplier = ogreAlly ? hit.damageMultiplier() * 0.5F : hit.damageMultiplier();
         if (doScaledHurtTarget(target, multiplier, hit.armorPierceFraction())) {
@@ -1313,6 +1315,11 @@ public class OgreBrute extends OgreGrunt {
             return;
         }
 
+        if (bellySlamFlightTicks == BELLY_SLAM_FLIGHT_TICKS && level() instanceof ServerLevel serverLevel) {
+            // The King's takeoff puff, sized down to the Brute's feet.
+            serverLevel.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.2, getZ(),
+                    20, 0.85, 0.1, 0.85, 0.05);
+        }
         bellySlamFlightTicks--;
         if (bellySlamDirection.lengthSqr() < 1.0E-4) {
             return;
