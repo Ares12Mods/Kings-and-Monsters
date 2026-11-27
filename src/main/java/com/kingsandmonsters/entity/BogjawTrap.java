@@ -98,6 +98,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
     private boolean hitSomeone;
     // A trap a player set down spares players and catches only enemies; the Trapper's catches players too.
     private boolean playerOwned;
+    // A summoned Trapper's traps work for the player who called him, and spare that player and the rest of the warband.
+    private UUID masterId;
 
     public BogjawTrap(EntityType<? extends BogjawTrap> type, Level level) {
         super(type, level);
@@ -108,7 +110,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
     public static BogjawTrap thrown(Level level, LivingEntity owner, Vec3 at, Vec3 velocity) {
         BogjawTrap trap = new BogjawTrap(ModEntities.BOGJAW_TRAP.get(), level);
         trap.ownerId = owner.getUUID();
-        trap.playerOwned = owner instanceof Player;
+        trap.playerOwned = owner instanceof Player || owner instanceof OgreGrunt grunt && grunt.isArmyAlly();
+        trap.masterId = owner instanceof OgreGrunt army && army.isArmyAlly() ? army.getArmyOwnerId() : null;
         trap.setPos(at);
         trap.setDeltaMovement(velocity);
         trap.setYRot(owner.getYRot());
@@ -119,7 +122,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
     public static BogjawTrap placed(Level level, LivingEntity owner, Vec3 at) {
         BogjawTrap trap = new BogjawTrap(ModEntities.BOGJAW_TRAP.get(), level);
         trap.ownerId = owner.getUUID();
-        trap.playerOwned = owner instanceof Player;
+        trap.playerOwned = owner instanceof Player || owner instanceof OgreGrunt grunt && grunt.isArmyAlly();
+        trap.masterId = owner instanceof OgreGrunt army && army.isArmyAlly() ? army.getArmyOwnerId() : null;
         trap.setPos(at);
         trap.setYRot(owner.getYRot());
         trap.entityData.set(DATA_PHASE, PHASE_DEPLOYING);
@@ -313,6 +317,11 @@ public class BogjawTrap extends Entity implements GeoEntity {
         if (entity instanceof Enemy || entity instanceof Player) {
             return true;
         }
+        // Neutral mobs (wolves, bees, endermen, golems, piglins) are fair game, not only angry ones.
+        if (entity instanceof net.minecraft.world.entity.NeutralMob
+                || entity instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin) {
+            return true;
+        }
         return entity instanceof Mob mob && (mob.isAggressive() || mob.getTarget() != null);
     }
 
@@ -322,7 +331,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
      * golems. {@link #isThreat} then decides whether what is left is worth catching.
      */
     private boolean isFriendOfOwner(LivingEntity entity) {
-        if (entity instanceof ArmorStand || entity.getUUID().equals(ownerId)) {
+        UUID friendId = masterId != null ? masterId : ownerId;
+        if (entity instanceof ArmorStand || entity.getUUID().equals(ownerId) || entity.getUUID().equals(friendId)) {
             return true;
         }
         if (entity instanceof OwnableEntity pet && pet.getOwnerUUID() != null) {
@@ -331,8 +341,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
         if (entity instanceof MudsnoutBoar boar && boar.isTamed()) {
             return true;
         }
-        if (entity instanceof OgreGrunt grunt && grunt.isArmyAlly() && ownerId != null
-                && ownerId.equals(grunt.getArmyOwnerId())) {
+        if (entity instanceof OgreGrunt grunt && grunt.isArmyAlly() && friendId != null
+                && friendId.equals(grunt.getArmyOwnerId())) {
             return true;
         }
         if (entity instanceof IronGolem golem && golem.isPlayerCreated()) {
@@ -341,16 +351,21 @@ public class BogjawTrap extends Entity implements GeoEntity {
         if (entity instanceof Player other && other.isCreative()) {
             return true;
         }
-        if (!(level() instanceof ServerLevel server) || ownerId == null
-                || !(server.getEntity(ownerId) instanceof Player owner)) {
+        if (!(level() instanceof ServerLevel server) || friendId == null
+                || !(server.getEntity(friendId) instanceof Player owner)) {
             return false;
         }
         return entity.isAlliedTo(owner) || owner.isAlliedTo(entity)
                 || entity instanceof Player other && !owner.canHarmPlayer(other);
     }
-    private static boolean isAtPeaceWith(ServerLevel server, Player player) {
-        return TributeManager.isAppeased(server, player.getUUID())
-                && !TributeManager.isProvoked(server, player.getUUID());
+    /** The tribe's traps spare a friend of the tribe, until they are fighting the trapper who set them. */
+    private boolean isAtPeaceWith(ServerLevel server, Player player) {
+        if (!TributeManager.isAppeased(server, player.getUUID())
+                || TributeManager.isProvoked(server, player.getUUID())) {
+            return false;
+        }
+        return !(ownerId != null && server.getEntity(ownerId) instanceof OgreGrunt owner
+                && owner.getTarget() == player);
     }
 
     /** Snaps shut on everything standing on it. Returns false when there was nothing to catch. */
@@ -365,6 +380,9 @@ public class BogjawTrap extends Entity implements GeoEntity {
             int hold = HOLD_TICKS;
             if (victim instanceof OgreLord king) {
                 king.onTrapped();
+            }
+            if (victim instanceof OgreGrunt held) {
+                held.holdInTrap(hold);
             }
             victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, hold, 6, false, true));
             victim.addEffect(new MobEffectInstance(ModMobEffects.HAMSTRUNG, hold, 0, false, true));
@@ -415,7 +433,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
             }
             level().playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.6F, 1.4F);
             discard();
-        } else if (!player.isCreative() && !player.isSpectator()) {
+        } else if (!player.isCreative() && !player.isSpectator()
+                && !(!playerOwned && level() instanceof ServerLevel server && isAtPeaceWith(server, player))) {
             clampOn(List.of(player));
         }
         return true;
@@ -434,6 +453,9 @@ public class BogjawTrap extends Entity implements GeoEntity {
         tag.putInt("Phase", getPhase());
         tag.putInt("PhaseTicks", phaseTicks);
         tag.putBoolean("PlayerOwned", playerOwned);
+        if (masterId != null) {
+            tag.putUUID("Master", masterId);
+        }
     }
 
     @Override
@@ -442,6 +464,7 @@ public class BogjawTrap extends Entity implements GeoEntity {
         entityData.set(DATA_PHASE, tag.getInt("Phase"));
         phaseTicks = tag.getInt("PhaseTicks");
         playerOwned = tag.getBoolean("PlayerOwned");
+        masterId = tag.hasUUID("Master") ? tag.getUUID("Master") : null;
     }
 
     @Override

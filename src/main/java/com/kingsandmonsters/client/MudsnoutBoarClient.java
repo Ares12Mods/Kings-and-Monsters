@@ -36,6 +36,27 @@ public final class MudsnoutBoarClient {
         jumpWasDown = down;
     }
 
+    /**
+     * While riding, a click of the attack key is the boar's headbutt, whatever the rider holds. It is
+     * taken before the game reads the key, so a combat mod can't turn it into a weapon swing, and a held
+     * spear stays free to throw.
+     */
+    public static void onClientTickPre(net.neoforged.neoforge.client.event.ClientTickEvent.Pre event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.screen != null
+                || !(minecraft.player.getControlledVehicle() instanceof MudsnoutBoar)) {
+            return;
+        }
+        boolean clicked = false;
+        while (minecraft.options.keyAttack.consumeClick()) {
+            clicked = true;
+        }
+        minecraft.options.keyAttack.setDown(false);
+        if (clicked) {
+            PacketDistributor.sendToServer(new BoarHeadbuttPayload());
+        }
+    }
+
     /** Whether the local player is holding their sprint key. */
     public static boolean isSprintHeld() {
         return Minecraft.getInstance().options.keySprint.isDown();
@@ -47,21 +68,13 @@ public final class MudsnoutBoarClient {
                 && screen.getMenu().getBoar() == boar;
     }
 
-    /**
-     * While riding: attack is the headbutt, and an empty-handed right-click does nothing at all
-     * (no arm swing), so the two can't be mistaken for each other.
-     */
+    /** While riding, an empty-handed right-click does nothing at all, so it can't be mistaken for an attack. */
     public static void onInteractionKey(InputEvent.InteractionKeyMappingTriggered event) {
         Player player = Minecraft.getInstance().player;
         if (player == null || !(player.getControlledVehicle() instanceof MudsnoutBoar)) {
             return;
         }
-        if (event.isAttack()) {
-            // The boar does the attacking: the rider neither punches nor swings their arm.
-            PacketDistributor.sendToServer(new BoarHeadbuttPayload());
-            event.setCanceled(true);
-            event.setSwingHand(false);
-        } else if (event.isUseItem() && player.getItemInHand(event.getHand()).isEmpty()) {
+        if (event.isUseItem() && player.getItemInHand(event.getHand()).isEmpty()) {
             event.setCanceled(true);
             event.setSwingHand(false);
         }

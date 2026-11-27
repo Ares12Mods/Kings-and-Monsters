@@ -8,7 +8,6 @@ import com.kingsandmonsters.item.OgrebloodTotemEvents;
 import com.kingsandmonsters.item.RattleboneRingEvents;
 import com.kingsandmonsters.tribute.BogIronArmorEffects;
 import com.kingsandmonsters.tribute.BogIronProgression;
-import com.kingsandmonsters.tribute.PatrolManager;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 /**
@@ -29,7 +28,6 @@ public final class ServerStateReset {
         BogIronProgression.resetState();
         OgreRallyEvents.resetState();
         OgreHookbladeEvents.resetState();
-        PatrolManager.resetState();
         com.kingsandmonsters.tribute.OutpostEvents.resetState();
     }
 }

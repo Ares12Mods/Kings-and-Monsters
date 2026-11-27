@@ -20,6 +20,11 @@ public final class HunterSpearEvents {
                 || !(event.getSource().getEntity() instanceof LivingEntity attacker)) {
             return;
         }
+        // A Guard holds his spear through every swing, but only the stab hits with it.
+        if (attacker instanceof com.kingsandmonsters.entity.OgreGuard guard
+                && event.getSource().getDirectEntity() == guard && !guard.isSpearStab()) {
+            return;
+        }
 
         ItemStack weapon;
         boolean thrownTrident = event.getSource().getDirectEntity() instanceof ThrownTrident trident;

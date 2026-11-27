@@ -26,7 +26,7 @@ import net.minecraft.world.phys.Vec3;
 public final class HunterSpearItem extends Item {
     private static final int THROW_CHARGE_TICKS = 10;
     private static final int USE_DURATION_TICKS = 72_000;
-    private static final float BASE_THROW_DAMAGE = 8.0F;
+    private static final float BASE_THROW_DAMAGE = 10.0F;
     private static final float BASE_THROW_SPEED = 2.5F;
 
     public HunterSpearItem(Properties properties) {
@@ -35,9 +35,9 @@ public final class HunterSpearItem extends Item {
 
     public static ItemAttributeModifiers createAttributes() {
         return ItemAttributeModifiers.builder()
-                .add(Attributes.ATTACK_DAMAGE, new AttributeModifier(Item.BASE_ATTACK_DAMAGE_ID, 7.0,
+                .add(Attributes.ATTACK_DAMAGE, new AttributeModifier(Item.BASE_ATTACK_DAMAGE_ID, 9.0,
                         AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-                .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, -2.9,
+                .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, -2.8,
                         AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
                 .build();
     }

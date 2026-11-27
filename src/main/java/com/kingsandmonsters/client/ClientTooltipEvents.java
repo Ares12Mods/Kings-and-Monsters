@@ -86,6 +86,8 @@ public final class ClientTooltipEvents {
                     .withStyle(ChatFormatting.GRAY));
             event.getToolTip().add(CombatDescriptionComponents.huntersSpearBleed()
                     .copy().withStyle(ChatFormatting.BLUE));
+            event.getToolTip().add(CombatDescriptionComponents.huntersSpearCripple()
+                    .copy().withStyle(ChatFormatting.BLUE));
             addedHeader = true;
         }
 

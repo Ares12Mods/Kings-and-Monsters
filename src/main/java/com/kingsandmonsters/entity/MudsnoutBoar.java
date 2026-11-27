@@ -534,6 +534,127 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                         && (hasOgreRider() || isAngryAt(player))));
     }
 
+    // The rider sets the swimming pace directly, in blocks a tick, because water's own drag would hold the
+    // boar to a crawl. It eases toward that pace so it still gathers and loses speed like a swimmer.
+    private static final double SWIM_BLOCKS_PER_TICK = 0.09;
+    private static final double SWIM_SPRINT_BLOCKS_PER_TICK = 0.18;
+    private static final double SWIM_EASE = 0.2;
+    private Vec3 swimVelocity = Vec3.ZERO;
+    // Climbing out: how fast it rises up a bank and pushes onward, how tall a bank it manages, and how
+    // long the push lasts once it has cleared the edge.
+    private static final double CLIMB_OUT_SPEED = 0.3;
+    private static final double CLIMB_OUT_PUSH = 0.15;
+    private static final double CLIMB_OUT_MAX_RISE = 2.5;
+    private static final int CLIMB_OUT_TICKS = 6;
+    private int climbOutTicks;
+    // A swimming boar treads water: it sits three quarters under, with its back and head clear, and rises
+    // and falls around that line, slowly at rest and twice as often under way.
+    private static final double TREAD_DEPTH = 0.75;
+    private static final double TREAD_IDLE_RISE = 0.08;
+    private static final double TREAD_MOVING_RISE = 0.1;
+    private static final int TREAD_IDLE_PERIOD_TICKS = 40;
+    private static final int TREAD_MOVING_PERIOD_TICKS = 20;
+    private static final double TREAD_PULL = 0.3;
+    private static final double TREAD_MAX_SPEED = 0.08;
+    private double treadPhase;
+
+    /** A boar floats low and treads water instead of sinking, and climbs out onto banks. */
+    private void tickWaterBuoyancy() {
+        if (tickClimbOut() || !isInWater()) {
+            return;
+        }
+        double submerged = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
+        Vec3 motion = getDeltaMovement();
+        double y = motion.y;
+        // Height is left alone while it pushes against a bank, so the climb out of the water is not flattened.
+        if (!horizontalCollision && !onGround() && isAfloat()) {
+            y = treadWaterSpeed(submerged, motion.horizontalDistanceSqr() > 0.001);
+        }
+        if (getControllingPassenger() instanceof Player rider && entityData.get(DATA_PHASE) == PHASE_NONE
+                && isAfloat()) {
+            swimVelocity = easedSwimVelocity(rider);
+        } else {
+            swimVelocity = new Vec3(motion.x, 0.0, motion.z);
+        }
+        setDeltaMovement(swimVelocity.x, y, swimVelocity.z);
+    }
+
+    /** The next step from the current swimming velocity toward the one the rider is asking for. */
+    private Vec3 easedSwimVelocity(Player rider) {
+        double forward = rider.zza > 0.0F ? rider.zza : rider.zza * 0.25;
+        Vec3 input = new Vec3(rider.xxa * 0.4, 0.0, forward);
+        if (input.lengthSqr() > 1.0) {
+            input = input.normalize();
+        }
+        double pace = isRiderSprinting(rider) ? SWIM_SPRINT_BLOCKS_PER_TICK : SWIM_BLOCKS_PER_TICK;
+        Vec3 wanted = input.scale(pace).yRot(-getYRot() * net.minecraft.util.Mth.DEG_TO_RAD);
+        return swimVelocity.add(wanted.subtract(swimVelocity).scale(SWIM_EASE));
+    }
+
+    private boolean isRiderSprinting(Player rider) {
+        return (rider.isSprinting() || level().isClientSide && MudsnoutBoarClient.isSprintHeld())
+                && !entityData.get(DATA_SPRINT_LOCKED);
+    }
+
+    /** Floats low, so the float goal only kicks it upward once it is nearly under. */
+    @Override
+    public double getFluidJumpThreshold() {
+        return getBbHeight() * 0.9;
+    }
+
+    /**
+     * It floats too low for the usual hop to reach the top of a bank, so one pushing into a bank, ridden
+     * or following a path, is lifted up the face and carried over the edge.
+     */
+    private boolean tickClimbOut() {
+        boolean pushing = getControllingPassenger() instanceof Player rider ? rider.zza > 0.0F
+                : !getNavigation().isDone();
+        if (horizontalCollision && pushing && (climbOutTicks > 0 || isInWater() && hasBankAhead())) {
+            climbOutTicks = CLIMB_OUT_TICKS;
+        }
+        if (climbOutTicks <= 0) {
+            return false;
+        }
+        climbOutTicks--;
+        Vec3 ahead = Vec3.directionFromRotation(0.0F, getYRot()).scale(CLIMB_OUT_PUSH);
+        double rise = horizontalCollision ? CLIMB_OUT_SPEED : Math.max(getDeltaMovement().y, 0.1);
+        setDeltaMovement(ahead.x, rise, ahead.z);
+        return true;
+    }
+
+    /** Whether there is room just ahead at some height the climb can reach. */
+    private boolean hasBankAhead() {
+        Vec3 ahead = Vec3.directionFromRotation(0.0F, getYRot()).scale(0.8);
+        AABB moved = getBoundingBox().move(ahead.x, 0.0, ahead.z);
+        for (double rise = 0.5; rise <= CLIMB_OUT_MAX_RISE; rise += 0.5) {
+            if (level().noCollision(this, moved.move(0.0, rise, 0.0))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * In or just over water deeper than one block. It is judged from the blocks themselves, so no moment
+     * of the bob at the surface counts as dry footing.
+     */
+    private boolean isAfloat() {
+        return isWaterAt(1.05) || isWaterAt(-0.4);
+    }
+
+    private boolean isWaterAt(double rise) {
+        return level().getFluidState(BlockPos.containing(getX(), getY() + rise, getZ()))
+                .is(net.minecraft.tags.FluidTags.WATER);
+    }
+
+    /** The vertical speed that carries a ridden boar toward its bobbing waterline this tick. */
+    private double treadWaterSpeed(double submerged, boolean moving) {
+        treadPhase += Math.PI * 2.0 / (moving ? TREAD_MOVING_PERIOD_TICKS : TREAD_IDLE_PERIOD_TICKS);
+        double line = getBbHeight() * TREAD_DEPTH
+                + Math.sin(treadPhase) * (moving ? TREAD_MOVING_RISE : TREAD_IDLE_RISE);
+        return net.minecraft.util.Mth.clamp((submerged - line) * TREAD_PULL, -TREAD_MAX_SPEED, TREAD_MAX_SPEED);
+    }
+
     /**
      * Pack alerts set a target directly, without asking canAttack: a wild boar hurt by a player calls
      * its neighbours in, tame ones included. A tame boar never turns on its own owner.
@@ -563,10 +684,17 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 || hurtBy instanceof OgreGrunt && tickCount - getLastHurtByMobTimestamp() < 200;
     }
 
-    /** A boar will charge nearly anything, but never an ogre. */
+    /**
+     * A boar will charge nearly anything, but never an ogre. Only a tamed or summoned boar, which the
+     * Tribe may be fighting, answers an ogre that has struck it; a wild one, or one with a jockey, never does.
+     */
     @Override
     public boolean canAttack(LivingEntity target) {
-        return (!(target instanceof OgreGrunt) || isFightingBackAgainst(target)) && !(target instanceof MudsnoutBoar)
+        return (!(target instanceof OgreGrunt) || (armyBoar || isTamed()) && isFightingBackAgainst(target))
+                && !(target instanceof OgreGrunt summon && summon.isArmyAlly() && ownerId != null
+                        && ownerId.equals(summon.getArmyOwnerId()))
+                && !(armyBoar && OgreGrunt.spareByArmy(target))
+                && !(target instanceof MudsnoutBoar)
                 && !(target instanceof Player player && isFriendlyTo(player))
                 // A jockey's boar honours whatever peace its rider has with the player.
                 && !(target instanceof Player && getFirstPassenger() instanceof OgreGrunt rider
@@ -577,6 +705,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     @Override
     public void aiStep() {
         super.aiStep();
+        tickWaterBuoyancy();
         if (level().isClientSide) {
             return;
         }
@@ -1119,6 +1248,12 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (armyBoar && source.getEntity() instanceof Player attacker && attacker.getUUID().equals(ownerId)) {
+            return false;
+        }
+        // The Tribe's own blows (a swing, a ripple or a stray arrow) never hurt a wild boar or an ogre's
+        // mount, so one of them never starts a fight between a guard and a boar.
+        if (!armyBoar && !isTamed() && source.getEntity() instanceof OgreGrunt striker
+                && !striker.isArmyAlly() && !(striker instanceof PlagueOgre)) {
             return false;
         }
         if (!level().isClientSide && source.getDirectEntity() instanceof AbstractArrow arrow
@@ -1828,8 +1963,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         if (entityData.get(DATA_PHASE) == PHASE_CHARGE) {
             return 0.0F;
         }
-        boolean sprint = (player.isSprinting() || level().isClientSide && MudsnoutBoarClient.isSprintHeld())
-                && !entityData.get(DATA_SPRINT_LOCKED);
+        boolean sprint = isRiderSprinting(player);
         float trait = entityData.get(DATA_SPEED_TRAIT);
         // The speed trait runs 0.8 to 1.2 in the wild, spreading the sprint across 16 to 18 blocks a second;\n        // bred boars carry it on to 1.6, which is 20.
         double traitShare = trait == 0.0F ? 0.5 : net.minecraft.util.Mth.clamp((trait - 0.8) / 0.4, 0.0, 2.0);
@@ -2002,7 +2136,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         }
         int phase = entityData.get(DATA_PHASE);
         if (phase == PHASE_NONE && recoveryTicks <= 0) {
-            if (chargeRequested && chargeCooldownTicks <= 0) {
+            if (chargeRequested && chargeCooldownTicks <= 0 && !isAfloat()) {
                 startRiddenWindup();
             } else if (headbuttRequested && headbuttCooldownTicks <= 0) {
                 startHeadbutt();
@@ -2010,6 +2144,17 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         }
         headbuttRequested = false;
         chargeRequested = false;
+        // No charging while swimming: a wind-up is dropped, and a charge that reaches deep water ends there.
+        if (ridden && isAfloat()) {
+            if (entityData.get(DATA_PHASE) == PHASE_WINDUP) {
+                setPhase(PHASE_NONE);
+                ridden = false;
+            } else if (entityData.get(DATA_PHASE) == PHASE_CHARGE) {
+                endCharge();
+                chargeCooldownTicks = RIDDEN_CHARGE_COOLDOWN_TICKS;
+                ridden = false;
+            }
+        }
         if (ridden && entityData.get(DATA_PHASE) == PHASE_WINDUP) {
             setDeltaMovement(0.0, getDeltaMovement().y, 0.0);
             getNavigation().stop();

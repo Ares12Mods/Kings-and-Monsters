@@ -177,6 +177,7 @@ public class ClientEvents {
         NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onRenderLivingPre);
         NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onInteractionKey);
         NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(MudsnoutBoarClient::onClientTickPre);
         NeoForge.EVENT_BUS.addListener(ClientTooltipEvents::onEffectScreenTooltip);
         NeoForge.EVENT_BUS.addListener(ClientTooltipEvents::onTooltipColor);
     }
