@@ -1,8 +1,6 @@
 package com.kingsandmonsters;
 
 import net.minecraft.advancements.Advancement;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;

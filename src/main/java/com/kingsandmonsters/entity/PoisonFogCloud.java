@@ -1,11 +1,12 @@
 package com.kingsandmonsters.entity;
 
+import com.kingsandmonsters.ModEntities;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.util.Mth;
 import com.kingsandmonsters.effect.BogfumeRageEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -58,7 +59,7 @@ public class PoisonFogCloud extends Entity {
     }
 
     public static PoisonFogCloud spawn(ServerLevel level, double x, double y, double z) {
-        PoisonFogCloud cloud = new PoisonFogCloud(com.kingsandmonsters.ModEntities.POISON_FOG_CLOUD.get(), level);
+        PoisonFogCloud cloud = new PoisonFogCloud(ModEntities.POISON_FOG_CLOUD.get(), level);
         cloud.setPos(x, findGroundY(level, x, y, z), z);
         level.addFreshEntity(cloud);
         return cloud;
@@ -205,10 +206,10 @@ public class PoisonFogCloud extends Entity {
         WARNING(ParticleTypes.WITCH, 0.03),
         ACTIVE(ParticleTypes.WITCH, 0.06);
 
-        private final net.minecraft.core.particles.SimpleParticleType particleType;
+        private final SimpleParticleType particleType;
         private final double spinSpeed;
 
-        ParticleMode(net.minecraft.core.particles.SimpleParticleType particleType, double spinSpeed) {
+        ParticleMode(SimpleParticleType particleType, double spinSpeed) {
             this.particleType = particleType;
             this.spinSpeed = spinSpeed;
         }

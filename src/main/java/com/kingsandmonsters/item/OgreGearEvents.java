@@ -46,7 +46,7 @@ public final class OgreGearEvents {
 
     /** The helm adds health on top of what its armor material gives. */
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
-        if (event.getSlotType() == net.minecraft.world.entity.EquipmentSlot.HEAD
+        if (event.getSlotType() == EquipmentSlot.HEAD
                 && event.getItemStack().is(ModItems.BRUTES_HELM.get())) {
             event.addModifier(Attributes.MAX_HEALTH, ItemAttributes.modifier(
                     "brutes_helm_health", 4.0, AttributeModifier.Operation.ADDITION));

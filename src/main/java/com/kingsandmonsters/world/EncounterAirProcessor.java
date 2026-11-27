@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import java.util.List;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -27,7 +28,7 @@ public final class EncounterAirProcessor extends StructureProcessor {
                     Codec.INT.optionalFieldOf("pit_z", 0).forGetter(p -> p.pitZ),
                     Codec.FLOAT.optionalFieldOf("pit_radius", 0.0F).forGetter(p -> p.pitRadius),
                     Codec.BOOL.optionalFieldOf("oval", false).forGetter(p -> p.oval),
-                    Codec.INT.listOf().optionalFieldOf("cavity", java.util.List.of()).forGetter(p -> p.cavity)
+                    Codec.INT.listOf().optionalFieldOf("cavity", List.of()).forGetter(p -> p.cavity)
             ).apply(instance, EncounterAirProcessor::new));
 
     private final int groundY;
@@ -36,11 +37,11 @@ public final class EncounterAirProcessor extends StructureProcessor {
     private final float pitRadius;
     private final boolean oval;
     /** minX, minZ, maxX, maxZ of the authored underground space, or empty for none. */
-    private final java.util.List<Integer> cavity;
+    private final List<Integer> cavity;
 
     public EncounterAirProcessor(int groundY, int pitX, int pitZ, float pitRadius, boolean oval,
-                                 java.util.List<Integer> cavity) {
-        this.cavity = java.util.List.copyOf(cavity);
+                                 List<Integer> cavity) {
+        this.cavity = List.copyOf(cavity);
         this.oval = oval;
         this.groundY = groundY;
         this.pitX = pitX;

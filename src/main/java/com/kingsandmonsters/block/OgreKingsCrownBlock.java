@@ -1,5 +1,11 @@
 package com.kingsandmonsters.block;
 
+import com.kingsandmonsters.ModItems;
+import java.util.List;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -44,7 +50,7 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
                                      LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
         return direction == Direction.DOWN && !state.canSurvive(level, pos)
-                ? net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
+                ? Blocks.AIR.defaultBlockState()
                 : super.updateShape(state, direction, neighborState, level, pos, neighborPos);
     }
 
@@ -59,22 +65,22 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     }
 
     @Override
-    public java.util.List<net.minecraft.world.item.ItemStack> getDrops(BlockState state,
-            net.minecraft.world.level.storage.loot.LootParams.Builder params) {
+    public List<ItemStack> getDrops(BlockState state,
+            LootParams.Builder params) {
         BlockEntity entity = params.getOptionalParameter(
-                net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
+                LootContextParams.BLOCK_ENTITY);
         if (entity instanceof OgreKingsCrownBlockEntity crown && !crown.getStack().isEmpty()) {
-            return java.util.List.of(crown.getStack());
+            return List.of(crown.getStack());
         }
-        return java.util.List.of(new net.minecraft.world.item.ItemStack(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get()));
+        return List.of(new ItemStack(ModItems.OGRE_KINGS_CROWN.get()));
     }
 
     @Override
-    public net.minecraft.world.item.ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         if (level.getBlockEntity(pos) instanceof OgreKingsCrownBlockEntity crown && !crown.getStack().isEmpty()) {
             return crown.getStack().copy();
         }
-        return new net.minecraft.world.item.ItemStack(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get());
+        return new ItemStack(ModItems.OGRE_KINGS_CROWN.get());
     }
 
     @Nullable

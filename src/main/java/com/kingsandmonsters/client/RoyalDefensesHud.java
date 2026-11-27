@@ -1,7 +1,6 @@
 package com.kingsandmonsters.client;
 
 import com.kingsandmonsters.KingsAndMonsters;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;

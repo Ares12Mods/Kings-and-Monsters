@@ -1,5 +1,6 @@
 package com.kingsandmonsters.entity;
 
+import java.util.List;
 import com.kingsandmonsters.ModEntities;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
@@ -42,7 +43,7 @@ public class BogFangs extends EvokerFangs {
         ticksAlive++;
         boolean biting = !level().isClientSide && ticksAlive == biteTick;
         AABB normal = getBoundingBox();
-        java.util.List<LivingEntity> poisoned = java.util.List.of();
+        List<LivingEntity> poisoned = List.of();
         if (biting) {
             // The vanilla bite looks for victims in the box at this moment, so widen it just for the tick.
             setBoundingBox(normal.inflate(HIT_GROW_SIDE, 0.0, HIT_GROW_SIDE).expandTowards(0.0, HIT_GROW_UP, 0.0));

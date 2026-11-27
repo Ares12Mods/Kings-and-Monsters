@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import net.minecraft.core.registries.Registries;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.resources.ResourceLocation;
@@ -12,7 +13,7 @@ import net.minecraftforge.event.village.VillagerTradesEvent;
 
 public final class FortMapTrades {
     public static final TagKey<Structure> FORT_MAP_DESTINATIONS = TagKey.create(
-            net.minecraft.core.registries.Registries.STRUCTURE,
+            Registries.STRUCTURE,
             new ResourceLocation(
                     KingsAndMonsters.MODID, "on_ogre_fort_maps"));
 

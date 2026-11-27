@@ -1,11 +1,11 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
@@ -35,7 +35,7 @@ public class KingsCleaverItem extends SwordItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());

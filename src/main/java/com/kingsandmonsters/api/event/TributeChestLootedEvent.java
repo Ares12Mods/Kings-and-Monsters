@@ -1,5 +1,6 @@
 package com.kingsandmonsters.api.event;
 
+import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Player;
@@ -26,7 +27,7 @@ import net.minecraftforge.eventbus.api.Event;
  * }
  * }</pre>
  */
-@net.minecraftforge.eventbus.api.Cancelable
+@Cancelable
 public class TributeChestLootedEvent extends Event {
 
     private final Player player;

@@ -1,10 +1,9 @@
 package com.kingsandmonsters.item;
 
-import com.kingsandmonsters.KingsAndMonsters;
+import java.util.UUID;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModMobEffects;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -33,10 +32,10 @@ public final class WarcallerBellEvents {
     // every time this method runs rather than relying on its own timer to expire.
     private static final int WARCALLED_EFFECT_DURATION_TICKS = HOSTILE_SCAN_INTERVAL_TICKS + 5;
     private static final String BONUS_UNTIL_TAG = "KingsAndMonstersWarcallerBonusUntil";
-    private static final java.util.UUID HEALTH_BONUS_ID =
-            com.kingsandmonsters.item.ItemAttributes.uuid("warcaller_bell_health");
-    private static final java.util.UUID ARMOR_BONUS_ID =
-            com.kingsandmonsters.item.ItemAttributes.uuid("warcaller_bell_armor");
+    private static final UUID HEALTH_BONUS_ID =
+            ItemAttributes.uuid("warcaller_bell_health");
+    private static final UUID ARMOR_BONUS_ID =
+            ItemAttributes.uuid("warcaller_bell_armor");
     private static final AttributeModifier HEALTH_BONUS = new AttributeModifier(HEALTH_BONUS_ID, HEALTH_BONUS_ID.toString(), 2.0, AttributeModifier.Operation.ADDITION);
     private static final AttributeModifier ARMOR_BONUS = new AttributeModifier(ARMOR_BONUS_ID, ARMOR_BONUS_ID.toString(), 4.0, AttributeModifier.Operation.ADDITION);
     private static final DustParticleOptions ACTIVATION_DUST =

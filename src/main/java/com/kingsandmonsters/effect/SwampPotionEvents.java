@@ -1,8 +1,9 @@
 package com.kingsandmonsters.effect;
 
-import com.kingsandmonsters.KingsAndMonsters;
+import com.kingsandmonsters.item.ItemAttributes;
+import java.util.UUID;
+import net.minecraft.world.entity.LivingEntity;
 import com.kingsandmonsters.ModMobEffects;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -15,8 +16,8 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import com.kingsandmonsters.event.PlayerTickEvent;
 
 public final class SwampPotionEvents {
-    private static final java.util.UUID SWIM_ID =
-            com.kingsandmonsters.item.ItemAttributes.uuid("amphibiousness_swim_speed");
+    private static final UUID SWIM_ID =
+            ItemAttributes.uuid("amphibiousness_swim_speed");
 
     private SwampPotionEvents() {}
 
@@ -43,7 +44,7 @@ public final class SwampPotionEvents {
         double range = sight.getAmplifier() > 0 ? 30.0 : 20.0;
         AABB area = player.getBoundingBox().inflate(range);
         for (var target : serverPlayer.serverLevel().getEntitiesOfClass(
-                net.minecraft.world.entity.LivingEntity.class, area,
+                LivingEntity.class, area,
                 entity -> entity instanceof Enemy && entity.isAlive())) {
             target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 15, 0, false, false, false), player);
         }

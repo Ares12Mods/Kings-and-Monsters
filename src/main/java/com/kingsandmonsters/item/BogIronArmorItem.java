@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.level.Level;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.client.armor.BogIronArmorRenderer;
@@ -12,7 +13,6 @@ import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.core.Holder;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -36,7 +36,7 @@ public class BogIronArmorItem extends ArmorItem implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());

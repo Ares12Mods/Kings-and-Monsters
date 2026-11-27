@@ -1,7 +1,6 @@
 package com.kingsandmonsters.effect;
 
-import com.kingsandmonsters.KingsAndMonsters;
-import net.minecraft.resources.ResourceLocation;
+import com.kingsandmonsters.item.ItemAttributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -14,7 +13,7 @@ public final class CrippledEffect extends MobEffect {
     public CrippledEffect() {
         super(MobEffectCategory.HARMFUL, 0x7A4B32);
         addAttributeModifier(Attributes.MOVEMENT_SPEED,
-                com.kingsandmonsters.item.ItemAttributes.uuid("crippled_movement_speed").toString(),
+                ItemAttributes.uuid("crippled_movement_speed").toString(),
                 -MOVEMENT_SPEED_REDUCTION, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 }

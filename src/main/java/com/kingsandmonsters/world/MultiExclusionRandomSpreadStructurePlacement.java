@@ -27,9 +27,9 @@ public final class MultiExclusionRandomSpreadStructurePlacement extends RandomSp
             RecordCodecBuilder.<MultiExclusionRandomSpreadStructurePlacement>mapCodec(instance ->
                     placementCodec(instance)
                             .and(instance.group(
-                                    com.mojang.serialization.Codec.mapPair(
-                                                    com.mojang.serialization.Codec.intRange(1, 4096).fieldOf("spacing"),
-                                                    com.mojang.serialization.Codec.intRange(0, 4095).fieldOf("separation"))
+                                    Codec.mapPair(
+                                                    Codec.intRange(1, 4096).fieldOf("spacing"),
+                                                    Codec.intRange(0, 4095).fieldOf("separation"))
                                             .forGetter(p -> Pair.of(p.spacing(), p.separation())),
                                     StructurePlacement.ExclusionZone.CODEC.listOf()
                                             .optionalFieldOf("exclusion_zones", List.of())

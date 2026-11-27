@@ -1,5 +1,7 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.entity.OgreGrunt;
+import net.minecraft.tags.DamageTypeTags;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.network.OgrebloodTotemActivationPayload;
@@ -63,7 +65,7 @@ public final class OgrebloodTotemEvents {
 
         // Like a vanilla totem, it cannot save anyone from the void or /kill: they would only die again
         // a moment later with the totem gone.
-        if (event.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+        if (event.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return;
         }
 
@@ -175,7 +177,7 @@ public final class OgrebloodTotemEvents {
             return target == lethalAttacker;
         }
         // An ogre at peace with the one who was saved is not thrown across the room.
-        if (target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(saved)) {
+        if (target instanceof OgreGrunt ogre && !ogre.canAttack(saved)) {
             return false;
         }
         return target instanceof Enemy || target instanceof Mob mob && mob.getTarget() == saved;

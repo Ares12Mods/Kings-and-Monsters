@@ -1,5 +1,10 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.item.HaunchPlatterServingItem;
+import com.kingsandmonsters.item.TributeCoinItem;
+import net.minecraft.world.item.ArmorMaterials;
+import net.minecraft.world.item.ItemNameBlockItem;
+import net.minecraft.world.item.Items;
 import com.google.common.collect.ImmutableMultimap;
 import com.kingsandmonsters.item.BogIronArmorItem;
 import com.kingsandmonsters.item.BogjawTrapItem;
@@ -25,12 +30,8 @@ import com.kingsandmonsters.item.OgreHelmetItem;
 import com.kingsandmonsters.item.OgreLoinclothItem;
 import com.kingsandmonsters.item.BogsteelChestplateItem;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -38,8 +39,6 @@ import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.AxeItem;
-import net.minecraft.world.item.DiggerItem;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.HoeItem;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -71,7 +70,6 @@ import com.kingsandmonsters.item.OgrebloodTotemItem;
 import com.kingsandmonsters.item.OgreMerchantBackpackItem;
 import com.kingsandmonsters.item.KingsTributeBagItem;
 
-import java.util.EnumMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -110,14 +108,14 @@ public class ModItems {
             "roasted_mudsnout_haunch", () -> new RoastedMudsnoutHaunchItem(
                     new Item.Properties().food(new FoodProperties.Builder()
                             .nutrition(12).saturationMod(0.8F).build())));
-    public static final RegistryObject<com.kingsandmonsters.item.HaunchPlatterServingItem> HAUNCH_PLATTER_SERVING =
-            ITEMS.register("haunch_platter_serving", () -> new com.kingsandmonsters.item.HaunchPlatterServingItem(
+    public static final RegistryObject<HaunchPlatterServingItem> HAUNCH_PLATTER_SERVING =
+            ITEMS.register("haunch_platter_serving", () -> new HaunchPlatterServingItem(
                     new Item.Properties().stacksTo(1).food(new FoodProperties.Builder()
                             .nutrition(10).saturationMod(0.9F)
-                            .effect(new net.minecraft.world.effect.MobEffectInstance(
-                                    net.minecraft.world.effect.MobEffects.REGENERATION, 160), 1.0F)
-                            .effect(new net.minecraft.world.effect.MobEffectInstance(
-                                    net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
+                            .effect(new MobEffectInstance(
+                                    MobEffects.REGENERATION, 160), 1.0F)
+                            .effect(new MobEffectInstance(
+                                    MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
                             .build())));
     public static final RegistryObject<Item> MUDSNOUT_BONE = ITEMS.register("mudsnout_bone", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> MUDSNOUT_TUSK = ITEMS.register("mudsnout_tusk", () -> new Item(new Item.Properties()));
@@ -133,7 +131,7 @@ public class ModItems {
     }
     // Placeable under oak leaves, where it grows into the acorns the Mudsnout Boars eat.
     public static final RegistryObject<Item> ACORN = ITEMS.register("acorn",
-            () -> new net.minecraft.world.item.ItemNameBlockItem(ModBlocks.ACORN.get(), new Item.Properties()
+            () -> new ItemNameBlockItem(ModBlocks.ACORN.get(), new Item.Properties()
                     .food(new FoodProperties.Builder().nutrition(1).saturationMod(0.1F).build())));
     public static final RegistryObject<Item> BLACKHIDE_LEATHER = ITEMS.register("blackhide_leather", () -> new Item(new Item.Properties()));
 
@@ -148,8 +146,8 @@ public class ModItems {
     public static final RegistryObject<GoldenOgreToothItem> GOLDEN_OGRE_TOOTH = ITEMS.register("golden_ogre_tooth",
             () -> new GoldenOgreToothItem(new Item.Properties()));
 
-    public static final RegistryObject<com.kingsandmonsters.item.TributeCoinItem> GOLD_COIN = ITEMS.register("gold_coin",
-            () -> new com.kingsandmonsters.item.TributeCoinItem(new Item.Properties()));
+    public static final RegistryObject<TributeCoinItem> GOLD_COIN = ITEMS.register("gold_coin",
+            () -> new TributeCoinItem(new Item.Properties()));
 
     public static final RegistryObject<OgrebloodTotemItem> OGREBLOOD_TOTEM = ITEMS.register("ogreblood_totem",
             () -> new OgrebloodTotemItem(new Item.Properties().stacksTo(1)));
@@ -294,7 +292,7 @@ public class ModItems {
     /** Gold-level protection, 1 armor toughness, and the durability of a Bog Iron helmet. */
     public static final ArmorMaterial OGRE_KINGS_CROWN_MATERIAL = new ModArmorMaterial("ogre_kings_crown",
             2, 5, 3, 1, 25, SoundEvents.ARMOR_EQUIP_GOLD,
-            () -> Ingredient.of(net.minecraft.world.item.Items.GOLD_INGOT), 1.0f, 0.0f);
+            () -> Ingredient.of(Items.GOLD_INGOT), 1.0f, 0.0f);
 
     /**
      * A step above iron: iron's 2/6/5/2 defense plus a touch of toughness (iron has none) and more
@@ -335,7 +333,7 @@ public class ModItems {
     private static ArmorMaterial ogreGear(String name, int defense, float toughness, float knockbackResistance,
                                           SoundEvent sound) {
         return ModArmorMaterial.uniform(name, defense, 10, sound,
-                () -> Ingredient.of(net.minecraft.world.item.Items.LEATHER), toughness, knockbackResistance);
+                () -> Ingredient.of(Items.LEATHER), toughness, knockbackResistance);
     }
 
     // -------------------------------------------------------------------------
@@ -448,7 +446,7 @@ public class ModItems {
                     new Item.Properties().durability(ModArmorMaterial.durability(ArmorItem.Type.BOOTS, 24))));
 
     public static final RegistryObject<CandleHelmetItem> CANDLE_HELMET = ITEMS.register("candle_helmet",
-            () -> new CandleHelmetItem(net.minecraft.world.item.ArmorMaterials.IRON,
+            () -> new CandleHelmetItem(ArmorMaterials.IRON,
                     new Item.Properties().durability(ModArmorMaterial.durability(ArmorItem.Type.HELMET, 15))));
 
     public static final Tier BOGFANG_TOOL = new ModTier(2, 400, 6.0F, 3.0F, 15,

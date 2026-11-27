@@ -32,7 +32,7 @@ public class BoarJockeySpawnEggItem extends ForgeSpawnEggItem {
         boar.finalizeSpawn(server, server.getCurrentDifficultyAt(pos), MobSpawnType.SPAWN_EGG, null, null);
         boar.addJockey(server, server.getCurrentDifficultyAt(pos));
         server.addFreshEntityWithPassengers(boar);
-        com.kingsandmonsters.item.ItemUtil.consume(context.getItemInHand(), 1, context.getPlayer());
+        ItemUtil.consume(context.getItemInHand(), 1, context.getPlayer());
         return InteractionResult.CONSUME;
     }
 }

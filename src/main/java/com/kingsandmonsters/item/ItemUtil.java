@@ -1,5 +1,9 @@
 package com.kingsandmonsters.item;
 
+import java.util.List;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,10 +32,10 @@ public final class ItemUtil {
     }
 
     /** Gives the item lore lines, shown under its name. */
-    public static void setLore(ItemStack stack, java.util.List<net.minecraft.network.chat.Component> lines) {
-        net.minecraft.nbt.ListTag lore = new net.minecraft.nbt.ListTag();
-        for (net.minecraft.network.chat.Component line : lines) {
-            lore.add(net.minecraft.nbt.StringTag.valueOf(net.minecraft.network.chat.Component.Serializer.toJson(line)));
+    public static void setLore(ItemStack stack, List<Component> lines) {
+        ListTag lore = new ListTag();
+        for (Component line : lines) {
+            lore.add(StringTag.valueOf(Component.Serializer.toJson(line)));
         }
         stack.getOrCreateTagElement("display").put("Lore", lore);
     }

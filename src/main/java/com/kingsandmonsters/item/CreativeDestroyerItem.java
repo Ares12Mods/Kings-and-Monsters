@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -17,7 +18,7 @@ public final class CreativeDestroyerItem extends SwordItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.literal("Development testing tool").withStyle(ChatFormatting.RED));
         tooltip.add(Component.literal("Creative attacks instantly kill living targets")

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.tribute;
 
+import net.minecraftforge.eventbus.api.Event;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.effect.EffectImmunityRules;
@@ -57,7 +58,7 @@ public final class BogIronArmorEffects {
 
     public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
         if (EffectImmunityRules.rejects(event.getEntity(), event.getEffectInstance().getEffect())) {
-            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+            event.setResult(Event.Result.DENY);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -64,7 +65,7 @@ public class OgreMerchantBackpackRenderer implements ICurioRenderer {
         boolean localWearer = slotContext.entity() == Minecraft.getInstance().player;
         bagTop.xRot = localWearer ? (float) Math.toRadians(BackpackAnimationState.angleDegrees()) : 0F;
         VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-        backpack.render(poseStack, consumer, light, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY);
+        backpack.render(poseStack, consumer, light, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();
     }
 }

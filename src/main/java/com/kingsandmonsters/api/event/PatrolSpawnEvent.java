@@ -1,5 +1,6 @@
 package com.kingsandmonsters.api.event;
 
+import net.minecraftforge.eventbus.api.Cancelable;
 import com.kingsandmonsters.api.patrol.PatrolTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
@@ -28,7 +29,7 @@ import net.minecraftforge.eventbus.api.Event;
  * }
  * }</pre>
  */
-@net.minecraftforge.eventbus.api.Cancelable
+@Cancelable
 public class PatrolSpawnEvent extends Event {
 
     private final BlockPos campOrigin;

@@ -1,5 +1,7 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.entity.OgreGrunt;
+import net.minecraft.world.entity.TamableAnimal;
 import com.kingsandmonsters.network.ScreenShakePayload;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -68,8 +70,8 @@ public final class OgreKingsClubEvents {
                         && player.canAttack(target)
                         // The slam is for enemies: not the wearer's own pets, and not ogres at peace
                         // with them (hitting one ends that peace and costs favor).
-                        && !(target instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isOwnedBy(player))
-                        && !(target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(player))
+                        && !(target instanceof TamableAnimal pet && pet.isOwnedBy(player))
+                        && !(target instanceof OgreGrunt ogre && !ogre.canAttack(player))
                         && horizontalDistanceSqr(center, target) <= SLAM_RADIUS * SLAM_RADIUS)) {
             if (target.hurt(player.damageSources().playerAttack(player), SLAM_DAMAGE)) {
                 Vec3 movement = target.getDeltaMovement();

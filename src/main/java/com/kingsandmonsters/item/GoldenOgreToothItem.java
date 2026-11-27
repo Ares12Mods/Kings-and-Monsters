@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
@@ -17,7 +18,7 @@ public class GoldenOgreToothItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.golden_ogre_tooth.flavor.1")

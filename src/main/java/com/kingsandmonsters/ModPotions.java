@@ -1,8 +1,9 @@
 package com.kingsandmonsters;
 
+import net.minecraft.world.effect.MobEffects;
+import net.minecraftforge.registries.ForgeRegistries;
 import com.kingsandmonsters.effect.BogrotMechanics;
 import net.minecraftforge.registries.RegistryObject;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.Potions;
@@ -15,33 +16,33 @@ import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
 
 public final class ModPotions {
-    public static final DeferredRegister<Potion> POTIONS = DeferredRegister.create(net.minecraftforge.registries.ForgeRegistries.POTIONS, KingsAndMonsters.MODID);
+    public static final DeferredRegister<Potion> POTIONS = DeferredRegister.create(ForgeRegistries.POTIONS, KingsAndMonsters.MODID);
     public static final RegistryObject<Potion> BOGROT = POTIONS.register("bogrot",
             () -> new Potion("bogrot", BogrotMechanics.standard(45 * 20)));
     public static final RegistryObject<Potion> BOG_SIGHT = POTIONS.register("bog_sight",
             () -> new Potion("bog_sight",
                     new MobEffectInstance(ModMobEffects.BOG_SIGHT.get(), 2 * 60 * 20),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 2 * 60 * 20)));
+                    new MobEffectInstance(MobEffects.NIGHT_VISION, 2 * 60 * 20)));
     public static final RegistryObject<Potion> LONG_BOG_SIGHT = POTIONS.register("long_bog_sight",
             () -> new Potion("long_bog_sight",
                     new MobEffectInstance(ModMobEffects.BOG_SIGHT.get(), 6 * 60 * 20),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 6 * 60 * 20)));
+                    new MobEffectInstance(MobEffects.NIGHT_VISION, 6 * 60 * 20)));
     public static final RegistryObject<Potion> STRONG_BOG_SIGHT = POTIONS.register("strong_bog_sight",
             () -> new Potion("strong_bog_sight",
                     new MobEffectInstance(ModMobEffects.BOG_SIGHT.get(), 60 * 20, 1),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 60 * 20)));
+                    new MobEffectInstance(MobEffects.NIGHT_VISION, 60 * 20)));
     public static final RegistryObject<Potion> AMPHIBIOUSNESS = POTIONS.register("amphibiousness",
             () -> new Potion("amphibiousness",
                     new MobEffectInstance(ModMobEffects.AMPHIBIOUSNESS.get(), 2 * 60 * 20),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.WATER_BREATHING, 2 * 60 * 20)));
+                    new MobEffectInstance(MobEffects.WATER_BREATHING, 2 * 60 * 20)));
     public static final RegistryObject<Potion> LONG_AMPHIBIOUSNESS = POTIONS.register("long_amphibiousness",
             () -> new Potion("long_amphibiousness",
                     new MobEffectInstance(ModMobEffects.AMPHIBIOUSNESS.get(), 6 * 60 * 20),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.WATER_BREATHING, 6 * 60 * 20)));
+                    new MobEffectInstance(MobEffects.WATER_BREATHING, 6 * 60 * 20)));
     public static final RegistryObject<Potion> STRONG_AMPHIBIOUSNESS = POTIONS.register("strong_amphibiousness",
             () -> new Potion("strong_amphibiousness",
                     new MobEffectInstance(ModMobEffects.AMPHIBIOUSNESS.get(), 60 * 20, 1),
-                    new MobEffectInstance(net.minecraft.world.effect.MobEffects.WATER_BREATHING, 60 * 20)));
+                    new MobEffectInstance(MobEffects.WATER_BREATHING, 60 * 20)));
 
     private ModPotions() {}
 

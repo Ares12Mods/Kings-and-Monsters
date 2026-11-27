@@ -6,7 +6,6 @@ import com.kingsandmonsters.entity.BogToad;
 import com.kingsandmonsters.entity.BogPole;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.item.BoghideSet;
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;

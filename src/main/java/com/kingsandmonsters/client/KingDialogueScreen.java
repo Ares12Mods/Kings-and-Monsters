@@ -1,5 +1,7 @@
 package com.kingsandmonsters.client;
 
+import java.util.concurrent.ThreadLocalRandom;
+import net.minecraft.client.resources.language.I18n;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.item.KingsTributeBagItem;
 import com.kingsandmonsters.network.KingDialogueActionPayload;
@@ -22,7 +24,7 @@ public final class KingDialogueScreen extends CinematicDialogueScreen {
     private final boolean beaten;
     private final int duelRestSeconds;
     /** Picks which wording of his greeting the King uses for this audience. */
-    private final int variantSeed = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000);
+    private final int variantSeed = ThreadLocalRandom.current().nextInt(1000);
 
     private KingDialogueScreen(int kingId, int favor, int appeasedFavor, int tradeFavor, int duelFavor,
                                boolean appeased, boolean beaten, int duelRestSeconds) {
@@ -59,7 +61,7 @@ public final class KingDialogueScreen extends CinematicDialogueScreen {
         String stance = beaten ? "beaten" : appeased ? "appeased" : favor * 2 >= appeasedFavor ? "wary" : "hostile";
         String base = "screen.kingsandmonsters.king_dialogue.line." + stance;
         int variants = 0;
-        while (net.minecraft.client.resources.language.I18n.exists(base + "." + (variants + 1))) {
+        while (I18n.exists(base + "." + (variants + 1))) {
             variants++;
         }
         return Component.translatable(variants == 0 ? base : base + "." + (1 + variantSeed % variants));

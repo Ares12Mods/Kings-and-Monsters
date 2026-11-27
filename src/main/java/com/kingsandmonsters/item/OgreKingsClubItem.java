@@ -9,7 +9,6 @@ import com.kingsandmonsters.compat.bettercombat.BetterCombatClubClientCompat;
 import com.kingsandmonsters.enchantment.ModEnchantments;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -67,7 +66,7 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
         if (player instanceof ServerPlayer serverPlayer) {
             OgreKingsClubEvents.beginSlam(serverPlayer);
             player.getCooldowns().addCooldown(this, OgreKingsClubEvents.COOLDOWN_TICKS);
-            com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
+            ItemUtil.hurt(stack, 1, player, ItemUtil.slotForHand(hand));
             if (ModList.get().isLoaded("bettercombat")) {
                 BetterCombatClubCompat.playSlam(serverPlayer);
             } else {
@@ -78,7 +77,7 @@ public final class OgreKingsClubItem extends Item implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level,
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
                                 List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;

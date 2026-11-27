@@ -15,6 +15,6 @@ public final class HaunchPlatterServingItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity consumer) {
         ItemStack result = super.finishUsingItem(stack, level, consumer);
-        return com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
+        return ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
     }
 }

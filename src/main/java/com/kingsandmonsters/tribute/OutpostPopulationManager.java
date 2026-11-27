@@ -1,5 +1,6 @@
 package com.kingsandmonsters.tribute;
 
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.entity.OgreGrunt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -420,7 +421,7 @@ public final class OutpostPopulationManager {
 
     /** {@code pit}, when set, narrows the area to the ring inside the walls and clear of the hole. */
     private record SpawnArea(int minX, int maxX, int minZ, int maxZ, int minY, int maxY,
-                             @org.jetbrains.annotations.Nullable PitZone pit) {
+                             @Nullable PitZone pit) {
         private boolean contains(int x, int z) {
             return x >= minX && x <= maxX && z >= minZ && z <= maxZ
                     && (pit == null || pit.isSpawnRing(x, z));

@@ -1,5 +1,6 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.tribute.OutpostEvents;
 import com.kingsandmonsters.entity.OgreRallyEvents;
 import com.kingsandmonsters.item.MudsnoutRecallTracker;
 import com.kingsandmonsters.item.OgreHookbladeEvents;
@@ -28,6 +29,6 @@ public final class ServerStateReset {
         BogIronProgression.resetState();
         OgreRallyEvents.resetState();
         OgreHookbladeEvents.resetState();
-        com.kingsandmonsters.tribute.OutpostEvents.resetState();
+        OutpostEvents.resetState();
     }
 }

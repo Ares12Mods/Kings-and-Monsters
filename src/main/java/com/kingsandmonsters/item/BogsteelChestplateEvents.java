@@ -70,7 +70,7 @@ public final class BogsteelChestplateEvents {
         level.playSound(null, x, y, z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.45F, 1.8F);
         // The plate still takes the knock: a point of wear, as for any other hit.
         if (plated) {
-            com.kingsandmonsters.item.ItemUtil.hurt(wearer.getItemBySlot(EquipmentSlot.CHEST), 1, wearer, EquipmentSlot.CHEST);
+            ItemUtil.hurt(wearer.getItemBySlot(EquipmentSlot.CHEST), 1, wearer, EquipmentSlot.CHEST);
         }
     }
 

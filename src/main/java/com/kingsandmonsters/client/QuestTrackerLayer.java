@@ -1,12 +1,14 @@
 package com.kingsandmonsters.client;
 
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import com.kingsandmonsters.tribute.OgreQuest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /** A small panel with the current errand and how far along it is. */
-public final class QuestTrackerLayer implements net.minecraftforge.client.gui.overlay.IGuiOverlay {
+public final class QuestTrackerLayer implements IGuiOverlay {
     private static final int LEFT = 10;
     private static final int TOP = 10;
     /** Clears the anger HUD, which sits in the same corner. */
@@ -15,7 +17,7 @@ public final class QuestTrackerLayer implements net.minecraftforge.client.gui.ov
     private static final int GOLD = 0xFFE6C24A;
 
     @Override
-    public void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
+    public void render(ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
         Minecraft minecraft = Minecraft.getInstance();
         float opacity = QuestTrackerState.advanceFade();
         OgreQuest quest = OgreQuest.byOrdinal(QuestTrackerState.quest());

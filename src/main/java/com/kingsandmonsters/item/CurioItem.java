@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.ClientConfig;
 
@@ -7,7 +8,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.Item;
@@ -38,7 +38,7 @@ public class CurioItem extends Item implements ICurioItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltipComponents.addAll(tooltipLines);
     }

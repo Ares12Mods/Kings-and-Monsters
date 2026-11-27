@@ -1,7 +1,6 @@
 package com.kingsandmonsters.effect;
 
-import com.kingsandmonsters.KingsAndMonsters;
-import net.minecraft.resources.ResourceLocation;
+import com.kingsandmonsters.item.ItemAttributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -23,6 +22,6 @@ public final class UnyieldingEffect extends MobEffect {
     }
 
     private static String id(String name) {
-        return com.kingsandmonsters.item.ItemAttributes.uuid("unyielding_" + name).toString();
+        return ItemAttributes.uuid("unyielding_" + name).toString();
     }
 }

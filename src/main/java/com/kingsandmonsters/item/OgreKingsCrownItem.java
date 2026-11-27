@@ -1,5 +1,7 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.block.OgreKingsCrownBlock;
+import com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.ModBlocks;
@@ -8,7 +10,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -64,7 +65,7 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         }
 
         BlockState crownState = ModBlocks.OGRE_KINGS_CROWN_DISPLAY.get().defaultBlockState()
-                .setValue(com.kingsandmonsters.block.OgreKingsCrownBlock.FACING,
+                .setValue(OgreKingsCrownBlock.FACING,
                         context.getHorizontalDirection().getOpposite());
         if (!crownState.canSurvive(level, pos)
                 || !level.setBlock(pos, crownState, Block.UPDATE_ALL_IMMEDIATE)) {
@@ -74,7 +75,7 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         // crown back instead of a fresh, fully repaired one.
         var crownEntity = level.getBlockEntity(pos);
         if (crownEntity != null) {
-            if (crownEntity instanceof com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity crown) {
+            if (crownEntity instanceof OgreKingsCrownBlockEntity crown) {
                 crown.setStack(context.getItemInHand());
             }
             crownEntity.setChanged();
@@ -84,14 +85,14 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         level.playSound(player, pos, soundType.getPlaceSound(), SoundSource.BLOCKS,
                 (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F);
         level.gameEvent(player, GameEvent.BLOCK_PLACE, pos);
-        if (player == null || !com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(player)) {
+        if (player == null || !ItemUtil.hasInfiniteMaterials(player)) {
             context.getItemInHand().shrink(1);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.empty());

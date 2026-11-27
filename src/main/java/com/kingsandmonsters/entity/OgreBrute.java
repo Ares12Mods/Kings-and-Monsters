@@ -1,5 +1,6 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.ModSoundEvents;
@@ -77,7 +78,7 @@ public class OgreBrute extends OgreGrunt {
     }
 
     // Animation ticks where a foot lands, from the leg keyframes.
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "walk", new double[]{0.0, 20.0},
             "combat walk", new double[]{0.0, 15.84});
 
@@ -306,6 +307,10 @@ public class OgreBrute extends OgreGrunt {
     }
 
 
+    // ------------------------------------------------------------------ //
+    //  Attributes                                                        //
+    // ------------------------------------------------------------------ //
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 150.0)
@@ -335,10 +340,10 @@ public class OgreBrute extends OgreGrunt {
                     SoundSource.HOSTILE,
                     1.0F,
                     0.65F + getRandom().nextFloat() * 0.1F);
-            if (level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT,
+            if (level() instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(ParticleTypes.CRIT,
                         getX(), getY() + getBbHeight() * 0.65, getZ(), 10, 0.3, 0.3, 0.3, 0.3);
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,
+                serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK,
                         getX(), getY() + getBbHeight() * 0.65, getZ(), 6, 0.25, 0.25, 0.25, 0.4);
             }
             return false;
@@ -683,6 +688,10 @@ public class OgreBrute extends OgreGrunt {
         return isTemperTantrumActive()
                 || activeBruteAttackId == 3 && attackAnimationTicks > 0;
     }
+
+    // ------------------------------------------------------------------ //
+    //  Animation controllers                                             //
+    // ------------------------------------------------------------------ //
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {

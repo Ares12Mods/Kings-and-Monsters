@@ -1,7 +1,33 @@
 package com.kingsandmonsters.entity;
 
+import com.kingsandmonsters.ModParticles;
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import com.kingsandmonsters.effect.SonicDamage;
+import com.kingsandmonsters.enchantment.ModEnchantments;
+import com.kingsandmonsters.network.KingDialogueActionPayload;
+import com.kingsandmonsters.network.KingDialoguePayload;
+import com.kingsandmonsters.network.OgreOverlayPayload;
+import com.kingsandmonsters.tribute.BogIronProgression;
+import com.kingsandmonsters.tribute.QuestManager;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Random;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.pathfinder.Path;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.Event;
 import com.kingsandmonsters.Config;
-import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.tribute.TributeManager;
 import com.kingsandmonsters.tribute.TributeSavedData;
@@ -64,7 +90,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -146,7 +171,7 @@ public class OgreLord extends OgreGrunt {
     private boolean throneReturnDue;
     private static final String DUEL_WINS_TAG = "KingsAndMonstersDuelWins";
     /** Players who have beaten him in a duel, and the game time they did it, for his words and the rest between duels. */
-    private final java.util.Map<UUID, Long> duelWins = new java.util.HashMap<>();
+    private final Map<UUID, Long> duelWins = new HashMap<>();
     private int throneAwayTicks;
     /** No player this close for this long and he goes back to the throne, loaded or not. */
     private static final double THRONE_RETURN_AWAY_DISTANCE = 64.0;
@@ -203,8 +228,7 @@ public class OgreLord extends OgreGrunt {
     private static final int CLUB_DOUBLE_OVERHEAD_ANIMATION_TICKS = 60;
     private static final int SINGLE_OVERHEAD_SLAM_ANIMATION_TICKS = 50;
     private static final int REGULAR_ATTACK_ANIMATION_TICKS = 50;
-    // The revised authored death animation is 6.5 seconds and needs no extended
-    // frozen-corpse workaround; removal follows its final frame.
+    // Remove the entity on the last death animation frame to avoid a frozen corpse.
     private static final int DEATH_ANIMATION_TICKS = 130;
     // The animation is 2 seconds. Five extra ticks cover the movement
     // controller's polling interval so the ending cannot be clipped.
@@ -258,18 +282,15 @@ public class OgreLord extends OgreGrunt {
     // before its periodic range check ran.
     private static final Map<ServerPlayer, OgreLord> ROYAL_TRIAL_BAR_OWNERS = new WeakHashMap<>();
     private static final int CLUB_VISIBILITY_SWAP_TICK = 108;
-    // Animation controller ticks at a 5-tick cadence (see registerControllers); this covers that latency
-    // so the hit lands in sync with the visual impact frame, matching the calibration approach used by OgreBrute.
+    // Offset the hit for the controller's 5-tick polling cadence so it matches the impact frame.
     private static final int ATTACK_SYNC_DELAY_TICKS = 3;
     private static final int SUMMON_POINT_PUNCH_SOUND_TICK = 22 + ATTACK_SYNC_DELAY_TICKS;
     // The point pose lands at 1.1667s. Retain the same small client animation
     // synchronization allowance used by the King's attack impacts.
     private static final int SUMMON_POINT_VOCAL_TICK = 18;
     private static final int SUMMON_POINT_EVENT_TICK = 23;
-    // Forward-kinematics reconstruction of the Blockbench swing (bone chain, geo.json pivots,
-    // GeckoLib's render math, Catmull-Rom keyframes) puts the club head on the ground at tick 136.
-    // Play-testing still felt early, so +3 ticks on top. That is an empirical fix, not the old
-    // blanket ATTACK_SYNC_DELAY_TICKS fudge (that lag is gone since the zero-frame fix).
+    // Bone-chain pivots and GeckoLib's Catmull-Rom interpolation put contact at tick 136.
+    // Playtesting added 3 ticks to that estimate. The zero-frame fix removed the old sync lag.
     private static final int PULL_OUT_IMPACT_TICK = 139;
     // The King drops to his knees around 0.42s into the pull-out animation.
     private static final int PULL_OUT_KNEEL_HURT_SOUND_TICK = 8;
@@ -396,9 +417,7 @@ public class OgreLord extends OgreGrunt {
     // The jaw starts opening at 1.0s in the double-arm upswing animation.
     private static final int DOUBLE_ARM_UPSWING_GRUNT_DELAY_TICKS = 23;
     private static final int DOUBLE_ARM_UPSWING_IMPACT_DELAY_TICKS = 23 + ATTACK_SYNC_DELAY_TICKS;
-    // Club-head thrust's whole hit window (sound and hitbox) sits 3 ticks later than the other
-    // phase-two attacks (+6 originally, dialed back after testing). Shifted together so the sound
-    // stays in sync with the extending-reach hitbox.
+    // Shift thrust sound and impact together by 3 ticks to match the extending hitbox.
     // The club shoots out between 1.0s and 1.13s, so the whoosh starts as it leaves; the metal hit
     // only plays when the club head actually connects (see tickClubHeadThrustHitbox).
     private static final int CLUB_HEAD_THRUST_WHOOSH_DELAY_TICKS = 21 + ATTACK_SYNC_DELAY_TICKS;
@@ -432,13 +451,10 @@ public class OgreLord extends OgreGrunt {
     // Strikes skip the line-of-sight check inside this range (see canStrikeReach).
     private static final double CLOSE_STRIKE_RANGE = 10.0;
 
-    // Calibrated against fully enchanted diamond armor at 3-4 hearts per attack; these used to
-    // land 6-7, so everything here is roughly halved. Double stomp's two hit circles nearly
-    // overlap (offset only +-1 block), so its per-hit multiplier is cut further. One arm upswing
-    // is the double arm move redirected, so it shares that multiplier.
-    // The attacks he can now throw while walking (the upswings, the regular slams, the single club
-    // slam and the thrust) were trimmed by roughly a quarter, since he no longer has to plant his
-    // feet to throw them. The planted attacks keep their old numbers.
+    // Tuned for 3–4 hearts against fully enchanted diamond armor.
+    // Double stomp uses less damage per hit because its circles nearly overlap.
+    // The redirected one-arm upswing shares the two-arm multiplier.
+    // Walking attacks deal less damage because they do not require planting his feet.
     private static final float ONE_ARM_UPSWING_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
     // Double stomp lands two ripple hits, so each one is a standard blow rather than a heavy one.
     private static final float DOUBLE_STOMP_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.STANDARD);
@@ -472,7 +488,6 @@ public class OgreLord extends OgreGrunt {
     private static final int STOMP_WAVE_SLOWNESS_TICKS = 30;
     private static final int STOMP_WAVE_MAX_LIFETIME_TICKS = 120;
 
-    // 1.5x the original 7.5/9.0 block radii.
     private static final float DOUBLE_STOMP_AREA_RADIUS = 11.25F;
     private static final float DOUBLE_OVERHEAD_SLAM_AREA_RADIUS = 13.5F;
     private static final float PULL_OUT_DAMAGE_MULTIPLIER = OgreDamage.multiplier(OgreDamage.Tier.KING, OgreDamage.Blow.HEAVY);
@@ -603,9 +618,9 @@ public class OgreLord extends OgreGrunt {
     private int courtEmptyTicks;
     private int royalTrialAbandonTicks;
     // Which of the King's wares each player has bought, one bit per ware; his stock is theirs alone.
-    private final Map<UUID, Integer> kingPurchases = new java.util.HashMap<>();
+    private final Map<UUID, Integer> kingPurchases = new HashMap<>();
     /** What each player has bought of his repeatable wares today; stock refills at the start of each day. */
-    private final Map<UUID, DailyStock> kingDaily = new java.util.HashMap<>();
+    private final Map<UUID, DailyStock> kingDaily = new HashMap<>();
     private int lastRenderedFortEncounterState = -1;
 
     public OgreLord(EntityType<? extends OgreLord> type, Level level) {
@@ -622,6 +637,10 @@ public class OgreLord extends OgreGrunt {
 
     }
 
+
+    // ------------------------------------------------------------------ //
+    //  Attributes                                                        //
+    // ------------------------------------------------------------------ //
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
@@ -682,7 +701,7 @@ public class OgreLord extends OgreGrunt {
             tag.putFloat(THRONE_YAW_TAG, throneYaw);
         }
         tag.putBoolean(RETURN_TO_THRONE_TAG, returnToThroneOnLoad);
-        net.minecraft.nbt.ListTag wins = new net.minecraft.nbt.ListTag();
+        ListTag wins = new ListTag();
         duelWins.forEach((playerId, time) -> {
             CompoundTag entry = new CompoundTag();
             entry.putUUID("player", playerId);
@@ -693,7 +712,7 @@ public class OgreLord extends OgreGrunt {
         if (isWakingFromFortEncounter() || isStartledInFort()) {
             tag.putInt(WAKE_UP_TICKS_TAG, wakeUpTicks);
         }
-        net.minecraft.nbt.ListTag purchases = new net.minecraft.nbt.ListTag();
+        ListTag purchases = new ListTag();
         kingPurchases.forEach((playerId, mask) -> {
             CompoundTag entry = new CompoundTag();
             entry.putUUID("player", playerId);
@@ -701,7 +720,7 @@ public class OgreLord extends OgreGrunt {
             purchases.add(entry);
         });
         tag.put(KING_PURCHASES_TAG, purchases);
-        net.minecraft.nbt.ListTag daily = new net.minecraft.nbt.ListTag();
+        ListTag daily = new ListTag();
         kingDaily.forEach((playerId, stock) -> {
             CompoundTag entry = new CompoundTag();
             entry.putUUID("player", playerId);
@@ -715,14 +734,14 @@ public class OgreLord extends OgreGrunt {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        net.minecraft.nbt.ListTag purchases = tag.getList(KING_PURCHASES_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag purchases = tag.getList(KING_PURCHASES_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < purchases.size(); i++) {
             CompoundTag entry = purchases.getCompound(i);
             if (entry.hasUUID("player")) {
                 kingPurchases.put(entry.getUUID("player"), entry.getInt("bought"));
             }
         }
-        net.minecraft.nbt.ListTag daily = tag.getList(KING_DAILY_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag daily = tag.getList(KING_DAILY_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < daily.size(); i++) {
             CompoundTag entry = daily.getCompound(i);
             if (entry.hasUUID("player")) {
@@ -762,7 +781,7 @@ public class OgreLord extends OgreGrunt {
         // Being read from a save means the chunk was unloaded and is back: that is when he goes home.
         throneReturnDue = returnToThroneOnLoad;
         duelWins.clear();
-        net.minecraft.nbt.ListTag wins = tag.getList(DUEL_WINS_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag wins = tag.getList(DUEL_WINS_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < wins.size(); i++) {
             CompoundTag entry = wins.getCompound(i);
             if (entry.hasUUID("player")) {
@@ -1003,7 +1022,7 @@ public class OgreLord extends OgreGrunt {
                 continue;
             }
             BlockState state = serverLevel.getBlockState(trialPos);
-            if (!state.is(net.minecraft.world.level.block.Blocks.SPAWNER)) {
+            if (!state.is(Blocks.SPAWNER)) {
                 continue;
             }
             // The defence begins when someone steps close enough to wake a trial spawner.
@@ -1026,7 +1045,7 @@ public class OgreLord extends OgreGrunt {
     private static final double ROYAL_TRIAL_SPAWNER_WAKE_RANGE = 3.0;
 
     /** The trial this ogre leads (0 Mage, 1 Brute, 2 Grunt Captain), or -1 for anyone else. */
-    private static int royalTrialLedBy(net.minecraft.world.entity.Entity ogre) {
+    private static int royalTrialLedBy(Entity ogre) {
         if (ogre instanceof OgreMage mage && mage.isRoyalTrialSquadLeader()) {
             return 0;
         }
@@ -1041,20 +1060,20 @@ public class OgreLord extends OgreGrunt {
 
     /** Trial captains come out of their spawners whatever the light is, and stay until they are beaten. */
     public static void onRoyalTrialCaptainSpawnCheck(
-            net.minecraftforge.event.entity.living.MobSpawnEvent.PositionCheck event) {
+            MobSpawnEvent.PositionCheck event) {
         if (event.getSpawnType() == MobSpawnType.SPAWNER && royalTrialLedBy(event.getEntity()) >= 0
                 && event.getEntity().checkSpawnObstruction(event.getLevel())) {
             event.getEntity().setPersistenceRequired();
-            event.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);
+            event.setResult(Event.Result.ALLOW);
         }
     }
 
     /** A captain's spawner cannot be mined until its captain is out, or the trial has been won. */
-    public static void onRoyalTrialSpawnerBreak(net.minecraftforge.event.level.BlockEvent.BreakEvent event) {
+    public static void onRoyalTrialSpawnerBreak(BlockEvent.BreakEvent event) {
         BlockPos pos = event.getPos();
         if (event.getPlayer().isCreative() || !(event.getLevel() instanceof ServerLevel serverLevel)
                 || !(serverLevel.getBlockEntity(pos)
-                instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner)) {
+                instanceof SpawnerBlockEntity spawner)) {
             return;
         }
         CompoundTag tag = spawner.saveWithoutMetadata();
@@ -1073,7 +1092,7 @@ public class OgreLord extends OgreGrunt {
     }
 
     /** Called when a royal trial leader dies, which wins that trial. */
-    public static void onRoyalTrialLeaderDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event) {
+    public static void onRoyalTrialLeaderDeath(LivingDeathEvent event) {
         LivingEntity dead = event.getEntity();
         int trial = royalTrialLedBy(dead);
         if (trial < 0 || !(dead.level() instanceof ServerLevel serverLevel)) {
@@ -1095,7 +1114,7 @@ public class OgreLord extends OgreGrunt {
         completedRoyalTrialsMask |= bit;
         if (trial < royalTrialPositions.size()
                 && serverLevel.getBlockEntity(royalTrialPositions.get(trial))
-                instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
+                instanceof SpawnerBlockEntity spawner) {
             // The longest delay a spawner can store, about 27 minutes with a player beside it.
             CompoundTag tag = spawner.saveWithoutMetadata();
             tag.putShort("MinSpawnDelay", Short.MAX_VALUE);
@@ -1126,7 +1145,7 @@ public class OgreLord extends OgreGrunt {
         for (ServerPlayer player : serverLevel.getPlayers(candidate ->
                 !candidate.isSpectator() && candidate.distanceToSqr(this) <= rangeSqr)) {
             ModNetwork.sendToPlayer(player,
-                    com.kingsandmonsters.network.OgreOverlayPayload.major(
+                    OgreOverlayPayload.major(
                             "THE OGRE KING AWAKENS", ""));
         }
     }
@@ -1171,7 +1190,7 @@ public class OgreLord extends OgreGrunt {
             return;
         }
         Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-        serverLevel.sendParticles(com.kingsandmonsters.ModParticles.SLEEP_Z.get(),
+        serverLevel.sendParticles(ModParticles.SLEEP_Z.get(),
                 getX() + forward.x * SLEEP_Z_FORWARD
                         + (random.nextDouble() - 0.5) * SLEEP_Z_HORIZONTAL_JITTER,
                 getY() + getBbHeight() * SLEEP_Z_HEIGHT,
@@ -1261,10 +1280,10 @@ public class OgreLord extends OgreGrunt {
 
     /** A finished errand is settled before anything else; otherwise he opens with the usual audience. */
     private void greet(ServerPlayer player) {
-        com.kingsandmonsters.tribute.QuestManager.playDialogueStartParticle(this);
-        if (com.kingsandmonsters.tribute.QuestManager.view(player, this).state()
-                == com.kingsandmonsters.tribute.QuestManager.READY) {
-            com.kingsandmonsters.tribute.QuestManager.open(player, this);
+        QuestManager.playDialogueStartParticle(this);
+        if (QuestManager.view(player, this).state()
+                == QuestManager.READY) {
+            QuestManager.open(player, this);
         } else {
             openDialogue(player);
         }
@@ -1272,8 +1291,8 @@ public class OgreLord extends OgreGrunt {
 
     private void openDialogue(ServerPlayer player) {
         ServerLevel serverLevel = player.serverLevel();
-        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/audience");
-        ModNetwork.sendToPlayer(player, new com.kingsandmonsters.network.KingDialoguePayload(
+        RoyalAdvancementEvents.awardPath(player, "tribute/audience");
+        ModNetwork.sendToPlayer(player, new KingDialoguePayload(
                 getId(), TributeManager.getFavor(serverLevel, player.getUUID()), Config.TRIBUTE_APPEASED_FAVOR.get(),
                 Config.TRIBUTE_TRADE_FAVOR.get(), Config.TRIBUTE_DUEL_FAVOR.get(),
                 TributeManager.isAppeased(serverLevel, player.getUUID()),
@@ -1287,31 +1306,31 @@ public class OgreLord extends OgreGrunt {
             return;
         }
         ServerLevel serverLevel = player.serverLevel();
-        if (action == com.kingsandmonsters.network.KingDialogueActionPayload.TRADE) {
+        if (action == KingDialogueActionPayload.TRADE) {
             if (TributeManager.isAppeased(serverLevel, player.getUUID())
                     && TributeManager.getFavor(serverLevel, player.getUUID()) >= Config.TRIBUTE_TRADE_FAVOR.get()) {
                 UUID buyer = player.getUUID();
                 KingTrades trades = new KingTrades(level(), offersFor(buyer), index -> {
                     recordSale(buyer, index);
-                    com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/royal_patronage");
+                    RoyalAdvancementEvents.awardPath(player, "tribute/royal_patronage");
                 });
                 todaysWares().stream().filter(Ware::needed).findFirst().ifPresent(ware ->
-                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                        player.displayClientMessage(Component.translatable(
                                 "message.kingsandmonsters.king_need",
                                 new ItemStack(ware.first().getItem()).getHoverName()), true));
                 trades.setTradingPlayer(player);
                 trades.openTradingScreen(player, getDisplayName(), 1);
             }
-        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.ERRANDS) {
-            com.kingsandmonsters.tribute.QuestManager.open(player, this);
-        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.DUEL) {
+        } else if (action == KingDialogueActionPayload.ERRANDS) {
+            QuestManager.open(player, this);
+        } else if (action == KingDialogueActionPayload.DUEL) {
             if (TributeManager.getFavor(serverLevel, player.getUUID()) >= Config.TRIBUTE_DUEL_FAVOR.get()
                     && duelRestTicks(player) <= 0) {
                 duel(player);
             }
-        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.CHALLENGE) {
+        } else if (action == KingDialogueActionPayload.CHALLENGE) {
             challenge(player);
-        } else if (action == com.kingsandmonsters.network.KingDialogueActionPayload.OFFER_COINS) {
+        } else if (action == KingDialogueActionPayload.OFFER_COINS) {
             TributeManager.offerTribute(player);
             openDialogue(player);
         }
@@ -1370,8 +1389,8 @@ public class OgreLord extends OgreGrunt {
         returnToThroneOnLoad = thronePos != null && !thronePos.closerToCenterThan(position(), 2.0);
         throneReturnDue = false;
         playSound(ModSoundEvents.OGRE_LORD_HUFF.get(), 1.5F, 0.8F);
-        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
-        com.kingsandmonsters.tribute.BogIronProgression.unlock(winner.server,
+        RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
+        BogIronProgression.unlock(winner.server,
                 "The Ogre King yields to a fair fight. Its buried iron now answers to your kind.");
     }
 
@@ -1427,7 +1446,7 @@ public class OgreLord extends OgreGrunt {
         ServerLevel serverLevel = player.serverLevel();
         TributeManager.addFavor(serverLevel, player, -TributeSavedData.MAX_FAVOR);
         TributeManager.raiseFactionAnger(serverLevel, CHALLENGE_ANGER);
-        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/biting_the_hand");
+        RoyalAdvancementEvents.awardPath(player, "tribute/biting_the_hand");
         summonUnfinishedCaptains(serverLevel, player);
         beginFortWakeUp();
     }
@@ -1504,9 +1523,9 @@ public class OgreLord extends OgreGrunt {
     private static boolean nearFire(ServerLevel serverLevel, BlockPos pos) {
         for (BlockPos check : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) {
             BlockState state = serverLevel.getBlockState(check);
-            if (state.is(net.minecraft.tags.BlockTags.FIRE) || state.is(net.minecraft.tags.BlockTags.CAMPFIRES)
-                    || state.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)
-                    || state.is(net.minecraft.world.level.block.Blocks.LAVA)) {
+            if (state.is(BlockTags.FIRE) || state.is(BlockTags.CAMPFIRES)
+                    || state.is(Blocks.MAGMA_BLOCK)
+                    || state.is(Blocks.LAVA)) {
                 return true;
             }
         }
@@ -1521,7 +1540,7 @@ public class OgreLord extends OgreGrunt {
     /** A repeatable ware: what it costs, what it gives, and how many a player may buy per day. */
     private record Ware(ItemStack first, @Nullable ItemStack second, ItemStack result, int perDay, boolean needed) {}
 
-    private static ItemStack cost(net.minecraft.world.level.ItemLike item, int count) {
+    private static ItemStack cost(ItemLike item, int count) {
         return new ItemStack(item, count);
     }
 
@@ -1560,7 +1579,7 @@ public class OgreLord extends OgreGrunt {
     private ItemStack timberAxe() {
         ItemStack axe = new ItemStack(ModItems.BOG_IRON_AXE.get());
         axe.setHoverName(Component.literal("Stumpsplitter").withStyle(style -> style.withItalic(false)));
-        axe.enchant(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER.get(), 1);
+        axe.enchant(ModEnchantments.TIMBER.get(), 1);
         return axe;
     }
 
@@ -1596,16 +1615,16 @@ public class OgreLord extends OgreGrunt {
      * gold, emeralds, or golden teeth. Order matters: it is the slot each purchase is saved under.
      */
     private List<Ware> todaysWares() {
-        java.util.Random random = new java.util.Random(level().getDayTime() / 24000L * 31L + getUUID().hashCode());
-        List<Ware> meats = new java.util.ArrayList<>(meatPool());
-        List<Ware> leathers = new java.util.ArrayList<>(leatherPool());
-        List<Ware> provisions = new java.util.ArrayList<>(provisionPool());
-        java.util.Collections.shuffle(meats, random);
-        java.util.Collections.shuffle(leathers, random);
-        java.util.Collections.shuffle(provisions, random);
+        Random random = new Random(level().getDayTime() / 24000L * 31L + getUUID().hashCode());
+        List<Ware> meats = new ArrayList<>(meatPool());
+        List<Ware> leathers = new ArrayList<>(leatherPool());
+        List<Ware> provisions = new ArrayList<>(provisionPool());
+        Collections.shuffle(meats, random);
+        Collections.shuffle(leathers, random);
+        Collections.shuffle(provisions, random);
 
         // One meat and one hide, never two of the same kind.
-        List<Ware> market = new java.util.ArrayList<>();
+        List<Ware> market = new ArrayList<>();
         market.add(meats.get(0));
         market.add(leathers.get(0));
         market.add(provisions.get(0));
@@ -1698,7 +1717,7 @@ public class OgreLord extends OgreGrunt {
                                 && player.distanceToSqr(this) <= rangeSqr
                                 && canAttack(player))
                 .stream()
-                .min(java.util.Comparator.comparingDouble(this::distanceToSqr))
+                .min(Comparator.comparingDouble(this::distanceToSqr))
                 .orElse(null);
         if (nearest != null) {
             setTarget(nearest);
@@ -1736,7 +1755,7 @@ public class OgreLord extends OgreGrunt {
                 && isRoyalDefenceInProgress()
                 && royalDefenceIntroducedPlayers.add(player.getUUID())) {
             ModNetwork.sendToPlayer(player,
-                    com.kingsandmonsters.network.OgreOverlayPayload.major("ROYAL TRIALS", ""));
+                    OgreOverlayPayload.major("ROYAL TRIALS", ""));
         }
     }
 
@@ -2156,8 +2175,7 @@ public class OgreLord extends OgreGrunt {
     }
 
     /**
-     * Leaves and trunks block the sight ray, so a target stood among trees used to dodge his
-     * strikes just by being behind one. Within his club's reach it is a hit regardless.
+     * Allow close strikes through blocked sight rays so trees can't nullify hits within reach.
      */
     private boolean canStrikeReach(LivingEntity target) {
         return getSensing().hasLineOfSight(target)
@@ -2344,9 +2362,7 @@ public class OgreLord extends OgreGrunt {
     private void scheduleHeavyAttackRoar(int attackId, int impactTick, float pitch, boolean useOgrebloodRoar,
                                          int leadTicks) {
         heavyAttackRoarAttackId = attackId;
-        // The server starts the attack before the synchronized client controller visibly reaches
-        // frame zero. Delay the vocal by the same allowance as attack impacts so the mouth has
-        // actually begun opening before the pre-attack grunt starts.
+        // Use the impact sync offset so the client animation opens the mouth before the grunt.
         heavyAttackRoarDelayTicks = Math.max(0, impactTick - leadTicks + ATTACK_SYNC_DELAY_TICKS);
         heavyAttackRoarPitch = pitch;
         heavyAttackUsesOgrebloodRoar = useOgrebloodRoar;
@@ -2470,7 +2486,7 @@ public class OgreLord extends OgreGrunt {
     }
 
     private void tickScheduledSounds() {
-        for (java.util.Iterator<DelayedSound> it = delayedSounds.iterator(); it.hasNext(); ) {
+        for (Iterator<DelayedSound> it = delayedSounds.iterator(); it.hasNext(); ) {
             DelayedSound sound = it.next();
             if (--sound.ticks <= 0) {
                 sound.play.run();
@@ -2747,7 +2763,7 @@ public class OgreLord extends OgreGrunt {
                             MobEffects.DAMAGE_BOOST, ROAR_BUFF_DURATION_TICKS / 2, 0));
                 }
             } else if (isRoarOpponent(entity)) {
-                boolean earmuffs = com.kingsandmonsters.effect.SonicDamage.isWearingPaddedEarmuffs(entity);
+                boolean earmuffs = SonicDamage.isWearingPaddedEarmuffs(entity);
                 switch (roarVariant) {
                     case BATTLE -> entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,
                             earmuffs ? ROAR_WEAKNESS_DURATION_TICKS / 2 : ROAR_WEAKNESS_DURATION_TICKS, 0));
@@ -2821,10 +2837,10 @@ public class OgreLord extends OgreGrunt {
         if (entity instanceof MudsnoutBoar boar && boar.isTamed()) {
             return true;
         }
-        if (entity instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isTame()) {
+        if (entity instanceof TamableAnimal pet && pet.isTame()) {
             return true;
         }
-        return entity instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == this;
+        return entity instanceof Mob mob && mob.getTarget() == this;
     }
 
     private void tickRoarSlowness(int elapsedTicks) {
@@ -2840,7 +2856,7 @@ public class OgreLord extends OgreGrunt {
         for (LivingEntity victim : level().getEntitiesOfClass(LivingEntity.class, area,
                 candidate -> isRoarOpponent(candidate)
                         && distanceToSqr(candidate) <= ROAR_EFFECT_RADIUS * ROAR_EFFECT_RADIUS)) {
-            int amplifier = com.kingsandmonsters.effect.SonicDamage.isWearingPaddedEarmuffs(victim) ? 0 : 1;
+            int amplifier = SonicDamage.isWearingPaddedEarmuffs(victim) ? 0 : 1;
             victim.addEffect(new MobEffectInstance(
                     MobEffects.MOVEMENT_SLOWDOWN,
                     ROAR_SLOWNESS_REFRESH_DURATION_TICKS,
@@ -3474,7 +3490,7 @@ public class OgreLord extends OgreGrunt {
         double distanceSqr = distanceToSqr(target);
         boolean nearby = distanceSqr > REGULAR_ATTACK_START_RANGE * REGULAR_ATTACK_START_RANGE
                 && distanceSqr < PLOW_TRIGGER_RANGE * PLOW_TRIGGER_RANGE;
-        net.minecraft.world.level.pathfinder.Path path = nearby ? getNavigation().createPath(target, 0) : null;
+        Path path = nearby ? getNavigation().createPath(target, 0) : null;
         boolean blocked = nearby && (path == null || !path.canReach());
         frustrationTicks = blocked ? frustrationTicks + 10 : Math.max(0, frustrationTicks - 20);
         if (frustrationTicks >= frustrationThresholdTicks && plowCooldownTicks <= 0 && activeLordAttackId == 0) {
@@ -3769,7 +3785,7 @@ public class OgreLord extends OgreGrunt {
      * ground", the mount is) would otherwise make a player immune to every ripple.
      */
     private boolean isAirborneShockwaveDodge(LivingEntity target) {
-        net.minecraft.world.entity.Entity body = target.getRootVehicle();
+        Entity body = target.getRootVehicle();
         return !body.onGround() && !body.isInWaterOrBubble() && !body.isInLava() && !target.onClimbable();
     }
 
@@ -4052,9 +4068,8 @@ public class OgreLord extends OgreGrunt {
             return;
         }
 
-        // lockedSpecialX/Z are authoritative server-only state. Freezing with them on the client
-        // uses unsynchronised default coordinates and can visually teleport an interrupted death
-        // toward world origin. Server position packets keep the client fixed in the correct spot.
+        // Only the server has the locked coordinates. Use its position packets to avoid snapping
+        // the client toward the origin when death interrupts the animation.
         if (!level().isClientSide) {
             freezeSpecialAnimationPose();
         }
@@ -4078,6 +4093,10 @@ public class OgreLord extends OgreGrunt {
         // The new pools provide natural variation and are timed final performances.
         return 1.0F;
     }
+
+    // ------------------------------------------------------------------ //
+    //  Animation controllers                                             //
+    // ------------------------------------------------------------------ //
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -4212,8 +4231,7 @@ public class OgreLord extends OgreGrunt {
 
     private boolean isMovingForAnimation(AnimationState<OgreLord> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
-        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
-        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        // Use game ticks so brief pauses don't drop the walk animation at high frame rates.
         long now = level().getGameTime();
         if (moving) {
             lastMovingAnimationTick = now;

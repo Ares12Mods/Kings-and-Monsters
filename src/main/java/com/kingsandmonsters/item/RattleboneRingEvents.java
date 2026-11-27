@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.ModItems;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -65,7 +66,7 @@ public final class RattleboneRingEvents {
                         && target instanceof Enemy
                         // Ogres at peace with the wearer are not caught in it; hitting one would break
                         // that peace and cost favor over a Zombie dying nearby.
-                        && !(target instanceof com.kingsandmonsters.entity.OgreGrunt ogre && !ogre.canAttack(player))
+                        && !(target instanceof OgreGrunt ogre && !ogre.canAttack(player))
                         && target.distanceToSqr(slain) <= RADIUS * RADIUS)) {
             target.hurt(level.damageSources().playerAttack(player), DAMAGE);
             if (!target.getType().is(Tags.EntityTypes.BOSSES)) {

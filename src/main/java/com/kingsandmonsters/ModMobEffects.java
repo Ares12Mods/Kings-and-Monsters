@@ -1,5 +1,7 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.effect.WarbandEffect;
+import net.minecraftforge.registries.ForgeRegistries;
 import com.kingsandmonsters.effect.BogfumeRageEffect;
 import com.kingsandmonsters.effect.CrippledEffect;
 import com.kingsandmonsters.effect.DazedEffect;
@@ -15,13 +17,12 @@ import com.kingsandmonsters.effect.UnyieldingEffect;
 import com.kingsandmonsters.effect.BogSightEffect;
 import com.kingsandmonsters.effect.AmphibiousnessEffect;
 import net.minecraftforge.registries.RegistryObject;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraftforge.registries.DeferredRegister;
 
 public class ModMobEffects {
     public static final DeferredRegister<MobEffect> MOB_EFFECTS =
-            DeferredRegister.create(net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS, KingsAndMonsters.MODID);
+            DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, KingsAndMonsters.MODID);
 
     public static final RegistryObject<MobEffect> BOGFUME_RAGE = MOB_EFFECTS.register(
             "bogfume_rage",
@@ -40,7 +41,7 @@ public class ModMobEffects {
             "poison_resistance", PoisonResistanceEffect::new);
     public static final RegistryObject<MobEffect> WARCALLED = MOB_EFFECTS.register("warcalled", WarcalledEffect::new);
     public static final RegistryObject<MobEffect> WARBAND = MOB_EFFECTS.register("warband",
-            com.kingsandmonsters.effect.WarbandEffect::new);
+            WarbandEffect::new);
     public static final RegistryObject<MobEffect> OGRES_BANE = MOB_EFFECTS.register("ogres_bane", OgresBaneEffect::new);
     public static final RegistryObject<MobEffect> BOGSTRIDE = MOB_EFFECTS.register("bogstride", BogstrideEffect::new);
     public static final RegistryObject<MobEffect> CHARGE = MOB_EFFECTS.register("charge", ChargeEffect::new);

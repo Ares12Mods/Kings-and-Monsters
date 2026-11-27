@@ -1,5 +1,7 @@
 package com.kingsandmonsters.world;
 
+import java.util.Locale;
+import net.minecraft.world.level.biome.Biome;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.datafixers.util.Either;
@@ -7,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
@@ -25,12 +26,9 @@ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
-import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.core.registries.Registries;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.tribute.OutpostCaptainType;
-import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -108,7 +106,7 @@ public class OgreOutpostStructure extends Structure {
         int x = chunk.getMinBlockX();
         int z = chunk.getMinBlockZ();
         int y = context.chunkGenerator().getSeaLevel();
-        Holder<net.minecraft.world.level.biome.Biome> biome =
+        Holder<Biome> biome =
                 context.biomeSource().getNoiseBiome(
                         QuartPos.fromBlock(x),
                         QuartPos.fromBlock(y),
@@ -329,7 +327,7 @@ public class OgreOutpostStructure extends Structure {
         String templateDescription = pieces.pieces().stream()
                 .filter(PoolElementStructurePiece.class::isInstance)
                 .map(PoolElementStructurePiece.class::cast)
-                .map(piece -> piece.getElement().toString().toLowerCase(java.util.Locale.ROOT))
+                .map(piece -> piece.getElement().toString().toLowerCase(Locale.ROOT))
                 .findFirst()
                 .orElse("");
 

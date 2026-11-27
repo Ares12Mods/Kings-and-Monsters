@@ -1,5 +1,7 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.BannerItem;
@@ -20,8 +22,8 @@ public class FixedBannerItem extends BannerItem {
 
     /** A banner that arrives some other way (crafting, loot, commands) still gets its pattern. */
     @Override
-    public void inventoryTick(ItemStack stack, net.minecraft.world.level.Level level,
-                              net.minecraft.world.entity.Entity entity, int slot, boolean selected) {
+    public void inventoryTick(ItemStack stack, Level level,
+                              Entity entity, int slot, boolean selected) {
         if (!stack.hasTag() || stack.getTagElement("BlockEntityTag") == null) {
             stack.setTag(getDefaultInstance().getTag());
         }

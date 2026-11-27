@@ -1,5 +1,7 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.item.CandleHelmetItem;
+import net.minecraft.world.item.ItemStack;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModParticles;
 import net.minecraft.client.Minecraft;
@@ -36,8 +38,8 @@ public final class CandleHelmetFlameParticles {
         FLAMES.values().removeIf(flame -> !flame.isAlive());
 
         for (Player player : minecraft.level.players()) {
-            net.minecraft.world.item.ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
-            if (!head.is(ModItems.CANDLE_HELMET.get()) || !com.kingsandmonsters.item.CandleHelmetItem.isLit(head)) {
+            ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
+            if (!head.is(ModItems.CANDLE_HELMET.get()) || !CandleHelmetItem.isLit(head)) {
                 continue;
             }
             Vec3 wick = wickPosition(player, 1.0F);

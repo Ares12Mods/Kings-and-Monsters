@@ -1,5 +1,6 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
 import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.effect.BogrotMechanics;
@@ -131,7 +132,7 @@ public class PlagueOgre extends OgreGrunt {
     @Override
     @Nullable
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnData, @Nullable CompoundTag spawnTag) {
         naturallySpawned = spawnType == MobSpawnType.NATURAL;
         return super.finalizeSpawn(level, difficulty, spawnType, spawnData, spawnTag);
     }
@@ -214,12 +215,12 @@ public class PlagueOgre extends OgreGrunt {
     }
 
     // Animation ticks where a foot lands: the leg keys put the forward-most foot at 0 and half a cycle on.
-    private static final java.util.Map<String, double[]> PLAGUE_FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> PLAGUE_FOOT_CONTACTS = Map.of(
             "Zombie_walk", new double[]{0.0, 25.2},
             "Zombie_aggro walk", new double[]{0.0, 17.03});
 
     @Override
-    protected java.util.Map<String, double[]> getFootContacts() {
+    protected Map<String, double[]> getFootContacts() {
         return PLAGUE_FOOT_CONTACTS;
     }
 

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.compat.jei;
 
+import net.minecraftforge.registries.ForgeRegistries;
 import mezz.jei.api.ingredients.IIngredientType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
@@ -9,6 +10,6 @@ record EffectIngredient(MobEffect effect) {
     static final IIngredientType<EffectIngredient> TYPE = () -> EffectIngredient.class;
 
     ResourceLocation id() {
-        return net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getKey(effect);
+        return ForgeRegistries.MOB_EFFECTS.getKey(effect);
     }
 }

@@ -5,12 +5,9 @@ import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.entity.OgreSpear;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.stats.Stats;
-import net.minecraft.core.Holder;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -48,13 +45,13 @@ public final class HunterSpearItem extends Item {
         }
 
         ItemStack thrownStack = stack.copyWithCount(1);
-        com.kingsandmonsters.item.ItemUtil.hurt(thrownStack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(player.getUsedItemHand()));
+        ItemUtil.hurt(thrownStack, 1, player, ItemUtil.slotForHand(player.getUsedItemHand()));
         if (!level.isClientSide) {
             int heavyThrowLevel = ModEnchantmentEffects.level(level, thrownStack, ModEnchantments.HEAVY_THROW);
             float speed = ModEnchantmentEffects.heavyThrowSpeed(BASE_THROW_SPEED, heavyThrowLevel);
             float damage = ModEnchantmentEffects.heavyThrowDamage(BASE_THROW_DAMAGE, heavyThrowLevel);
             Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.35));
-            OgreSpear.Pickup pickup = com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(player)
+            OgreSpear.Pickup pickup = ItemUtil.hasInfiniteMaterials(player)
                     ? OgreSpear.Pickup.CREATIVE_ONLY : OgreSpear.Pickup.ALLOWED;
             OgreSpear spear = new OgreSpear(level, player, thrownStack, origin,
                     player.getLookAngle().scale(speed), damage, pickup);
@@ -64,7 +61,7 @@ public final class HunterSpearItem extends Item {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THROW,
                 player.getSoundSource(), 1.0F, 1.0F);
         player.awardStat(Stats.ITEM_USED.get(this));
-        if (!com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(player)) {
+        if (!ItemUtil.hasInfiniteMaterials(player)) {
             stack.shrink(1);
         }
     }

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.loot;
 
+import com.kingsandmonsters.world.FortTargetAuthority;
 import com.kingsandmonsters.ModLootFunctions;
 import com.kingsandmonsters.tribute.TributeManager;
 import com.kingsandmonsters.world.FortMapFactory;
@@ -49,7 +50,7 @@ public final class CachedFortMapFunction implements LootItemFunction {
 
         var campOrigin = TributeManager.findOutpostCampOrigin(level, lootOrigin);
         var target = campOrigin.flatMap(outpostOrigin -> {
-            var deterministic = com.kingsandmonsters.world.FortTargetAuthority
+            var deterministic = FortTargetAuthority
                     .findNearestGuaranteedFort(level, outpostOrigin);
             deterministic.ifPresent(value -> TributeManager.setOutpostFortMapTarget(level, outpostOrigin, value));
             return deterministic;

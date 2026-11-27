@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import net.minecraftforge.client.gui.overlay.ForgeGui;
 import com.kingsandmonsters.network.OgreOverlayPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -46,7 +47,7 @@ public final class OgreOverlayState {
         }
     }
 
-    public static void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
+    public static void render(ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
         if (active == null || Minecraft.getInstance().options.hideGui) {
             return;
         }

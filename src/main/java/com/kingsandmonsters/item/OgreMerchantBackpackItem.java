@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import com.kingsandmonsters.ClientConfig;
@@ -44,7 +45,7 @@ public class OgreMerchantBackpackItem extends CurioItem {
     }
 
     private static void open(ServerPlayer player, ItemStack stack, int lockedInventorySlot) {
-        net.minecraftforge.network.NetworkHooks.openScreen(player, new SimpleMenuProvider(
+        NetworkHooks.openScreen(player, new SimpleMenuProvider(
                 (containerId, inventory, ignored) -> new OgreMerchantBackpackMenu(
                         containerId, inventory, stack, lockedInventorySlot),
                 Component.translatable("container.kingsandmonsters.ogre_merchant_backpack")),
@@ -92,7 +93,7 @@ public class OgreMerchantBackpackItem extends CurioItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) return;
         tooltip.add(Component.translatable("tooltip.kingsandmonsters.backpack.slots", SLOT_COUNT)
                 .withStyle(ChatFormatting.BLUE));

@@ -22,7 +22,7 @@ public final class ToadStewItem extends Item {
             consumer.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60 * 20));
             consumer.addEffect(new MobEffectInstance(ModMobEffects.OGRES_BANE.get(), 5 * 60 * 20));
         }
-        return com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
+        return ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
     }
 
 }

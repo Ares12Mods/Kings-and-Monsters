@@ -19,7 +19,6 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.saveddata.SavedData;
 import com.kingsandmonsters.event.ServerTickEvent;
 import com.kingsandmonsters.network.ModNetwork;
 

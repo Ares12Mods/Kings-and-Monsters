@@ -1,10 +1,10 @@
 package com.kingsandmonsters.tribute;
 
+import net.minecraft.world.level.block.state.BlockState;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModBlocks;
 import com.kingsandmonsters.entity.OgreLord;
 import com.kingsandmonsters.network.OgreOverlayPayload;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -85,7 +85,7 @@ public final class BogIronProgression extends SavedData {
         }
     }
 
-    private static boolean isBogIronOre(net.minecraft.world.level.block.state.BlockState state) {
+    private static boolean isBogIronOre(BlockState state) {
         return state.is(ModBlocks.BOG_IRON_ORE.get())
                 || state.is(ModBlocks.DEEPSLATE_BOG_IRON_ORE.get());
     }

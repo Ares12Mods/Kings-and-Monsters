@@ -1,5 +1,33 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.command.TestingCommands;
+import com.kingsandmonsters.compat.spell_power.SpellPowerCompat;
+import com.kingsandmonsters.effect.BogrotSyncEvents;
+import com.kingsandmonsters.effect.CombatEffectSyncEvents;
+import com.kingsandmonsters.effect.SwampPotionEvents;
+import com.kingsandmonsters.enchantment.ModEnchantments;
+import com.kingsandmonsters.entity.OgreLord;
+import com.kingsandmonsters.entity.OgreRallyEvents;
+import com.kingsandmonsters.entity.OgreVanillaHostilityEvents;
+import com.kingsandmonsters.entity.RippleJumpTracker;
+import com.kingsandmonsters.event.EventBridge;
+import com.kingsandmonsters.item.BlackhideEvents;
+import com.kingsandmonsters.item.BogIronEquipmentEvents;
+import com.kingsandmonsters.item.BogToadContentEvents;
+import com.kingsandmonsters.item.BogsteelChestplateEvents;
+import com.kingsandmonsters.item.BoneClubEvents;
+import com.kingsandmonsters.item.FreshFood;
+import com.kingsandmonsters.item.FreshMeatEvents;
+import com.kingsandmonsters.item.ItemAttributes;
+import com.kingsandmonsters.item.MudsnoutRecallTracker;
+import com.kingsandmonsters.item.OgreCrownArmy;
+import com.kingsandmonsters.item.OgreGearEvents;
+import com.kingsandmonsters.light.CandleHelmetLight;
+import com.kingsandmonsters.tribute.QuestManager;
+import com.kingsandmonsters.tribute.StructureDiscoveryManager;
+import com.kingsandmonsters.world.WorldgenSavedDataQueue;
+import net.minecraft.world.level.block.ComposterBlock;
+import net.minecraftforge.eventbus.api.EventPriority;
 import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
 import com.kingsandmonsters.client.ClientEvents;
 import com.kingsandmonsters.compat.irons_spellbooks.IronsSpellbooksCompat;
@@ -113,9 +141,9 @@ public class KingsAndMonsters {
         }
         modEventBus.addListener((FMLCommonSetupEvent e) -> e.enqueueWork(ModNetwork::register));
         ModBannerPatterns.BANNER_PATTERNS.register(modEventBus);
-        MinecraftForge.EVENT_BUS.register(com.kingsandmonsters.item.ItemAttributes.class);
-        MinecraftForge.EVENT_BUS.register(com.kingsandmonsters.event.EventBridge.class);
-        MinecraftForge.EVENT_BUS.register(com.kingsandmonsters.item.FreshFood.class);
+        MinecraftForge.EVENT_BUS.register(ItemAttributes.class);
+        MinecraftForge.EVENT_BUS.register(EventBridge.class);
+        MinecraftForge.EVENT_BUS.register(FreshFood.class);
 
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
@@ -123,7 +151,7 @@ public class KingsAndMonsters {
         ModMenus.MENUS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModMobEffects.MOB_EFFECTS.register(modEventBus);
-        com.kingsandmonsters.enchantment.ModEnchantments.ENCHANTMENTS.register(modEventBus);
+        ModEnchantments.ENCHANTMENTS.register(modEventBus);
         ModPotions.POTIONS.register(modEventBus);
         ModSoundEvents.SOUND_EVENTS.register(modEventBus);
         ModParticles.PARTICLE_TYPES.register(modEventBus);
@@ -138,62 +166,62 @@ public class KingsAndMonsters {
         modEventBus.addListener((FMLCommonSetupEvent e) -> e.enqueueWork(ModEntities::registerSpawnPlacements));
         CREATIVE_MODE_TABS.register(modEventBus);
         IronsSpellbooksCompat.registerIfPresent();
-        com.kingsandmonsters.compat.spell_power.SpellPowerCompat.registerIfPresent();
+        SpellPowerCompat.registerIfPresent();
 
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.addListener(BogIronArmorEffects::onMobEffectApplicable);
         MinecraftForge.EVENT_BUS.addListener(BogIronArmorEffects::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(BogIronArmorEffects::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogIronEquipmentEvents::onLivingDamagePost);
+        MinecraftForge.EVENT_BUS.addListener(BogIronEquipmentEvents::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(BogIronProgression::onLivingDeath);
         MinecraftForge.EVENT_BUS.addListener(BogIronProgression::onBlockBreak);
-        MinecraftForge.EVENT_BUS.addListener(net.minecraftforge.eventbus.api.EventPriority.LOWEST,
-                com.kingsandmonsters.item.BogIronEquipmentEvents::onRightClickBlock);
+        MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST,
+                BogIronEquipmentEvents::onRightClickBlock);
         MinecraftForge.EVENT_BUS.addListener(CompendiumGrant::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(BogfumeRageEvents::onIncomingDamage);
         MinecraftForge.EVENT_BUS.addListener(CombatEffectEvents::onPlayerTick);
         MinecraftForge.EVENT_BUS.addListener(CombatEffectEvents::onLivingHeal);
         MinecraftForge.EVENT_BUS.addListener(CombatEffectEvents::onLivingJump);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.FreshMeatEvents::onLivingDrops);
+        MinecraftForge.EVENT_BUS.addListener(FreshMeatEvents::onLivingDrops);
         MinecraftForge.EVENT_BUS.addListener(CombatEffectEvents::onEffectApplicable);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectAdded);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectRemoved);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEffectExpired);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onEntityTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.BogrotSyncEvents::onStartTracking);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectAdded);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectRemoved);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEffectExpired);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onEntityTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.CombatEffectSyncEvents::onStartTracking);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingJump);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingDamagePre);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onLivingDamagePost);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogToadContentEvents::onCriticalHit);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onIncomingDamage);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onDamagePost);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BlackhideEvents::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(BogrotSyncEvents::onEffectAdded);
+        MinecraftForge.EVENT_BUS.addListener(BogrotSyncEvents::onEffectRemoved);
+        MinecraftForge.EVENT_BUS.addListener(BogrotSyncEvents::onEffectExpired);
+        MinecraftForge.EVENT_BUS.addListener(BogrotSyncEvents::onEntityTick);
+        MinecraftForge.EVENT_BUS.addListener(BogrotSyncEvents::onStartTracking);
+        MinecraftForge.EVENT_BUS.addListener(CombatEffectSyncEvents::onEffectAdded);
+        MinecraftForge.EVENT_BUS.addListener(CombatEffectSyncEvents::onEffectRemoved);
+        MinecraftForge.EVENT_BUS.addListener(CombatEffectSyncEvents::onEffectExpired);
+        MinecraftForge.EVENT_BUS.addListener(CombatEffectSyncEvents::onEntityTick);
+        MinecraftForge.EVENT_BUS.addListener(CombatEffectSyncEvents::onStartTracking);
+        MinecraftForge.EVENT_BUS.addListener(BogToadContentEvents::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener(BogToadContentEvents::onLivingJump);
+        MinecraftForge.EVENT_BUS.addListener(BogToadContentEvents::onLivingDamagePre);
+        MinecraftForge.EVENT_BUS.addListener(BogToadContentEvents::onLivingDamagePost);
+        MinecraftForge.EVENT_BUS.addListener(BogToadContentEvents::onCriticalHit);
+        MinecraftForge.EVENT_BUS.addListener(BlackhideEvents::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener(BlackhideEvents::onIncomingDamage);
+        MinecraftForge.EVENT_BUS.addListener(BlackhideEvents::onDamagePost);
+        MinecraftForge.EVENT_BUS.addListener(BlackhideEvents::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(ServerStateReset::onServerStopped);
         modEventBus.addListener((FMLCommonSetupEvent e) -> e.enqueueWork(ModPotions::registerBrewingRecipes));
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.SwampPotionEvents::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.effect.SwampPotionEvents::onBreakSpeed);
+        MinecraftForge.EVENT_BUS.addListener(SwampPotionEvents::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener(SwampPotionEvents::onBreakSpeed);
         MinecraftForge.EVENT_BUS.addListener(ModEnchantmentEffects::onIncomingDamage);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onItemAttributes);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onUseStart);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onRightClickItem);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreGearEvents::onBlockBreak);
+        MinecraftForge.EVENT_BUS.addListener(OgreGearEvents::onItemAttributes);
+        MinecraftForge.EVENT_BUS.addListener(OgreGearEvents::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener(OgreGearEvents::onUseStart);
+        MinecraftForge.EVENT_BUS.addListener(OgreGearEvents::onRightClickItem);
+        MinecraftForge.EVENT_BUS.addListener(OgreGearEvents::onBlockBreak);
         MinecraftForge.EVENT_BUS.addListener(ArtifactEvents::onKnockBack);
         MinecraftForge.EVENT_BUS.addListener(ArtifactEvents::onEntityJoinLevel);
         MinecraftForge.EVENT_BUS.addListener(ArtifactEvents::onIncomingDamage);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BogsteelChestplateEvents::onIncomingDamage);
+        MinecraftForge.EVENT_BUS.addListener(BogsteelChestplateEvents::onIncomingDamage);
         MinecraftForge.EVENT_BUS.addListener(ArtifactEvents::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(ArtifactEvents::onMobEffectAdded);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onIncomingDamage);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.OgreCrownArmy::onMobEffectAdded);
+        MinecraftForge.EVENT_BUS.addListener(OgreCrownArmy::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(OgreCrownArmy::onIncomingDamage);
+        MinecraftForge.EVENT_BUS.addListener(OgreCrownArmy::onMobEffectAdded);
         MinecraftForge.EVENT_BUS.addListener(KingsCleaverEvents::onPlayerTick);
         MinecraftForge.EVENT_BUS.addListener(KingsCleaverEvents::onLivingDeath);
         MinecraftForge.EVENT_BUS.addListener(RoyalAdvancementEvents::onLivingDeath);
@@ -205,16 +233,16 @@ public class KingsAndMonsters {
         MinecraftForge.EVENT_BUS.addListener(OgrebloodTotemEvents::onLivingDeath);
         MinecraftForge.EVENT_BUS.addListener(OgrebloodTotemEvents::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(BogPoleSwampSpawner::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.MudsnoutRecallTracker::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(MudsnoutRecallTracker::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(WarcallerBellEvents::onPlayerTick);
         MinecraftForge.EVENT_BUS.addListener(OgreHookbladeEvents::onLivingDamagePost);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onCriticalHit);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onIncomingDamage);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.item.BoneClubEvents::onLivingDamagePost);
+        MinecraftForge.EVENT_BUS.addListener(BoneClubEvents::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener(BoneClubEvents::onCriticalHit);
+        MinecraftForge.EVENT_BUS.addListener(BoneClubEvents::onIncomingDamage);
+        MinecraftForge.EVENT_BUS.addListener(BoneClubEvents::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(CreativeDestroyerEvents::onAttackEntity);
         MinecraftForge.EVENT_BUS.addListener(PatrolManager::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.command.TestingCommands::register);
+        MinecraftForge.EVENT_BUS.addListener(TestingCommands::register);
         MinecraftForge.EVENT_BUS.addListener(OutpostPopulationManager::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(StructureJockeyPopulationManager::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(OutpostPlagueSpawner::onServerTick);
@@ -225,25 +253,25 @@ public class KingsAndMonsters {
         MinecraftForge.EVENT_BUS.addListener(OutpostEvents::onTributeChestOpened);
         MinecraftForge.EVENT_BUS.addListener(OutpostEvents::onItemFrameTaken);
         MinecraftForge.EVENT_BUS.addListener(OutpostEvents::onOgreKilled);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onLivingDeath);
+        MinecraftForge.EVENT_BUS.addListener(QuestManager::onLivingDeath);
         MinecraftForge.EVENT_BUS.addListener(OutpostEvents::onOgreHurt);
         MinecraftForge.EVENT_BUS.addListener(FortMapTrades::onVillagerTrades);
         MinecraftForge.EVENT_BUS.addListener(OgreBruteCombatEvents::onShieldBlock);
         MinecraftForge.EVENT_BUS.addListener(OgreLordCombatEvents::onShieldBlock);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialLeaderDeath);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialCaptainSpawnCheck);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialSpawnerBreak);
+        MinecraftForge.EVENT_BUS.addListener(OgreLord::onRoyalTrialLeaderDeath);
+        MinecraftForge.EVENT_BUS.addListener(OgreLord::onRoyalTrialCaptainSpawnCheck);
+        MinecraftForge.EVENT_BUS.addListener(OgreLord::onRoyalTrialSpawnerBreak);
         MinecraftForge.EVENT_BUS.addListener(OgreDamageCapEvents::onLivingDamagePre);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreRallyEvents::onLivingDamagePost);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreVanillaHostilityEvents::onEntityTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.RippleJumpTracker::onLivingJump);
+        MinecraftForge.EVENT_BUS.addListener(OgreRallyEvents::onLivingDamagePost);
+        MinecraftForge.EVENT_BUS.addListener(OgreVanillaHostilityEvents::onEntityTick);
+        MinecraftForge.EVENT_BUS.addListener(RippleJumpTracker::onLivingJump);
         MinecraftForge.EVENT_BUS.addListener(HunterSpearEvents::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(AngerHudSync::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.QuestManager::onPlayerLoggedOut);
-        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.tribute.StructureDiscoveryManager::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(QuestManager::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(QuestManager::onPlayerLoggedOut);
+        MinecraftForge.EVENT_BUS.addListener(StructureDiscoveryManager::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(AngerHudSync::onPlayerLoggedOut);
-        com.kingsandmonsters.light.CandleHelmetLight.register(MinecraftForge.EVENT_BUS);
+        CandleHelmetLight.register(MinecraftForge.EVENT_BUS);
 
         // Some values are needed while server resources and villager trades are
         // assembled, before per-world SERVER configs become available. Load the
@@ -254,7 +282,7 @@ public class KingsAndMonsters {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Kings and Monsters common setup");
-        event.enqueueWork(() -> net.minecraft.world.level.block.ComposterBlock.COMPOSTABLES.put(
+        event.enqueueWork(() -> ComposterBlock.COMPOSTABLES.put(
                 ModItems.ACORN.get(), 0.3F));
     }
 
@@ -268,15 +296,15 @@ public class KingsAndMonsters {
     public void onServerStopping(ServerStoppingEvent event) {
         TributeManager.detach();
         AngerHudSync.reset();
-        com.kingsandmonsters.tribute.QuestManager.resetSync();
+        QuestManager.resetSync();
         OgreKingsClubEvents.reset();
         OgrebloodTotemEvents.reset();
         FortPopulationSpawner.reset();
         FortVegetationCleaner.reset();
         OutpostVegetationCleaner.reset();
         OgreMerchantSpawnManager.reset();
-        com.kingsandmonsters.world.WorldgenSavedDataQueue.reset();
-        com.kingsandmonsters.tribute.StructureDiscoveryManager.reset();
+        WorldgenSavedDataQueue.reset();
+        StructureDiscoveryManager.reset();
     }
 
     @SubscribeEvent

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import java.util.UUID;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModMobEffects;
@@ -30,8 +31,8 @@ import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import com.kingsandmonsters.event.PlayerTickEvent;
 
 public final class BogToadContentEvents {
-    private static final java.util.UUID SWIM_BONUS_ID =
-            com.kingsandmonsters.item.ItemAttributes.uuid("boghide_boots_swim_speed");
+    private static final UUID SWIM_BONUS_ID =
+            ItemAttributes.uuid("boghide_boots_swim_speed");
     private static final AttributeModifier SWIM_BONUS = new AttributeModifier(SWIM_BONUS_ID, SWIM_BONUS_ID.toString(), 0.35, AttributeModifier.Operation.MULTIPLY_TOTAL);
     private static final String AMBUSH_MARK_UNTIL = "kingsandmonsters.ambush_mark_until";
     private static final String AMBUSH_MARK_OWNER = "kingsandmonsters.ambush_mark_owner";
@@ -92,7 +93,7 @@ public final class BogToadContentEvents {
         player.setDeltaMovement(forward.x, BOGHIDE_LEAP_VERTICAL_SPEED, forward.z);
         player.hurtMarked = true;
         player.getCooldowns().addCooldown(boots.getItem(), BoghideSet.leapCooldownTicks(player));
-        com.kingsandmonsters.item.ItemUtil.hurt(boots, 1, player, EquipmentSlot.FEET);
+        ItemUtil.hurt(boots, 1, player, EquipmentSlot.FEET);
         player.getPersistentData().putLong(LEAP_UNTIL, player.level().getGameTime() + 12);
         player.getPersistentData().putLong(IMPACT_UNTIL, player.level().getGameTime() + 10 * 20);
         player.getPersistentData().putBoolean(LEAP_AIRBORNE, false);

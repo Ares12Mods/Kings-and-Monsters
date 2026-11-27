@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.tribute.TributeSavedData;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -97,7 +98,7 @@ public abstract class CinematicDialogueScreen extends Screen {
     /** The player's favor with the tribe, with the line it has to be won past marked on it. */
     protected final void drawFavorBar(GuiGraphics graphics, int barBottom, int favor, int appeasedFavor,
                                       boolean appeased) {
-        int max = com.kingsandmonsters.tribute.TributeSavedData.MAX_FAVOR;
+        int max = TributeSavedData.MAX_FAVOR;
         int left = (width - FAVOR_BAR_WIDTH) / 2;
         int y = barBottom / 2 + 3;
         graphics.drawString(font, Component.translatable("screen.kingsandmonsters.king_dialogue.favor"),

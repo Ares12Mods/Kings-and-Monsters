@@ -11,7 +11,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -67,7 +66,7 @@ public final class BoarCallingHornItem extends Item {
 
     private void consumeUse(Player player, InteractionHand hand, ItemStack stack) {
         player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
-        com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
+        ItemUtil.hurt(stack, 1, player, ItemUtil.slotForHand(hand));
     }
 
     @Override

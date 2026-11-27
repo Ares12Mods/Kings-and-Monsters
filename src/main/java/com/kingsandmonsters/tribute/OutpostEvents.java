@@ -1,5 +1,12 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import com.kingsandmonsters.entity.OgreLord;
+import com.kingsandmonsters.world.FortMapDeliveryService;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.entity.PlagueOgre;
@@ -36,7 +43,7 @@ public final class OutpostEvents {
         // Fort target resolved, the guaranteed map never generated; deliver it now, just before the
         // GUI opens. Does nothing unless every precondition holds (see FortMapDeliveryService).
         TributeManager.findOutpostCampOrigin(level, pos)
-                .ifPresent(campOrigin -> com.kingsandmonsters.world.FortMapDeliveryService.tryDeliver(level, campOrigin));
+                .ifPresent(campOrigin -> FortMapDeliveryService.tryDeliver(level, campOrigin));
 
         // Only trigger the rest (anger/patrol) on first open — loot table tag is present before loot generates
         CompoundTag tag = be.saveWithoutMetadata();
@@ -84,8 +91,8 @@ public final class OutpostEvents {
     // Ogre kills per player inside the last KILL_WINDOW_TICKS; the second one angers the whole tribe.
     private static final long KILL_WINDOW_TICKS = 20L * 60 * 5;
     private static final int KILLS_BEFORE_TRIBE_TURNS = 2;
-    private static final java.util.Map<java.util.UUID, java.util.ArrayDeque<Long>> RECENT_KILLS =
-            new java.util.HashMap<>();
+    private static final Map<UUID, ArrayDeque<Long>> RECENT_KILLS =
+            new HashMap<>();
 
     /** Forgets recent kills when a world closes. */
     public static void resetState() {
@@ -120,7 +127,7 @@ public final class OutpostEvents {
      * a bystander caught by a swing.
      */
     private static boolean isDueling(ServerLevel level, ServerPlayer player) {
-        return !level.getEntitiesOfClass(com.kingsandmonsters.entity.OgreLord.class,
+        return !level.getEntitiesOfClass(OgreLord.class,
                 player.getBoundingBox().inflate(64.0), king -> king.isDuelingWith(player)).isEmpty();
     }
 
@@ -147,9 +154,9 @@ public final class OutpostEvents {
         }
 
         // A king beaten in a duel was beaten fairly: no favor lost, and the tribe is not angered.
-        if (ogre instanceof com.kingsandmonsters.entity.OgreLord king && king.isDuel()) {
+        if (ogre instanceof OgreLord king && king.isDuel()) {
             if (event.getSource().getEntity() instanceof ServerPlayer winner && king.isDuelist(winner)) {
-                com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
+                RoyalAdvancementEvents.awardPath(winner, "tribute/fair_fight");
             }
             return;
         }
@@ -159,8 +166,8 @@ public final class OutpostEvents {
             TributeManager.addFavorQuietly(level, killer, -OGRE_KILL_FAVOR_LOSS);
             // One stray death is forgiven to the appeased, but a second within the window shows intent:
             // the whole tribe turns on them, as if they had struck the camp.
-            java.util.ArrayDeque<Long> recent = RECENT_KILLS.computeIfAbsent(
-                    killer.getUUID(), id -> new java.util.ArrayDeque<>());
+            ArrayDeque<Long> recent = RECENT_KILLS.computeIfAbsent(
+                    killer.getUUID(), id -> new ArrayDeque<>());
             long now = level.getGameTime();
             while (!recent.isEmpty() && now - recent.peekFirst() > KILL_WINDOW_TICKS) {
                 recent.pollFirst();

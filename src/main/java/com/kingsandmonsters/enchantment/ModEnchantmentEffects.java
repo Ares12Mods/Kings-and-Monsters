@@ -1,16 +1,14 @@
 package com.kingsandmonsters.enchantment;
 
+import com.kingsandmonsters.entity.OgreGrunt;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraftforge.registries.RegistryObject;
 import com.kingsandmonsters.Config;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -20,12 +18,12 @@ import com.kingsandmonsters.event.LivingIncomingDamageEvent;
 public final class ModEnchantmentEffects {
     private ModEnchantmentEffects() {}
 
-    public static int level(Level level, ItemStack stack, net.minecraftforge.registries.RegistryObject<Enchantment> enchantment) {
-        return net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(enchantment.get(), stack);
+    public static int level(Level level, ItemStack stack, RegistryObject<Enchantment> enchantment) {
+        return EnchantmentHelper.getItemEnchantmentLevel(enchantment.get(), stack);
     }
 
     public static int level(Level level, ItemStack stack, Enchantment enchantment) {
-        return net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack);
+        return EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack);
     }
 
     public static float heavyThrowDamage(float baseDamage, int level) {
@@ -57,7 +55,7 @@ public final class ModEnchantmentEffects {
                 int hostiles = attacker.level().getEntitiesOfClass(Monster.class, area,
                         // Ogres at peace with the attacker are not a crowd to fight, so they add no damage.
                         mob -> mob.isAlive() && mob != target
-                                && !(mob instanceof com.kingsandmonsters.entity.OgreGrunt ogre
+                                && !(mob instanceof OgreGrunt ogre
                                         && !ogre.canAttack(attacker))).size();
                 // Fully surrounded, each level tops out at 1.6 / 2.75 / 3.75 bonus damage. Sharpness V adds 3.0,
                 // so a full crowd with Tyrant III hits a quarter harder than the best vanilla damage enchantment.

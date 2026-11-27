@@ -1,12 +1,9 @@
 package com.kingsandmonsters.effect;
 
-import com.kingsandmonsters.KingsAndMonsters;
-import com.kingsandmonsters.ModParticles;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.resources.ResourceLocation;
+import com.kingsandmonsters.item.ItemAttributes;
+import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -44,13 +41,13 @@ public final class BogrotEffect extends MobEffect {
     }
 
     @Override
-    public void addAttributeModifiers(LivingEntity entity, net.minecraft.world.entity.ai.attributes.AttributeMap attributes, int amplifier) {
+    public void addAttributeModifiers(LivingEntity entity, AttributeMap attributes, int amplifier) {
         super.addAttributeModifiers(entity, attributes, amplifier);
         entity.getPersistentData().putLong(NEXT_DAMAGE_TICK,
                 entity.level().getGameTime() + BogrotMechanics.damageIntervalTicks(amplifier));
     }
 
     private static String id(String path) {
-        return com.kingsandmonsters.item.ItemAttributes.uuid(path).toString();
+        return ItemAttributes.uuid(path).toString();
     }
 }

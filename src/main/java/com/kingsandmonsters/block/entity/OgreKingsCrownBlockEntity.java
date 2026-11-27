@@ -1,5 +1,7 @@
 package com.kingsandmonsters.block.entity;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
 import com.kingsandmonsters.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -13,34 +15,34 @@ public final class OgreKingsCrownBlockEntity extends BlockEntity implements GeoB
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     /** The crown as it was set down, so breaking the block gives back the same enchanted, worn crown. */
-    private net.minecraft.world.item.ItemStack stack = net.minecraft.world.item.ItemStack.EMPTY;
+    private ItemStack stack = ItemStack.EMPTY;
 
     public OgreKingsCrownBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.OGRE_KINGS_CROWN.get(), pos, state);
     }
 
-    public net.minecraft.world.item.ItemStack getStack() {
+    public ItemStack getStack() {
         return stack.copy();
     }
 
-    public void setStack(net.minecraft.world.item.ItemStack stack) {
+    public void setStack(ItemStack stack) {
         this.stack = stack.copyWithCount(1);
         setChanged();
     }
 
     @Override
-    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag) {
+    protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         if (!stack.isEmpty()) {
-            tag.put("Crown", stack.save(new net.minecraft.nbt.CompoundTag()));
+            tag.put("Crown", stack.save(new CompoundTag()));
         }
     }
 
     @Override
-    public void load(net.minecraft.nbt.CompoundTag tag) {
+    public void load(CompoundTag tag) {
         super.load(tag);
-        stack = tag.contains("Crown") ? net.minecraft.world.item.ItemStack.of(tag.getCompound("Crown"))
-                : net.minecraft.world.item.ItemStack.EMPTY;
+        stack = tag.contains("Crown") ? ItemStack.of(tag.getCompound("Crown"))
+                : ItemStack.EMPTY;
     }
 
     @Override

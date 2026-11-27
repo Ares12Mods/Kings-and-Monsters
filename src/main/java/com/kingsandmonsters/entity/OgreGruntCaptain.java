@@ -1,5 +1,7 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
@@ -118,7 +120,7 @@ public class OgreGruntCaptain extends OgreGrunt {
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 spawn initialization hook.
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, SpawnGroupData spawnData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+                                        MobSpawnType spawnType, SpawnGroupData spawnData, @Nullable CompoundTag spawnTag) {
         SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData, spawnTag);
         // Roll once when the captain enters the world. Equipment serialization preserves the
         // variant on save/load; the existing renderer uses this same hand slot and transform.
@@ -315,12 +317,12 @@ public class OgreGruntCaptain extends OgreGrunt {
     }
 
     // His own clips: the combat walk is 1.2741s, so the feet land at 0.637s.
-    private static final java.util.Map<String, double[]> CAPTAIN_FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> CAPTAIN_FOOT_CONTACTS = Map.of(
             "walk", new double[]{0.0, 20.0},
             "combat walk", new double[]{0.0, 12.74});
 
     @Override
-    protected java.util.Map<String, double[]> getFootContacts() {
+    protected Map<String, double[]> getFootContacts() {
         return CAPTAIN_FOOT_CONTACTS;
     }
 

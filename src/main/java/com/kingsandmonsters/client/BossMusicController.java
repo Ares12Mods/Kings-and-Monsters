@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import java.util.function.Predicate;
 import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.entity.OgreLord;
@@ -115,7 +116,7 @@ public final class BossMusicController {
     }
 
     private static OgreLord nearestKing(ClientLevel level, Player player, double radius,
-                                         java.util.function.Predicate<OgreLord> predicate) {
+                                         Predicate<OgreLord> predicate) {
         double radiusSqr = radius * radius;
         return level.getEntitiesOfClass(OgreLord.class,
                         new AABB(player.blockPosition()).inflate(radius),

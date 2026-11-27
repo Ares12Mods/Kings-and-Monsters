@@ -1,5 +1,8 @@
 package com.kingsandmonsters.client;
 
+import java.util.concurrent.ThreadLocalRandom;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import com.kingsandmonsters.entity.OgreBrute;
 import com.kingsandmonsters.entity.OgreGruntCaptain;
 import com.kingsandmonsters.entity.OgreMage;
@@ -23,7 +26,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
     /** The quest the player is looking at while three are on offer; -1 while they are still choosing. */
     private int picked = -1;
     /** Chooses which wording of a greeting or reply is used, so the giver does not say the same thing every time. */
-    private int variantSeed = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000);
+    private int variantSeed = ThreadLocalRandom.current().nextInt(1000);
 
     private QuestDialogueScreen(QuestDialoguePayload data) {
         super(Component.translatable("screen.kingsandmonsters.king_dialogue.title"));
@@ -50,7 +53,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
         }
         lastAction = -1;
         picked = -1;
-        variantSeed = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000);
+        variantSeed = ThreadLocalRandom.current().nextInt(1000);
         this.data = payload;
         restartTyping();
         rebuildWidgets();
@@ -63,7 +66,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
     }
 
     @Override
-    protected void drawTopBar(net.minecraft.client.gui.GuiGraphics graphics, int barBottom) {
+    protected void drawTopBar(GuiGraphics graphics, int barBottom) {
         drawFavorBar(graphics, barBottom, data.favor(), data.appeasedFavor(), data.appeased());
     }
 
@@ -123,7 +126,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
     private static Component rewardLine(OgreQuest quest) {
         Component line = Component.translatable("screen.kingsandmonsters.quest.reward", quest.reward());
         StringBuilder items = new StringBuilder();
-        for (net.minecraft.world.item.ItemStack bonus : quest.bonuses()) {
+        for (ItemStack bonus : quest.bonuses()) {
             items.append(items.length() == 0 ? "" : ", ")
                     .append(bonus.getCount()).append(" ").append(bonus.getHoverName().getString());
         }
@@ -146,7 +149,7 @@ public final class QuestDialogueScreen extends CinematicDialogueScreen {
     /** Looks at one of the offered quests, or (-1) goes back to the choice of three. */
     private void choose(int ordinal) {
         picked = ordinal;
-        variantSeed = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000);
+        variantSeed = ThreadLocalRandom.current().nextInt(1000);
         restartTyping();
         rebuildWidgets();
     }

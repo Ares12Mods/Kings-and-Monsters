@@ -6,7 +6,6 @@ import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,7 +27,6 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.Registries;
 
 import java.util.List;
 import java.util.Optional;
@@ -100,7 +98,7 @@ public class KingsTributeBagItem extends BundleItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         if (!ClientConfig.showCustomTooltips()) {
             if (isOpened(stack)) super.appendHoverText(stack, level, tooltip, flag);
             return;

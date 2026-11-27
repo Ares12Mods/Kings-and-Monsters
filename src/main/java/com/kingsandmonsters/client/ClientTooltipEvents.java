@@ -1,5 +1,10 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.enchantment.ModEnchantments;
+import net.minecraft.world.item.PotionItem;
+import net.minecraft.world.item.TippedArrowItem;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraftforge.registries.ForgeRegistries;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.ModItems;
@@ -104,9 +109,9 @@ public final class ClientTooltipEvents {
             }
         }
 
-        if (event.getItemStack().getItem() instanceof net.minecraft.world.item.PotionItem
-                || event.getItemStack().getItem() instanceof net.minecraft.world.item.TippedArrowItem) {
-            for (var effect : net.minecraft.world.item.alchemy.PotionUtils.getMobEffects(event.getItemStack())) {
+        if (event.getItemStack().getItem() instanceof PotionItem
+                || event.getItemStack().getItem() instanceof TippedArrowItem) {
+            for (var effect : PotionUtils.getMobEffects(event.getItemStack())) {
                 Component description = CombatDescriptionComponents.effect(effect.getEffect());
                 if (description != null) {
                     if (!addedHeader) {
@@ -184,7 +189,7 @@ public final class ClientTooltipEvents {
     /** A bog iron axe the King has enchanted carries Timber; any item with the enchantment counts. */
     private static boolean hasTimber(ItemStack stack) {
         return EnchantmentHelper.getEnchantments(stack).keySet().stream()
-                .anyMatch(enchantment -> enchantment == com.kingsandmonsters.enchantment.ModEnchantments.TIMBER.get());
+                .anyMatch(enchantment -> enchantment == ModEnchantments.TIMBER.get());
     }
 
     private static void addNewOgreItemAbilities(ItemTooltipEvent event) {
@@ -249,7 +254,7 @@ public final class ClientTooltipEvents {
                     "tooltip.kingsandmonsters.ironbelly_stew.poison_resistance",
                     "tooltip.kingsandmonsters.ironbelly_stew.resistance",
                     "tooltip.kingsandmonsters.ironbelly_stew.absorption");
-        } else if (stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())) {
+        } else if (stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())) {
             addFoodEffects(event, "tooltip.kingsandmonsters.haunch_platter.feast",
                     "tooltip.kingsandmonsters.haunch_platter.servings",
                     "tooltip.kingsandmonsters.haunch_platter.serve");
@@ -307,7 +312,7 @@ public final class ClientTooltipEvents {
         else if (stack.is(ModItems.RAW_MUDSNOUT_HAUNCH.get())) lore = "A heavy cut of wild boar, bone and all.";
         else if (stack.is(ModItems.ROASTED_MUDSNOUT_HAUNCH.get())) lore = "Meat on the inside, a lifetime of chewing on the bone left over.";
         else if (stack.is(ModItems.BONE_BROTH.get())) lore = "Boiled bones, healed bones. The circle of life, with salt.";
-        else if (stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())) lore = "A whole roast with an apple on the side. Whoever carves it takes the best bit.";
+        else if (stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())) lore = "A whole roast with an apple on the side. Whoever carves it takes the best bit.";
         else if (stack.is(ModItems.HAUNCH_PLATTER_SERVING.get())) lore = "Gone before you finish saying \"just a taste\".";
         else if (stack.is(ModItems.IRONBELLY_STEW.get())) lore = "Sits in your stomach like a boulder. Ogres call it a light snack.";
         else if (stack.is(ModItems.OGRE_HOOKBLADE.get())) lore = "A merchant's answer to anyone foolish enough to flee with his gold.";
@@ -713,7 +718,7 @@ public final class ClientTooltipEvents {
             return true;
         }
         return EnchantmentHelper.getEnchantments(stack).keySet().stream()
-                .map(net.minecraftforge.registries.ForgeRegistries.ENCHANTMENTS::getKey)
+                .map(ForgeRegistries.ENCHANTMENTS::getKey)
                 .anyMatch(key -> key != null && KingsAndMonsters.MODID.equals(key.getNamespace()));
     }
 
@@ -760,7 +765,7 @@ public final class ClientTooltipEvents {
                 || stack.is(ModItems.ROASTED_MUDSNOUT_HAUNCH.get())
                 || stack.is(ModItems.BONE_BROTH.get())
                 || stack.is(ModItems.IRONBELLY_STEW.get())
-                || stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())
+                || stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())
                 || stack.is(ModItems.HAUNCH_PLATTER_SERVING.get());
     }
 

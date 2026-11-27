@@ -26,7 +26,7 @@ public class IronbellyStewItem extends Item {
             consumer.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ONE_MINUTE));
             consumer.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, TWO_MINUTES));
         }
-        return com.kingsandmonsters.item.ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
+        return ItemUtil.hasInfiniteMaterials(consumer) ? result : new ItemStack(Items.BOWL);
     }
 
 }

@@ -1,5 +1,11 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.ModItems;
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import com.kingsandmonsters.item.KingsTributeBagItem;
+import java.util.HashMap;
+import java.util.Map;
+import net.minecraft.resources.ResourceKey;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.api.KingsAndMonstersAPI;
 import com.kingsandmonsters.api.event.ChiefDeathEvent;
@@ -18,7 +24,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,7 +87,7 @@ public final class TributeManager {
             addFavor(level, serverPlayer, -CHEST_LOOT_FAVOR_LOSS);
             // Theft is the one thing the tribe never forgives on the spot: no peace, no paid passage.
             provoke(level, serverPlayer);
-            com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(serverPlayer, "tribute/sticky_fingers");
+            RoyalAdvancementEvents.awardPath(serverPlayer, "tribute/sticky_fingers");
         }
         return true;
     }
@@ -127,7 +132,7 @@ public final class TributeManager {
             OutpostCaptainType captainType,
             BoundingBox structureBounds,
             int groundY,
-            @org.jetbrains.annotations.Nullable PitZone pit) {
+            @Nullable PitZone pit) {
         getData(level).registerEncounter(campOrigin, profile, captainType, structureBounds, groundY, pit);
     }
 
@@ -143,7 +148,7 @@ public final class TributeManager {
         return getData(level).getDiscoverySites();
     }
 
-    public static boolean markStructureDiscovered(ServerLevel level, java.util.UUID playerId, BlockPos origin) {
+    public static boolean markStructureDiscovered(ServerLevel level, UUID playerId, BlockPos origin) {
         return getData(level).markDiscovered(playerId, origin);
     }
 
@@ -193,7 +198,7 @@ public final class TributeManager {
     private static final int PROVOCATION_FAVOR_LOSS = 2;
     // Players who recently struck the tribe, and the game time their peace returns. Not saved: a
     // restart forgives, and the favor they lost stays lost.
-    private static final java.util.Map<UUID, Long> PROVOKED_UNTIL = new java.util.HashMap<>();
+    private static final Map<UUID, Long> PROVOKED_UNTIL = new HashMap<>();
 
     /** While provoked, neither the coin pass nor an appeased tribe protects this player. */
     public static boolean isProvoked(ServerLevel level, UUID playerId) {
@@ -220,7 +225,7 @@ public final class TributeManager {
 
     private static final long TOLL_PASS_TICKS = 20L * 60 * 10;
     // Players who paid a coin to an ogre, and the game time their safe passage runs out.
-    private static final java.util.Map<UUID, Long> TOLL_UNTIL = new java.util.HashMap<>();
+    private static final Map<UUID, Long> TOLL_UNTIL = new HashMap<>();
 
     public static boolean hasTollPass(ServerLevel level, UUID playerId) {
         Long until = TOLL_UNTIL.get(playerId);
@@ -271,7 +276,7 @@ public final class TributeManager {
         UUID playerId = player.getUUID();
         boolean crossed = data.addFavor(playerId, delta);
         if (crossed && data.isAppeased(playerId)) {
-            com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/friend_of_the_tribe");
+            RoyalAdvancementEvents.awardPath(player, "tribute/friend_of_the_tribe");
         }
         if (crossed) {
             player.displayClientMessage(data.isAppeased(playerId)
@@ -302,10 +307,10 @@ public final class TributeManager {
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             ItemStack stack = inventory.getItem(slot);
             int worth;
-            if (stack.is(com.kingsandmonsters.ModItems.GOLD_COIN.get())) {
+            if (stack.is(ModItems.GOLD_COIN.get())) {
                 worth = COIN_FAVOR;
-            } else if (stack.is(com.kingsandmonsters.ModItems.KINGS_TRIBUTE_BUNDLE.get())
-                    && !com.kingsandmonsters.item.KingsTributeBagItem.isOpened(stack)) {
+            } else if (stack.is(ModItems.KINGS_TRIBUTE_BUNDLE.get())
+                    && !KingsTributeBagItem.isOpened(stack)) {
                 worth = BUNDLE_FAVOR;
             } else {
                 continue;
@@ -317,7 +322,7 @@ public final class TributeManager {
             }
         }
         if (offered) {
-            com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/first_tribute");
+            RoyalAdvancementEvents.awardPath(player, "tribute/first_tribute");
             addFavor(player.serverLevel(), player, favor);
         }
         return favor;
@@ -335,7 +340,7 @@ public final class TributeManager {
             var inventory = player.getInventory();
             for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
                 ItemStack stack = inventory.getItem(slot);
-                if (stack.is(com.kingsandmonsters.ModItems.GOLD_COIN.get())) {
+                if (stack.is(ModItems.GOLD_COIN.get())) {
                     count += stack.getCount();
                     if (!player.getAbilities().instabuild) {
                         inventory.setItem(slot, ItemStack.EMPTY);
@@ -344,7 +349,7 @@ public final class TributeManager {
             }
         }
         if (count > 0) {
-            com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/first_tribute");
+            RoyalAdvancementEvents.awardPath(player, "tribute/first_tribute");
             addFavor(player.serverLevel(), player, count * COIN_FAVOR);
         }
         return count;
@@ -440,7 +445,7 @@ public final class TributeManager {
         return getData(level).markMapRewardFulfilledNear(pos);
     }
 
-    public static Optional<ServerLevel> getLevel(net.minecraft.resources.ResourceKey<Level> dimension) {
+    public static Optional<ServerLevel> getLevel(ResourceKey<Level> dimension) {
         return server == null ? Optional.empty() : Optional.ofNullable(server.getLevel(dimension));
     }
 

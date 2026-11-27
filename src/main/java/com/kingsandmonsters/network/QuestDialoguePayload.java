@@ -1,5 +1,6 @@
 package com.kingsandmonsters.network;
 
+import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.client.QuestDialogueScreen;
@@ -13,12 +14,12 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
  * and the line the tribe has to be won past, for the favor bar along the top of the screen.
  */
 public record QuestDialoguePayload(int giverId, boolean king, int state, int quest, int progress,
-                                  java.util.List<Integer> choices, int favor, int appeasedFavor,
+                                  List<Integer> choices, int favor, int appeasedFavor,
                                   boolean appeased)
         implements CustomPacketPayload {
     public static final Type<QuestDialoguePayload> TYPE = new Type<>(
             new ResourceLocation(KingsAndMonsters.MODID, "quest_dialogue"));
-    private static final StreamCodec<FriendlyByteBuf, java.util.List<Integer>> CHOICES =
+    private static final StreamCodec<FriendlyByteBuf, List<Integer>> CHOICES =
             ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list());
     public static final StreamCodec<FriendlyByteBuf, QuestDialoguePayload> STREAM_CODEC =
             StreamCodec.of(QuestDialoguePayload::write, QuestDialoguePayload::read);
@@ -41,7 +42,7 @@ public record QuestDialoguePayload(int giverId, boolean king, int state, int que
         int state = buf.readVarInt();
         int quest = buf.readVarInt();
         int progress = buf.readVarInt();
-        java.util.List<Integer> choices = CHOICES.decode(buf);
+        List<Integer> choices = CHOICES.decode(buf);
         int favor = buf.readVarInt();
         int appeasedFavor = buf.readVarInt();
         boolean appeased = buf.readBoolean();

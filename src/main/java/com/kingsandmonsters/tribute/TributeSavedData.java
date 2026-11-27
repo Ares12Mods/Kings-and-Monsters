@@ -1,11 +1,13 @@
 package com.kingsandmonsters.tribute;
 
+import java.util.Comparator;
+import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.util.Mth;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.api.event.AngerLevelChangedEvent;
 import com.kingsandmonsters.api.tribute.ITributeData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -315,8 +317,8 @@ public class TributeSavedData extends SavedData {
                 .toList();
     }
 
-    private static java.util.Comparator<BlockPos> nearestTo(BlockPos pos) {
-        return java.util.Comparator.comparingLong(candidate -> {
+    private static Comparator<BlockPos> nearestTo(BlockPos pos) {
+        return Comparator.comparingLong(candidate -> {
             long dx = candidate.getX() - pos.getX();
             long dz = candidate.getZ() - pos.getZ();
             return dx * dx + dz * dz;
@@ -357,7 +359,7 @@ public class TributeSavedData extends SavedData {
                         && camp.hasOutpostBounds
                         && pos.getX() >= camp.outpostMinX && pos.getX() <= camp.outpostMaxX
                         && pos.getZ() >= camp.outpostMinZ && pos.getZ() <= camp.outpostMaxZ)
-                .min(java.util.Comparator.comparingLong(camp -> {
+                .min(Comparator.comparingLong(camp -> {
                     long dx = camp.campOrigin.getX() - pos.getX();
                     long dz = camp.campOrigin.getZ() - pos.getZ();
                     return dx * dx + dz * dz;
@@ -511,7 +513,7 @@ public class TributeSavedData extends SavedData {
      */
     public void registerEncounter(
             BlockPos campOrigin, OutpostProfile profile, OutpostCaptainType captainType,
-            BoundingBox structureBounds, int groundY, @org.jetbrains.annotations.Nullable PitZone pit) {
+            BoundingBox structureBounds, int groundY, @Nullable PitZone pit) {
         CampTributeData camp = (CampTributeData) getOrCreate(campOrigin);
         if (camp.jockeyTarget < 0) {
             camp.jockeyTarget = encounterJockeyTarget(profile, campOrigin);
@@ -521,7 +523,7 @@ public class TributeSavedData extends SavedData {
                 && camp.structureKind == StructureKind.ENCOUNTER
                 && camp.hasOutpostBounds
                 && camp.outpostGroundY == groundY
-                && java.util.Objects.equals(camp.pit, pit)) {
+                && Objects.equals(camp.pit, pit)) {
             return;
         }
         camp.populationManaged = true;
@@ -832,7 +834,7 @@ public class TributeSavedData extends SavedData {
             int outpostMaxZ,
             int outpostGroundY,
             OutpostProfile profile,
-            @org.jetbrains.annotations.Nullable PitZone pit) {
+            @Nullable PitZone pit) {
     }
 
     public record DiscoverySite(BlockPos origin, StructureKind kind) {}

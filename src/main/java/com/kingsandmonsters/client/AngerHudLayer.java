@@ -1,12 +1,15 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.api.patrol.PatrolTier;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import net.minecraft.util.Mth;
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
-public final class AngerHudLayer implements net.minecraftforge.client.gui.overlay.IGuiOverlay {
+public final class AngerHudLayer implements IGuiOverlay {
     private static final int LEFT_OFFSET = 10;
     private static final int TOP_OFFSET = 10;
     private static final int HUD_WIDTH = 39;
@@ -23,7 +26,7 @@ public final class AngerHudLayer implements net.minecraftforge.client.gui.overla
     private static final ResourceLocation BRUTE = texture("brute");
 
     @Override
-    public void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight) {
+    public void render(ForgeGui gui, GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight) {
         if (!AngerHudState.isVisible()) {
             return;
         }
@@ -59,7 +62,7 @@ public final class AngerHudLayer implements net.minecraftforge.client.gui.overla
 
     private static ResourceLocation faceForAnger(int anger) {
         if (anger <= 0) return GRUNT_HAPPY;
-        return switch (com.kingsandmonsters.api.patrol.PatrolTier.fromAnger(anger)) {
+        return switch (PatrolTier.fromAnger(anger)) {
             case SMALL -> GRUNT_CAPTAIN;
             case MEDIUM -> MAGE;
             case LARGE -> BRUTE;

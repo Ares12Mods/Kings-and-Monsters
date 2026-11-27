@@ -1,5 +1,7 @@
 package com.kingsandmonsters.effect;
 
+import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.eventbus.api.Event;
 import com.kingsandmonsters.ModMobEffects;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
@@ -16,16 +18,16 @@ public final class CombatEffectEvents {
         var effect = event.getEffectInstance().getEffect();
         if ((effect == ModMobEffects.LESSER_BLEEDING.get() || effect == ModMobEffects.BLEEDING.get()
                 || effect == ModMobEffects.GREATER_BLEEDING.get()) && CombatEffects.isBleedImmune(event.getEntity())) {
-            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+            event.setResult(Event.Result.DENY);
         }
         // Poison Resistance (Ironbelly Stew) shrugs off new poison for its whole duration.
         if (effect == MobEffects.POISON && event.getEntity().hasEffect(ModMobEffects.POISON_RESISTANCE.get())) {
-            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+            event.setResult(Event.Result.DENY);
         }
     }
 
     /** A cut tendon: the legs can no longer push off the ground. */
-    public static void onLivingJump(net.minecraftforge.event.entity.living.LivingEvent.LivingJumpEvent event) {
+    public static void onLivingJump(LivingEvent.LivingJumpEvent event) {
         var entity = event.getEntity();
         if (entity.hasEffect(ModMobEffects.HAMSTRUNG.get())) {
             var motion = entity.getDeltaMovement();

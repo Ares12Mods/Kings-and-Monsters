@@ -1,5 +1,7 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.entity.OgreGuard;
+import net.minecraft.core.registries.Registries;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.api.patrol.PatrolTier;
@@ -25,7 +27,6 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.structure.StructureStart;
 import com.kingsandmonsters.event.ServerTickEvent;
 
 import java.util.ArrayList;
@@ -473,7 +474,7 @@ public final class PatrolManager {
 
     private static int patrolAngerReduction(OgreGrunt ogre) {
         if (ogre instanceof OgreBrute) return 3;
-        if (ogre instanceof com.kingsandmonsters.entity.OgreGuard) return 2;
+        if (ogre instanceof OgreGuard) return 2;
         if (ogre instanceof OgreMage || ogre instanceof OgreGruntCaptain || ogre instanceof OgreTrapper) return 2;
         return 1; // grunt or archer
     }
@@ -597,7 +598,7 @@ public final class PatrolManager {
     }
 
     private static boolean isInsideGeneratedStructure(ServerLevel level, BlockPos pos) {
-        for (var structure : level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)) {
+        for (var structure : level.registryAccess().registryOrThrow(Registries.STRUCTURE)) {
             if (level.structureManager().getStructureWithPieceAt(pos, structure).isValid()) {
                 return true;
             }

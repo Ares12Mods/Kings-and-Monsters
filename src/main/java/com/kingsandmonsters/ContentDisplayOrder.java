@@ -1,5 +1,6 @@
 package com.kingsandmonsters;
 
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -147,14 +148,14 @@ public final class ContentDisplayOrder {
         return List.copyOf(items);
     }
 
-    private static int indexOf(List<ItemStack> items, net.minecraft.world.level.ItemLike item) {
+    private static int indexOf(List<ItemStack> items, ItemLike item) {
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).is(item.asItem())) return i;
         }
         return items.size();
     }
 
-    private static void add(List<ItemStack> output, net.minecraft.world.level.ItemLike... items) {
+    private static void add(List<ItemStack> output, ItemLike... items) {
         for (var item : items) output.add(item.asItem().getDefaultInstance());
     }
 }

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -49,7 +50,7 @@ public final class ItemAttributes {
     }
 
     /** Adds the modifier, replacing any earlier one with the same id. */
-    public static void addOrUpdate(net.minecraft.world.entity.ai.attributes.AttributeInstance instance, AttributeModifier modifier) {
+    public static void addOrUpdate(AttributeInstance instance, AttributeModifier modifier) {
         instance.removeModifier(modifier.getId());
         instance.addTransientModifier(modifier);
     }

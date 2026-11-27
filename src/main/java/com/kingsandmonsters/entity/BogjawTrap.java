@@ -1,5 +1,8 @@
 package com.kingsandmonsters.entity;
 
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import software.bernie.geckolib.core.animation.AnimationController;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModItems;
@@ -318,8 +321,8 @@ public class BogjawTrap extends Entity implements GeoEntity {
             return true;
         }
         // Neutral mobs (wolves, bees, endermen, golems, piglins) are fair game, not only angry ones.
-        if (entity instanceof net.minecraft.world.entity.NeutralMob
-                || entity instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin) {
+        if (entity instanceof NeutralMob
+                || entity instanceof AbstractPiglin) {
             return true;
         }
         return entity instanceof Mob mob && (mob.isAggressive() || mob.getTarget() != null);
@@ -469,7 +472,7 @@ public class BogjawTrap extends Entity implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new software.bernie.geckolib.core.animation.AnimationController<>(this, "Trap", 0, this::animate));
+        controllers.add(new AnimationController<>(this, "Trap", 0, this::animate));
     }
 
     private PlayState animate(AnimationState<BogjawTrap> state) {

@@ -1,10 +1,10 @@
 package com.kingsandmonsters.item;
 
-import com.kingsandmonsters.KingsAndMonsters;
+import java.util.UUID;
+import net.minecraft.world.entity.EquipmentSlot;
 import com.kingsandmonsters.ModMobEffects;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -45,8 +45,8 @@ public final class BlackhideEvents {
     // actual half-second grace period is tracked separately and still controls when Charge ends.
     private static final int CHARGE_DISPLAY_DURATION_TICKS = BlackhideSet.CHARGE_MAX_TICKS + 20;
     private static final int CHARGE_DISPLAY_REFRESH_THRESHOLD_TICKS = BlackhideSet.CHARGE_MAX_TICKS - 20;
-    private static final java.util.UUID MOMENTUM_SPEED_ID =
-            com.kingsandmonsters.item.ItemAttributes.uuid("blackhide_momentum");
+    private static final UUID MOMENTUM_SPEED_ID =
+            ItemAttributes.uuid("blackhide_momentum");
     private static final double MIN_RUN_SPEED_SQR = 0.06 * 0.06;
     private static final double MAX_RUN_STEP_SQR = 2.0 * 2.0;
 
@@ -258,7 +258,7 @@ public final class BlackhideEvents {
 
     /** A tool or sword in the main hand, as opposed to a bare fist or a held block. */
     private static boolean holdsWeapon(ServerPlayer player) {
-        return player.getMainHandItem().getAttributeModifiers(net.minecraft.world.entity.EquipmentSlot.MAINHAND)
+        return player.getMainHandItem().getAttributeModifiers(EquipmentSlot.MAINHAND)
                 .containsKey(Attributes.ATTACK_DAMAGE);
     }
 
@@ -319,7 +319,7 @@ public final class BlackhideEvents {
         if (amount <= 0.0) {
             if (current != null) speed.removeModifier(MOMENTUM_SPEED_ID);
         } else if (current == null || Math.abs(current.getAmount() - amount) > 0.004) {
-            com.kingsandmonsters.item.ItemAttributes.addOrUpdate(speed, new AttributeModifier(MOMENTUM_SPEED_ID, MOMENTUM_SPEED_ID.toString(), amount,
+            ItemAttributes.addOrUpdate(speed, new AttributeModifier(MOMENTUM_SPEED_ID, MOMENTUM_SPEED_ID.toString(), amount,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }

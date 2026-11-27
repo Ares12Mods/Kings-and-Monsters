@@ -1,5 +1,10 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraftforge.registries.RegistryObject;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
@@ -9,8 +14,6 @@ import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
 import com.kingsandmonsters.network.ScreenShakePayload;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -99,7 +102,7 @@ public class OgreGuard extends OgreGrunt {
     private static final int SLAM_ID = 2;
     private static final int BITE_ID = 3;
     // Tick marks of the foot landings in each walk clip, so steps sound with the visible foot.
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "walk", new double[]{0.0, 26.67},
             "Combat walk", new double[]{0.0, 13.33});
     private static final int SHOOT_ANIMATION_TICKS = 45;
@@ -135,12 +138,6 @@ public class OgreGuard extends OgreGrunt {
     private static final double SLAM_RADIUS = 2.1;
     private static final float SLAM_DAMAGE = OgreDamage.raw(OgreDamage.Tier.GUARD, OgreDamage.Blow.LIGHT);
     private static final double SLAM_KNOCKBACK_STRENGTH = 0.9;
-    // The punch holds full extension at tick 15, but the client animation starts a tick or more
-    // after the server counter (it waits on the synced start tick). The +6 that fixed the throw
-    // was slightly late here, so this splits the difference.
-    // Tiny per-tick step toward the target while the swing is winding up, so he visibly closes
-    // the last bit of distance as part of the animation itself instead of standing still — a
-    // single upfront velocity kick read as a slide happening before the punch, not part of it.
     // Brief "just noticed you" pause before he can throw his first attack against a freshly
     // (re)acquired target, so a player who respawns already within his reach doesn't get an
     // instant, zero-warning punch the very tick he re-targets them.
@@ -175,7 +172,6 @@ public class OgreGuard extends OgreGrunt {
     private static final double GUARD_COMBAT_SPEED = 0.925;
     // Matches TridentItem.SHOOT_POWER so the thrown spear flies at the same speed as a player-thrown trident.
     private static final float ARROW_PROJECTILE_SPEED = 2.5F;
-    private static final float ARROW_INACCURACY = 4.5F;
     private static final double ARROW_LOB_COMPENSATION = 0.14;
     // Approximate right-hand position at the release pose (both arms forward, ~1.42s keyframe).
     // An estimate, not a measured bone position, so expect tuning once seen in-game.
@@ -185,10 +181,6 @@ public class OgreGuard extends OgreGrunt {
     // Calibrated against full diamond armor (~1.5 hearts effective per hit) to match the grunt/brute
     // melee tuning pass — arrows hit noticeably harder on lighter armor (~2.4 hearts vs full iron).
     private static final double OGRE_ARROW_BASE_DAMAGE = OgreDamage.raw(OgreDamage.Tier.GUARD, OgreDamage.Blow.STANDARD);
-    private static final int POISON_ARROW_ROLL = 15;
-    private static final int SLOWNESS_ARROW_ROLL = 28;
-    private static final int POISON_ARROW_DURATION_TICKS = 100;
-    private static final int SLOWNESS_ARROW_DURATION_TICKS = 100;
     // Fraction of the remaining turn angle closed per tick (proportional lerp, see
     // rotlerpTurn/turnBodyToward) — not a degrees-per-tick cap. Matches OgreGruntMoveControl's
     // 0.12-0.35 walking/running range for the same gentle, natural-feeling deceleration.
@@ -243,14 +235,14 @@ public class OgreGuard extends OgreGrunt {
         setItemSlot(EquipmentSlot.MAINHAND, spear);
     }
 
-    private void enchantSpear(ItemStack spear, net.minecraftforge.registries.RegistryObject<Enchantment> enchantment, int level) {
+    private void enchantSpear(ItemStack spear, RegistryObject<Enchantment> enchantment, int level) {
         spear.enchant(enchantment.get(), level);
     }
 
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 OverrideOnly spawn hook; no replacement exists in this target.
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
-                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData, @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag spawnTag) {
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData, @Nullable CompoundTag spawnTag) {
         SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, spawnTag);
         ensureBowEquipped();
         return data;
@@ -488,10 +480,6 @@ public class OgreGuard extends OgreGrunt {
                 .add(right.scale(ARROW_SPAWN_SIDE_OFFSET));
     }
 
-    private double getVelocityAdjustedArrowDamage() {
-        return Math.max(0.0, configuredArrowBaseDamage + enchantedBowDamageBonus) / ARROW_PROJECTILE_SPEED;
-    }
-
     private boolean hasClearShotToTarget(LivingEntity target) {
         Vec3 start = getArrowSpawnPosition();
         Vec3 end = target.getEyePosition().subtract(0.0, 0.15, 0.0);
@@ -543,10 +531,6 @@ public class OgreGuard extends OgreGrunt {
 
     private void setBowAiming(boolean aiming) {
         entityData.set(DATA_GUARD_AIMING, aiming);
-    }
-
-    private boolean isBowAiming() {
-        return entityData.get(DATA_GUARD_AIMING);
     }
 
     private boolean isPreparingBowShot() {
@@ -850,8 +834,8 @@ public class OgreGuard extends OgreGrunt {
             return;
         }
         float variation = getRandom().nextFloat() * 0.08F;
-        net.minecraft.core.BlockPos ground = getOnPos();
-        net.minecraft.world.level.block.SoundType surface =
+        BlockPos ground = getOnPos();
+        SoundType surface =
                 level().getBlockState(ground).getSoundType(level(), ground, this);
         level().playLocalSound(getX(), getY(), getZ(), surface.getStepSound(), SoundSource.HOSTILE,
                 0.18F, 1.0F + variation, false);
@@ -993,11 +977,6 @@ public class OgreGuard extends OgreGrunt {
             return true;
         }
         return now - lastMovingAnimationTick <= MOVEMENT_ANIMATION_GRACE_TICKS;
-    }
-
-    private boolean hasActiveCombatTarget() {
-        LivingEntity target = getTarget();
-        return target != null && target.isAlive();
     }
 
     private void markCombatMovementForAnimation() {

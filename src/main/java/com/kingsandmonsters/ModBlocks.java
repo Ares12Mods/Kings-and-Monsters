@@ -1,5 +1,13 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.block.CandleHelmetBlock;
+import com.kingsandmonsters.block.HaunchPlatterBlock;
+import com.kingsandmonsters.item.HaunchPlatterBlockItem;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.material.PushReaction;
 import com.kingsandmonsters.block.OgreKingsCrownBlock;
 import com.kingsandmonsters.block.BogToadEggBlock;
 import com.kingsandmonsters.block.AcornBlock;
@@ -61,7 +69,7 @@ public class ModBlocks {
                     .noCollission()
                     .noOcclusion()
                     .sound(SoundType.FROGSPAWN)
-                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
+                    .pushReaction(PushReaction.DESTROY)));
 
     public static final RegistryObject<AcornBlock> ACORN = BLOCKS.register("acorn",
             () -> new AcornBlock(BlockBehaviour.Properties.of()
@@ -70,7 +78,7 @@ public class ModBlocks {
                     .noCollission()
                     .noOcclusion()
                     .sound(SoundType.WOOD)
-                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
+                    .pushReaction(PushReaction.DESTROY)));
 
     public static final RegistryObject<OgreKingsCrownBlock> OGRE_KINGS_CROWN_DISPLAY = BLOCKS.register(
             "ogre_kings_crown_display",
@@ -80,24 +88,24 @@ public class ModBlocks {
                     .sound(SoundType.METAL)
                     .noOcclusion()));
 
-    public static final RegistryObject<com.kingsandmonsters.block.CandleHelmetBlock> CANDLE_HELMET_BLOCK = BLOCKS.register(
+    public static final RegistryObject<CandleHelmetBlock> CANDLE_HELMET_BLOCK = BLOCKS.register(
             "candle_helmet",
-            () -> new com.kingsandmonsters.block.CandleHelmetBlock(BlockBehaviour.Properties.of()
+            () -> new CandleHelmetBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
                     .strength(0.5F)
                     .sound(SoundType.LANTERN)
                     .noOcclusion()
-                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)
-                    .lightLevel(state -> state.getValue(com.kingsandmonsters.block.CandleHelmetBlock.LIGHT))));
+                    .pushReaction(PushReaction.DESTROY)
+                    .lightLevel(state -> state.getValue(CandleHelmetBlock.LIGHT))));
 
-    public static final RegistryObject<com.kingsandmonsters.block.HaunchPlatterBlock> HAUNCH_PLATTER = BLOCKS.register(
+    public static final RegistryObject<HaunchPlatterBlock> HAUNCH_PLATTER = BLOCKS.register(
             "haunch_platter",
-            () -> new com.kingsandmonsters.block.HaunchPlatterBlock(BlockBehaviour.Properties.of()
+            () -> new HaunchPlatterBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BROWN)
                     .strength(0.5F)
                     .sound(SoundType.WOOD)
                     .noOcclusion()
-                    .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)));
+                    .pushReaction(PushReaction.DESTROY)));
 
     public static final RegistryObject<BlockItem> BOG_IRON_ORE_ITEM =
             blockItem("bog_iron_ore", BOG_IRON_ORE);
@@ -117,19 +125,19 @@ public class ModBlocks {
     public static final RegistryObject<BlockItem> BOG_TOAD_EGG_ITEM =
             blockItem("bog_toad_egg", BOG_TOAD_EGG);
     public static final RegistryObject<BlockItem> HAUNCH_PLATTER_ITEM = ModItems.ITEMS.register("haunch_platter",
-            () -> new com.kingsandmonsters.item.HaunchPlatterBlockItem(HAUNCH_PLATTER.get(),
-                    new net.minecraft.world.item.Item.Properties().stacksTo(1)
+            () -> new HaunchPlatterBlockItem(HAUNCH_PLATTER.get(),
+                    new Item.Properties().stacksTo(1)
                             // One serving's values, for AppleSkin and other food-information mods.
-                            .food(new net.minecraft.world.food.FoodProperties.Builder()
+                            .food(new FoodProperties.Builder()
                                     .nutrition(10).saturationMod(0.9F)
-                                    .effect(new net.minecraft.world.effect.MobEffectInstance(
-                                            net.minecraft.world.effect.MobEffects.REGENERATION, 160), 1.0F)
-                                    .effect(new net.minecraft.world.effect.MobEffectInstance(
-                                            net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
+                                    .effect(new MobEffectInstance(
+                                            MobEffects.REGENERATION, 160), 1.0F)
+                                    .effect(new MobEffectInstance(
+                                            MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
                                     .build())));
 
 
     private static RegistryObject<BlockItem> blockItem(String name, RegistryObject<? extends Block> block) {
-        return ModItems.ITEMS.register(name, () -> new BlockItem(block.get(), new net.minecraft.world.item.Item.Properties()));
+        return ModItems.ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 }

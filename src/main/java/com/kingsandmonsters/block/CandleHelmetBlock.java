@@ -1,5 +1,6 @@
 package com.kingsandmonsters.block;
 
+import com.kingsandmonsters.item.ItemUtil;
 import com.kingsandmonsters.ModBlocks;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.block.entity.CandleHelmetBlockEntity;
@@ -13,7 +14,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -135,7 +135,7 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
             level.playSound(null, pos, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0F,
                     level.getRandom().nextFloat() * 0.4F + 0.8F);
             level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
-            com.kingsandmonsters.item.ItemUtil.hurt(stack, 1, player, com.kingsandmonsters.item.ItemUtil.slotForHand(hand));
+            ItemUtil.hurt(stack, 1, player, ItemUtil.slotForHand(hand));
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -211,7 +211,7 @@ public final class CandleHelmetBlock extends BaseEntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(net.minecraft.world.level.BlockGetter level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         return level.getBlockEntity(pos) instanceof CandleHelmetBlockEntity helmet
                 ? helmet.getStack()
                 : new ItemStack(ModItems.CANDLE_HELMET.get());
