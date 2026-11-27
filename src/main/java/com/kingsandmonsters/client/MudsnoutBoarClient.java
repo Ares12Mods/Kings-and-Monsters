@@ -1,5 +1,9 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.network.BoarChargePayload;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import com.kingsandmonsters.entity.MudsnoutBoar;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -21,7 +25,7 @@ public final class MudsnoutBoarClient {
      * ready; this only reports the press and the release, once each rather than every tick it is held.
      * Getting off or opening a menu while it is held counts as a release.
      */
-    public static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+    public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         Player player = minecraft.player;
         if (player == null) {
@@ -31,7 +35,7 @@ public final class MudsnoutBoarClient {
         boolean riding = player.getControlledVehicle() instanceof MudsnoutBoar;
         boolean down = riding && minecraft.screen == null && minecraft.options.keyJump.isDown();
         if (down != jumpWasDown) {
-            PacketDistributor.sendToServer(new com.kingsandmonsters.network.BoarChargePayload(down));
+            PacketDistributor.sendToServer(new BoarChargePayload(down));
         }
         jumpWasDown = down;
     }
@@ -41,7 +45,7 @@ public final class MudsnoutBoarClient {
      * taken before the game reads the key, so a combat mod can't turn it into a weapon swing, and a held
      * spear stays free to throw.
      */
-    public static void onClientTickPre(net.neoforged.neoforge.client.event.ClientTickEvent.Pre event) {
+    public static void onClientTickPre(ClientTickEvent.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null
                 || !(minecraft.player.getControlledVehicle() instanceof MudsnoutBoar)) {
@@ -89,8 +93,8 @@ public final class MudsnoutBoarClient {
             PoseStack poseStack = event.getPoseStack();
             // The back rises and falls with each clip, and lunges forward and rears back with the
             // headbutt and the ram as the body pitches.
-            float yaw = net.minecraft.util.Mth.rotLerp(event.getPartialTick(), boar.yBodyRotO, boar.yBodyRot);
-            net.minecraft.world.phys.Vec3 forward = net.minecraft.world.phys.Vec3.directionFromRotation(0.0F, yaw);
+            float yaw = Mth.rotLerp(event.getPartialTick(), boar.yBodyRotO, boar.yBodyRot);
+            Vec3 forward = Vec3.directionFromRotation(0.0F, yaw);
             double ahead = boar.getRiderForward();
             poseStack.translate(forward.x * ahead, boar.getRiderBob() + boar.getRiderLeanDrop(), forward.z * ahead);
         }

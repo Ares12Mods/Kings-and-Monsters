@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import net.neoforged.neoforge.registries.DeferredHolder;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.entity.OgreGrunt;
 import com.mojang.datafixers.util.Either;
@@ -59,7 +60,6 @@ public final class OgreKingsFortStructure extends Structure {
     private static final BlockPos MAGE_TRIAL_LOCAL_POS = new BlockPos(30, 3, 9);
     private static final BlockPos BRUTE_TRIAL_LOCAL_POS = new BlockPos(31, 4, 90);
     private static final BlockPos GRUNT_TRIAL_LOCAL_POS = new BlockPos(12, 3, 65);
-    private static final String FORT_RESIDENT_TAG_PREFIX = "KingsAndMonstersFortResident_";
     private static final List<FortResidentMarker> FORT_RESIDENT_MARKERS = List.of(
             // The royal Guards patrol separate sections of the compound. Broad homes keep
             // them roaming through the fort instead of clustering around the throne brazier.
@@ -282,7 +282,7 @@ public final class OgreKingsFortStructure extends Structure {
     private record FortResidentMarker(
             String id,
             BlockPos localPos,
-            net.neoforged.neoforge.registries.DeferredHolder<EntityType<?>, ? extends EntityType<? extends OgreGrunt>> entityType,
+            DeferredHolder<EntityType<?>, ? extends EntityType<? extends OgreGrunt>> entityType,
             int homeRadius,
             boolean eliteGuard) {
     }

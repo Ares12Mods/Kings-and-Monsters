@@ -1,5 +1,7 @@
 package com.kingsandmonsters.compat.jade;
 
+import com.kingsandmonsters.ClientConfig;
+import java.util.List;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModMobEffects;
 import com.kingsandmonsters.entity.MudsnoutBoar;
@@ -33,7 +35,7 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
         // The Ogre King has its own boss bar, so hide his Jade tooltip unless the client config turns it on.
         registration.addRayTraceCallback((hit, accessor, original) ->
                 accessor instanceof EntityAccessor entityAccessor && entityAccessor.getEntity() instanceof OgreLord
-                        && !com.kingsandmonsters.ClientConfig.showJadeForOgreKing() ? null : accessor);
+                        && !ClientConfig.showJadeForOgreKing() ? null : accessor);
     }
 
     /**
@@ -53,7 +55,7 @@ public class BogfumeRageJadePlugin implements IWailaPlugin {
             if (!(accessor.getEntity() instanceof LivingEntity entity) || entity instanceof OgreLord) {
                 return;
             }
-            for (var effect : java.util.List.of(ModMobEffects.GREATER_BLEEDING, ModMobEffects.BLEEDING,
+            for (var effect : List.of(ModMobEffects.GREATER_BLEEDING, ModMobEffects.BLEEDING,
                     ModMobEffects.LESSER_BLEEDING)) {
                 var active = entity.getEffect(effect);
                 if (active != null && active.getDuration() > 0) {

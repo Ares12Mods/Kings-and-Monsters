@@ -1,5 +1,12 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.item.HaunchPlatterServingItem;
+import com.kingsandmonsters.item.TributeCoinItem;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.ArmorMaterials;
+import net.minecraft.world.item.ItemNameBlockItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.entity.BannerPattern;
 import com.google.common.collect.ImmutableMultimap;
 import com.kingsandmonsters.item.BogIronArmorItem;
 import com.kingsandmonsters.item.BogjawTrapItem;
@@ -107,14 +114,14 @@ public class ModItems {
             "roasted_mudsnout_haunch", () -> new RoastedMudsnoutHaunchItem(
                     new Item.Properties().food(new FoodProperties.Builder()
                             .nutrition(12).saturationModifier(0.8F).build())));
-    public static final DeferredItem<com.kingsandmonsters.item.HaunchPlatterServingItem> HAUNCH_PLATTER_SERVING =
-            ITEMS.register("haunch_platter_serving", () -> new com.kingsandmonsters.item.HaunchPlatterServingItem(
+    public static final DeferredItem<HaunchPlatterServingItem> HAUNCH_PLATTER_SERVING =
+            ITEMS.register("haunch_platter_serving", () -> new HaunchPlatterServingItem(
                     new Item.Properties().stacksTo(1).food(new FoodProperties.Builder()
                             .nutrition(10).saturationModifier(0.9F)
-                            .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
-                                    net.minecraft.world.effect.MobEffects.REGENERATION, 160), 1.0F)
-                            .effect(() -> new net.minecraft.world.effect.MobEffectInstance(
-                                    net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
+                            .effect(() -> new MobEffectInstance(
+                                    MobEffects.REGENERATION, 160), 1.0F)
+                            .effect(() -> new MobEffectInstance(
+                                    MobEffects.DAMAGE_RESISTANCE, 900), 1.0F)
                             .build())));
     public static final DeferredItem<Item> MUDSNOUT_BONE = ITEMS.registerSimpleItem("mudsnout_bone");
     public static final DeferredItem<Item> MUDSNOUT_TUSK = ITEMS.registerSimpleItem("mudsnout_tusk");
@@ -128,7 +135,7 @@ public class ModItems {
                     .attributes(SwordItem.createAttributes(Tiers.IRON, 3.0F, -1.8F))));
     // Placeable under oak leaves, where it grows into the acorns the Mudsnout Boars eat.
     public static final DeferredItem<Item> ACORN = ITEMS.register("acorn",
-            () -> new net.minecraft.world.item.ItemNameBlockItem(ModBlocks.ACORN.get(), new Item.Properties()
+            () -> new ItemNameBlockItem(ModBlocks.ACORN.get(), new Item.Properties()
                     .food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.1F).build())));
     public static final DeferredItem<Item> BLACKHIDE_LEATHER = ITEMS.registerSimpleItem("blackhide_leather");
 
@@ -142,8 +149,8 @@ public class ModItems {
     public static final DeferredItem<GoldenOgreToothItem> GOLDEN_OGRE_TOOTH = ITEMS.register("golden_ogre_tooth",
             () -> new GoldenOgreToothItem(new Item.Properties()));
 
-    public static final DeferredItem<com.kingsandmonsters.item.TributeCoinItem> GOLD_COIN = ITEMS.register("gold_coin",
-            () -> new com.kingsandmonsters.item.TributeCoinItem(new Item.Properties()));
+    public static final DeferredItem<TributeCoinItem> GOLD_COIN = ITEMS.register("gold_coin",
+            () -> new TributeCoinItem(new Item.Properties()));
 
     public static final DeferredItem<OgrebloodTotemItem> OGREBLOOD_TOTEM = ITEMS.register("ogreblood_totem",
             () -> new OgrebloodTotemItem(new Item.Properties().stacksTo(1)));
@@ -196,7 +203,7 @@ public class ModItems {
     public static final DeferredItem<BannerItem> OGRE_MAGE_BANNER = ITEMS.register("ogre_mage_banner",
             () -> fixedBanner(Blocks.BROWN_BANNER, Blocks.BROWN_WALL_BANNER, ModBannerPatterns.OGRE_MAGE));
 
-    private static BannerItem fixedBanner(Block standing, Block wall, Holder<net.minecraft.world.level.block.entity.BannerPattern> pattern) {
+    private static BannerItem fixedBanner(Block standing, Block wall, Holder<BannerPattern> pattern) {
         return new BannerItem(standing, wall,
                 new Item.Properties().stacksTo(16).component(
                         DataComponents.BANNER_PATTERNS,
@@ -324,7 +331,7 @@ public class ModItems {
             }),
             25,
             SoundEvents.ARMOR_EQUIP_GOLD,
-            () -> Ingredient.of(net.minecraft.world.item.Items.GOLD_INGOT),
+            () -> Ingredient.of(Items.GOLD_INGOT),
             List.of(new ArmorMaterial.Layer(
                     ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, "ogre_kings_crown"))),
             1.0f,
@@ -381,7 +388,7 @@ public class ModItems {
      * 2 toughness. Item durability is assigned at registration.
      */
     private static Holder<ArmorMaterial> bogsteelGear(String name, int defense,
-                                                       Holder<net.minecraft.sounds.SoundEvent> sound) {
+                                                       Holder<SoundEvent> sound) {
         return Holder.direct(new ArmorMaterial(
                 Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
                     for (ArmorItem.Type type : ArmorItem.Type.values()) {
@@ -394,14 +401,14 @@ public class ModItems {
     }
 
     private static Holder<ArmorMaterial> ogreGear(String name, int defense, float toughness, float knockbackResistance,
-                                                  Holder<net.minecraft.sounds.SoundEvent> sound) {
+                                                  Holder<SoundEvent> sound) {
         return Holder.direct(new ArmorMaterial(
                 Util.make(new EnumMap<>(ArmorItem.Type.class), map -> {
                     for (ArmorItem.Type type : ArmorItem.Type.values()) {
                         map.put(type, defense);
                     }
                 }),
-                10, sound, () -> Ingredient.of(net.minecraft.world.item.Items.LEATHER),
+                10, sound, () -> Ingredient.of(Items.LEATHER),
                 List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(KingsAndMonsters.MODID, name))),
                 toughness, knockbackResistance));
     }
@@ -532,7 +539,7 @@ public class ModItems {
                     new Item.Properties().durability(ArmorItem.Type.BOOTS.getDurability(24))));
 
     public static final DeferredItem<CandleHelmetItem> CANDLE_HELMET = ITEMS.register("candle_helmet",
-            () -> new CandleHelmetItem(net.minecraft.world.item.ArmorMaterials.IRON,
+            () -> new CandleHelmetItem(ArmorMaterials.IRON,
                     new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(15))));
 
     public static final Tier BOGFANG_TOOL = new SimpleTier(

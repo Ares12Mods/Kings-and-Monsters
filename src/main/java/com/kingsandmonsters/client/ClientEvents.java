@@ -1,5 +1,11 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.ModMenus;
+import com.kingsandmonsters.client.block.CandleHelmetBlockRenderer;
+import com.kingsandmonsters.client.block.HaunchPlatterBlockRenderer;
+import com.kingsandmonsters.network.SummonArmyPayload;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.EquipmentSlot;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModBlockEntities;
 import com.kingsandmonsters.ModItems;
@@ -76,8 +82,8 @@ public class ClientEvents {
     }
 
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
-        event.register(com.kingsandmonsters.ModMenus.OGRE_MERCHANT_BACKPACK.get(), OgreMerchantBackpackScreen::new);
-        event.register(com.kingsandmonsters.ModMenus.MUDSNOUT_BOAR.get(), MudsnoutBoarScreen::new);
+        event.register(ModMenus.OGRE_MERCHANT_BACKPACK.get(), OgreMerchantBackpackScreen::new);
+        event.register(ModMenus.MUDSNOUT_BOAR.get(), MudsnoutBoarScreen::new);
     }
 
     public static void registerItemProperties() {
@@ -99,9 +105,9 @@ public class ClientEvents {
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlockEntities.OGRE_KINGS_CROWN.get(), context -> new OgreKingsCrownBlockRenderer());
-        event.registerBlockEntityRenderer(ModBlockEntities.HAUNCH_PLATTER.get(), context -> new com.kingsandmonsters.client.block.HaunchPlatterBlockRenderer());
+        event.registerBlockEntityRenderer(ModBlockEntities.HAUNCH_PLATTER.get(), context -> new HaunchPlatterBlockRenderer());
         event.registerBlockEntityRenderer(ModBlockEntities.CANDLE_HELMET.get(),
-                context -> new com.kingsandmonsters.client.block.CandleHelmetBlockRenderer());
+                context -> new CandleHelmetBlockRenderer());
         event.registerEntityRenderer(ModEntities.OGRE_GRUNT.get(), OgreGruntRenderer::new);
         event.registerEntityRenderer(ModEntities.PLAGUE_OGRE.get(), PlagueOgreRenderer::new);
         event.registerEntityRenderer(ModEntities.BOG_TOAD.get(), BogToadRenderer::new);
@@ -191,10 +197,10 @@ public class ClientEvents {
         }
         while (SUMMON_ARMY.consumeClick()) {
             // Only worth a packet while the crown is worn; the server checks it again.
-            var player = net.minecraft.client.Minecraft.getInstance().player;
-            if (player != null && player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD)
-                    .is(com.kingsandmonsters.ModItems.OGRE_KINGS_CROWN.get())) {
-                PacketDistributor.sendToServer(new com.kingsandmonsters.network.SummonArmyPayload());
+            var player = Minecraft.getInstance().player;
+            if (player != null && player.getItemBySlot(EquipmentSlot.HEAD)
+                    .is(ModItems.OGRE_KINGS_CROWN.get())) {
+                PacketDistributor.sendToServer(new SummonArmyPayload());
             }
         }
     }

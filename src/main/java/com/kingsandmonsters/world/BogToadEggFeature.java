@@ -1,5 +1,7 @@
 package com.kingsandmonsters.world;
 
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.levelgen.Heightmap;
 import com.kingsandmonsters.ModBlocks;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
@@ -27,7 +29,7 @@ public final class BogToadEggFeature extends Feature<NoneFeatureConfiguration> {
         int targetCount = 3 + random.nextInt(3);
         for (int attempt = 0; attempt < 14 && placed < targetCount; attempt++) {
             BlockPos pos = origin.offset(random.nextInt(9) - 4, 0, random.nextInt(9) - 4);
-            pos = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos);
+            pos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos);
             if (!canPlaceEgg(level, pos)) continue;
             level.setBlock(pos, ModBlocks.BOG_TOAD_EGG.get().defaultBlockState(), 2);
             placed++;
@@ -35,7 +37,7 @@ public final class BogToadEggFeature extends Feature<NoneFeatureConfiguration> {
         return placed > 0;
     }
 
-    public static boolean canPlaceEgg(net.minecraft.world.level.LevelReader level, BlockPos pos) {
+    public static boolean canPlaceEgg(LevelReader level, BlockPos pos) {
         BlockState ground = level.getBlockState(pos.below());
         return level.getBlockState(pos).canBeReplaced()
                 && level.getFluidState(pos).isEmpty()

@@ -209,6 +209,10 @@ public class BogToad extends Animal implements GeoEntity {
         moveControl = isInWater() ? swimMoveControl : landMoveControl;
     }
 
+    // ------------------------------------------------------------------ //
+    //  Attributes                                                        //
+    // ------------------------------------------------------------------ //
+
     public static AttributeSupplier.Builder createAttributes() {
         return Animal.createLivingAttributes()
                 .add(Attributes.MAX_HEALTH, 50.0)
@@ -233,6 +237,10 @@ public class BogToad extends Animal implements GeoEntity {
         builder.define(DATA_AGGRO, false);
         builder.define(DATA_BITE_IN_WATER, false);
     }
+
+    // ------------------------------------------------------------------ //
+    //  AI goals                                                          //
+    // ------------------------------------------------------------------ //
 
     @Override
     protected void registerGoals() {
@@ -641,6 +649,10 @@ public class BogToad extends Animal implements GeoEntity {
         // Bones a clip stops keying ease back to rest over a few ticks instead of snapping there.
         return 6.0;
     }
+
+    // ------------------------------------------------------------------ //
+    //  Animation controllers                                             //
+    // ------------------------------------------------------------------ //
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {

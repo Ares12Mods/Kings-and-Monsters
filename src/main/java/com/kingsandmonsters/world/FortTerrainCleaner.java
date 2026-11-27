@@ -1,5 +1,6 @@
 package com.kingsandmonsters.world;
 
+import net.minecraft.tags.BlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
@@ -124,6 +125,6 @@ public final class FortTerrainCleaner {
                 || state.is(Blocks.SAND)
                 || state.is(Blocks.RED_SAND)
                 || OptionalTerrainCompat.isCreateAsurine(state)
-                || state.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD);
+                || state.is(BlockTags.BASE_STONE_OVERWORLD);
     }
 }

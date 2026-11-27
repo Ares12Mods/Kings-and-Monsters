@@ -1,5 +1,9 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.DifficultyInstance;
+import software.bernie.geckolib.animation.Animation;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
@@ -70,7 +74,7 @@ public class OgreArcher extends OgreGrunt {
     private static final EntityDataAccessor<Boolean> DATA_ARCHER_RETREATING =
             SynchedEntityData.defineId(OgreArcher.class, EntityDataSerializers.BOOLEAN);
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
-    private static final RawAnimation RARE_IDLE = RawAnimation.begin().then("idle2", software.bernie.geckolib.animation.Animation.LoopType.PLAY_ONCE);
+    private static final RawAnimation RARE_IDLE = RawAnimation.begin().then("idle2", Animation.LoopType.PLAY_ONCE);
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("walk");
     private static final RawAnimation COMBAT_WALK = RawAnimation.begin().thenLoop("Combat walk");
     private static final RawAnimation SHOOT = RawAnimation.begin().thenPlay("Shoot");
@@ -103,7 +107,7 @@ public class OgreArcher extends OgreGrunt {
     private static final int SWING_ANIMATION_TICKS = 45;
     private static final int SWING_IMPACT_TICKS = 22;
     // Tick marks of the foot landings in each walk clip, so steps sound with the visible foot.
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "walk", new double[]{0.0, 18.84},
             "Combat walk", new double[]{0.0, 10.64});
     private static final int SWING_SOUND_LEAD_TICKS = 2;
@@ -197,7 +201,7 @@ public class OgreArcher extends OgreGrunt {
 
     @Override
     @SuppressWarnings("deprecation") // Required 1.21.1 OverrideOnly spawn hook; no replacement exists in this target.
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
                                         MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
         SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
         equipVariantBow(level);
@@ -586,7 +590,7 @@ public class OgreArcher extends OgreGrunt {
         }
     }
 
-    private void enchantBow(ServerLevelAccessor level, ItemStack bow, net.minecraft.resources.ResourceKey<Enchantment> enchantment, int enchantmentLevel) {
+    private void enchantBow(ServerLevelAccessor level, ItemStack bow, ResourceKey<Enchantment> enchantment, int enchantmentLevel) {
         Holder<Enchantment> holder = level.registryAccess()
                 .lookupOrThrow(Registries.ENCHANTMENT)
                 .getOrThrow(enchantment);

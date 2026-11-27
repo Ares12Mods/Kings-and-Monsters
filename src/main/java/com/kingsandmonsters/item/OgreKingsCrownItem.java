@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.block.OgreKingsCrownBlock;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.ModBlocks;
@@ -64,7 +65,7 @@ public class OgreKingsCrownItem extends ArmorItem implements GeoItem {
         }
 
         BlockState crownState = ModBlocks.OGRE_KINGS_CROWN_DISPLAY.get().defaultBlockState()
-                .setValue(com.kingsandmonsters.block.OgreKingsCrownBlock.FACING,
+                .setValue(OgreKingsCrownBlock.FACING,
                         context.getHorizontalDirection().getOpposite());
         if (!crownState.canSurvive(level, pos)
                 || !level.setBlock(pos, crownState, Block.UPDATE_ALL_IMMEDIATE)) {

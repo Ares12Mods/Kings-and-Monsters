@@ -183,10 +183,6 @@ public final class BleedingParticleEmitter {
         return -1;
     }
 
-    private static int maxInterval(int severity) {
-        return Math.round(MAX_INTERVAL_TICKS[severity] * intervalScale());
-    }
-
     private static int nextInterval(int severity, RandomSource random) {
         float scale = intervalScale();
         int min = Math.round(MIN_INTERVAL_TICKS[severity] * scale);

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.entity.OgreGuard;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.effect.CombatEffects;
 import com.kingsandmonsters.effect.BleedingEffect;
@@ -21,7 +22,7 @@ public final class HunterSpearEvents {
             return;
         }
         // A Guard holds his spear through every swing, but only the stab hits with it.
-        if (attacker instanceof com.kingsandmonsters.entity.OgreGuard guard
+        if (attacker instanceof OgreGuard guard
                 && event.getSource().getDirectEntity() == guard && !guard.isSpearStab()) {
             return;
         }

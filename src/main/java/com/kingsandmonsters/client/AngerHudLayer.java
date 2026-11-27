@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.api.patrol.PatrolTier;
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -60,7 +61,7 @@ public final class AngerHudLayer implements LayeredDraw.Layer {
 
     private static ResourceLocation faceForAnger(int anger) {
         if (anger <= 0) return GRUNT_HAPPY;
-        return switch (com.kingsandmonsters.api.patrol.PatrolTier.fromAnger(anger)) {
+        return switch (PatrolTier.fromAnger(anger)) {
             case SMALL -> GRUNT_CAPTAIN;
             case MEDIUM -> MAGE;
             case LARGE -> BRUTE;

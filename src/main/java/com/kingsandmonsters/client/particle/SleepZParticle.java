@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client.particle;
 
+import java.util.Arrays;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
@@ -13,7 +14,7 @@ import net.minecraft.util.Mth;
 public final class SleepZParticle extends TextureSheetParticle {
     /** How long each sprite shows: three to build, the whole Z for most of the drift, two to dissipate. */
     private static final int[] FRAME_TICKS = {3, 3, 4, 34, 4, 4};
-    private static final int LIFETIME = java.util.Arrays.stream(FRAME_TICKS).sum();
+    private static final int LIFETIME = Arrays.stream(FRAME_TICKS).sum();
     private static final float SIZE = 0.2F;
 
     private final SpriteSet sprites;

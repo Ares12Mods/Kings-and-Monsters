@@ -1,5 +1,14 @@
 package com.kingsandmonsters.entity;
 
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.pathfinder.Path;
+import net.neoforged.neoforge.event.EventHooks;
+import software.bernie.geckolib.animation.AnimationController;
 import com.kingsandmonsters.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -61,8 +70,8 @@ public final class BogPole extends Animal implements GeoEntity {
     public static final double NORMAL_SWIM_SPEED = 1.0;
     public static final double SCARED_SWIM_SPEED = 1.5;
     private static final double WATER_SPEED_SCALE = 4.5;
-    public static final TagKey<Item> FOOD = TagKey.create(net.minecraft.core.registries.Registries.ITEM,
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "bog_toad_food"));
+    public static final TagKey<Item> FOOD = TagKey.create(Registries.ITEM,
+            ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "bog_toad_food"));
 
     private static final EntityDataAccessor<Boolean> SCARED =
             SynchedEntityData.defineId(BogPole.class, EntityDataSerializers.BOOLEAN);
@@ -90,7 +99,7 @@ public final class BogPole extends Animal implements GeoEntity {
     /** Poles hatch in the swamp's shallows: standing water with room above, near the surface. */
     public static boolean checkBogPoleSpawnRules(EntityType<BogPole> type, ServerLevelAccessor level,
                                                  MobSpawnType spawnType, BlockPos pos,
-                                                 net.minecraft.util.RandomSource random) {
+                                                 RandomSource random) {
         return level.getFluidState(pos).is(FluidTags.WATER)
                 && level.getFluidState(pos.above()).is(FluidTags.WATER)
                 && pos.getY() >= level.getSeaLevel() - 6;
@@ -265,10 +274,10 @@ public final class BogPole extends Animal implements GeoEntity {
             age = GROWTH_TICKS - 20 * 60;
             return;
         }
-        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, ModEntities.BOG_TOAD.get(), timer -> {})) return;
+        if (!EventHooks.canLivingConvert(this, ModEntities.BOG_TOAD.get(), timer -> {})) return;
         BogToad adult = ModEntities.BOG_TOAD.get().create(level());
         if (adult == null) return;
-        net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, adult);
+        EventHooks.onLivingConvert(this, adult);
         adult.moveTo(getX(), getY(), getZ(), getYRot(), getXRot());
         adult.finalizeSpawn(serverLevel, level().getCurrentDifficultyAt(blockPosition()), MobSpawnType.CONVERSION, null);
         adult.setNoAi(isNoAi());
@@ -330,7 +339,7 @@ public final class BogPole extends Animal implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new software.bernie.geckolib.animation.AnimationController<>(this, "movement", 3, state -> {
+        controllers.add(new AnimationController<>(this, "movement", 3, state -> {
             if (isInWaterOrBubble() || (!onGround() && getAirSupply() < MAX_AIR)) {
                 if (isScared()) return state.setAndContinue(SWIM_SCARED);
                 if (!navigation.isDone() || state.isMoving()) return state.setAndContinue(SWIM);
@@ -410,7 +419,7 @@ public final class BogPole extends Animal implements GeoEntity {
             BlockPos origin = blockPosition();
             BlockPos best = null;
             for (BlockPos candidate : BlockPos.betweenClosed(origin.offset(-4, 0, -4), origin.offset(4, 12, 4))) {
-                if ((level().getFluidState(candidate).isEmpty() || level().getBlockState(candidate).is(net.minecraft.world.level.block.Blocks.BUBBLE_COLUMN))
+                if ((level().getFluidState(candidate).isEmpty() || level().getBlockState(candidate).is(Blocks.BUBBLE_COLUMN))
                         && level().getBlockState(candidate).isPathfindable(PathComputationType.LAND)) {
                     if (best == null || candidate.distSqr(origin) < best.distSqr(origin)) {
                         best = candidate.immutable();
@@ -481,7 +490,7 @@ public final class BogPole extends Animal implements GeoEntity {
             Vec3 fallback = null;
             boolean preferDeep = random.nextFloat() < 0.65F;
             for (int attempt = 0; attempt < 12; attempt++) {
-                Vec3 candidate = net.minecraft.world.entity.ai.behavior.BehaviorUtils
+                Vec3 candidate = BehaviorUtils
                         .getRandomSwimmablePos(BogPole.this, 10, 7);
                 if (candidate == null) {
                     continue;
@@ -522,7 +531,7 @@ public final class BogPole extends Animal implements GeoEntity {
                 if (level().getBlockState(p.below()).getCollisionShape(level(), p.below()).isEmpty()) {
                     return false;
                 }
-                net.minecraft.world.level.pathfinder.Path path = groundNavigation.createPath(p, 0);
+                Path path = groundNavigation.createPath(p, 0);
                 return path != null && path.canReach();
             }).orElse(null);
             return destination != null;
@@ -570,7 +579,7 @@ public final class BogPole extends Animal implements GeoEntity {
             double score = p.distSqr(origin);
             if (preferBelow && p.getY() > origin.getY() - 2) score += 100.0;
             if (score < bestScore) {
-                net.minecraft.world.level.pathfinder.Path path = waterNavigation.createPath(p, 0);
+                Path path = waterNavigation.createPath(p, 0);
                 if (path != null && path.canReach()) {
                     best = p.immutable();
                     bestScore = score;
@@ -634,7 +643,7 @@ public final class BogPole extends Animal implements GeoEntity {
                 if (!level().getFluidState(p).is(FluidTags.WATER) || distance >= bestDistance) {
                     continue;
                 }
-                net.minecraft.world.level.pathfinder.Path path = navigation.createPath(p, 0);
+                Path path = navigation.createPath(p, 0);
                 if (path != null && path.canReach()) {
                     best = p.immutable();
                     bestDistance = distance;
@@ -658,7 +667,7 @@ public final class BogPole extends Animal implements GeoEntity {
                 return false;
             }
             adult = level().getNearestEntity(BogToad.class,
-                    net.minecraft.world.entity.ai.targeting.TargetingConditions.forNonCombat().range(12.0),
+                    TargetingConditions.forNonCombat().range(12.0),
                     BogPole.this, getX(), getY(), getZ(), getBoundingBox().inflate(12.0));
             return adult != null && distanceToSqr(adult) > 64.0;
         }

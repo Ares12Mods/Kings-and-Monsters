@@ -1,5 +1,15 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.ModMobEffects;
+import java.util.ArrayList;
+import java.util.UUID;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModItems;
@@ -46,13 +56,13 @@ public final class OgreCrownArmy {
 
     private static final int SPAWN_SPACING_TICKS = 3;
 
-    private record Pending(java.util.UUID player, Unit unit, double angle, int ticks, int dueTick) {}
+    private record Pending(UUID player, Unit unit, double angle, int ticks, int dueTick) {}
 
     /** Units still to arrive, in order. Only touched on the server thread. */
-    private static final java.util.ArrayList<Pending> PENDING = new java.util.ArrayList<>();
+    private static final ArrayList<Pending> PENDING = new ArrayList<>();
 
     /** Brings in whichever units of a called warband are due. */
-    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+    public static void onServerTick(ServerTickEvent.Post event) {
         if (PENDING.isEmpty()) {
             return;
         }
@@ -72,8 +82,8 @@ public final class OgreCrownArmy {
     }
 
     /** An army never hurts what it was called to protect: its summoner, players, villagers or anyone's pets. */
-    public static void onIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
-        net.minecraft.world.entity.Entity attacker = event.getSource().getEntity();
+    public static void onIncomingDamage(LivingIncomingDamageEvent event) {
+        Entity attacker = event.getSource().getEntity();
         boolean army = attacker instanceof OgreGrunt ogre && ogre.isArmyAlly()
                 || attacker instanceof MudsnoutBoar boar && boar.getArmyOwnerId() != null;
         if (army && OgreGrunt.spareByArmy(event.getEntity())) {
@@ -82,14 +92,14 @@ public final class OgreCrownArmy {
     }
 
     /** Nor do its splash potions: a harmful effect thrown by an army Mage is stripped from those it spares. */
-    public static void onMobEffectAdded(net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added event) {
+    public static void onMobEffectAdded(MobEffectEvent.Added event) {
         var effect = event.getEffectInstance();
-        if (effect.getEffect().value().getCategory() != net.minecraft.world.effect.MobEffectCategory.HARMFUL
+        if (effect.getEffect().value().getCategory() != MobEffectCategory.HARMFUL
                 || !OgreGrunt.spareByArmy(event.getEntity())) {
             return;
         }
-        net.minecraft.world.entity.Entity source = event.getEffectSource();
-        if (source instanceof net.minecraft.world.entity.projectile.Projectile projectile) {
+        Entity source = event.getEffectSource();
+        if (source instanceof Projectile projectile) {
             source = projectile.getOwner();
         }
         boolean army = source instanceof OgreGrunt ogre && ogre.isArmyAlly()
@@ -134,8 +144,8 @@ public final class OgreCrownArmy {
         }
 
         player.getPersistentData().putLong(READY_AT_TAG, now + Config.CROWN_ARMY_COOLDOWN_SECONDS.get() * 20L);
-        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                com.kingsandmonsters.ModMobEffects.WARBAND, ticks, 0, false, false, true));
+        player.addEffect(new MobEffectInstance(
+                ModMobEffects.WARBAND, ticks, 0, false, false, true));
         level.playSound(null, player.blockPosition(), SoundEvents.RAID_HORN.value(), SoundSource.PLAYERS, 1.4F, 0.7F);
         level.playSound(null, player.blockPosition(), ModSoundEvents.OGRE_LORD_HUFF.get(), SoundSource.PLAYERS, 1.0F, 0.9F);
         player.displayClientMessage(Component.translatable("message.kingsandmonsters.army." + warband.key())

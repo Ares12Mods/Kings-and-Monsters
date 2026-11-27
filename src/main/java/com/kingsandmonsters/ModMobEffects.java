@@ -1,5 +1,6 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.effect.WarbandEffect;
 import com.kingsandmonsters.effect.BogfumeRageEffect;
 import com.kingsandmonsters.effect.CrippledEffect;
 import com.kingsandmonsters.effect.DazedEffect;
@@ -40,7 +41,7 @@ public class ModMobEffects {
             "poison_resistance", PoisonResistanceEffect::new);
     public static final Holder<MobEffect> WARCALLED = MOB_EFFECTS.register("warcalled", WarcalledEffect::new);
     public static final Holder<MobEffect> WARBAND = MOB_EFFECTS.register("warband",
-            com.kingsandmonsters.effect.WarbandEffect::new);
+            WarbandEffect::new);
     public static final Holder<MobEffect> OGRES_BANE = MOB_EFFECTS.register("ogres_bane", OgresBaneEffect::new);
     public static final Holder<MobEffect> BOGSTRIDE = MOB_EFFECTS.register("bogstride", BogstrideEffect::new);
     public static final Holder<MobEffect> CHARGE = MOB_EFFECTS.register("charge", ChargeEffect::new);

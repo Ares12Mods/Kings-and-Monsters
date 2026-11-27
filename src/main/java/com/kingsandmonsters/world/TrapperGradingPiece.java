@@ -1,5 +1,7 @@
 package com.kingsandmonsters.world;
 
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.tags.BlockTags;
@@ -133,7 +135,7 @@ public final class TrapperGradingPiece extends StructurePiece {
     private static BlockPos naturalGround(WorldGenLevel level, int x, int z) {
         // The worldgen heightmap exists for every chunk from the terrain pass on, and it ignores
         // trees, so a canopy hanging over from a neighbour cannot be mistaken for ground.
-        return new BlockPos(x, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR_WG, x, z) - 1, z);
+        return new BlockPos(x, level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - 1, z);
     }
 
     private static void grade(WorldGenLevel level, int x, int z, int targetY, boolean interior) {
@@ -173,7 +175,7 @@ public final class TrapperGradingPiece extends StructurePiece {
             BlockPos pos = new BlockPos(x, y, z);
             BlockState state = level.getBlockState(pos);
             boolean removable = state.is(BlockTags.REPLACEABLE)
-                    || state.getBlock() instanceof net.minecraft.world.level.block.BushBlock
+                    || state.getBlock() instanceof BushBlock
                     || state.is(BlockTags.LEAVES)
                     || (interior && state.is(BlockTags.LOGS));
             if (removable) {

@@ -1,5 +1,9 @@
 package com.kingsandmonsters.entity;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.joml.Vector3f;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModSoundEvents;
@@ -253,14 +257,14 @@ public class OgreMage extends OgreGrunt {
 
     /** A ring of green glow on the ground where a fang is about to come up. */
     private static void sendFangRune(ServerLevel level, Vec3 at) {
-        DustParticleOptions glow = new DustParticleOptions(new org.joml.Vector3f(0.1f, 0.8f, 0.2f), 1.2f);
+        DustParticleOptions glow = new DustParticleOptions(new Vector3f(0.1f, 0.8f, 0.2f), 1.2f);
         level.sendParticles(glow, at.x, at.y + 0.05, at.z, 8, 0.45, 0.02, 0.45, 0.0);
         level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, at.x, at.y + 0.2, at.z, 3, 0.4, 0.15, 0.4, 0.0);
     }
 
     /** Bog muck and green sparks thrown up as the fang breaks the ground. */
     private static void sendFangBurst(ServerLevel level, Vec3 at) {
-        DustParticleOptions glow = new DustParticleOptions(new org.joml.Vector3f(0.12f, 0.9f, 0.2f), 1.4f);
+        DustParticleOptions glow = new DustParticleOptions(new Vector3f(0.12f, 0.9f, 0.2f), 1.4f);
         level.sendParticles(glow, at.x, at.y + 0.6, at.z, 14, 0.28, 0.5, 0.28, 0.04);
         level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MUD.defaultBlockState()),
                 at.x, at.y + 0.15, at.z, 12, 0.3, 0.1, 0.3, 0.12);
@@ -302,6 +306,10 @@ public class OgreMage extends OgreGrunt {
         royalSquadArchersSpawned = Mth.clamp(
                 tag.getInt(ROYAL_SQUAD_ARCHERS_SPAWNED_TAG), 0, ROYAL_SQUAD_ARCHER_COUNT);
     }
+
+    // ------------------------------------------------------------------ //
+    //  Attributes                                                        //
+    // ------------------------------------------------------------------ //
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
@@ -408,7 +416,7 @@ public class OgreMage extends OgreGrunt {
     private static boolean isTrackedBySpawner(
             ServerLevel level,
             TrialSpawnerBlockEntity spawner,
-            java.util.UUID entityId) {
+            UUID entityId) {
         CompoundTag savedData = spawner.saveWithoutMetadata(level.registryAccess());
         ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
         for (Tag trackedMob : trackedMobs) {
@@ -422,7 +430,7 @@ public class OgreMage extends OgreGrunt {
     private static void addTrackedMob(
             ServerLevel level,
             TrialSpawnerBlockEntity spawner,
-            java.util.UUID entityId) {
+            UUID entityId) {
         CompoundTag savedData = spawner.saveWithoutMetadata(level.registryAccess());
         ListTag trackedMobs = savedData.getList("current_mobs", Tag.TAG_INT_ARRAY);
         trackedMobs.add(NbtUtils.createUUID(entityId));
@@ -467,6 +475,10 @@ public class OgreMage extends OgreGrunt {
         builder.define(DATA_MAGE_RETREATING, false);
     }
 
+    // ------------------------------------------------------------------ //
+    //  AI goals                                                          //
+    // ------------------------------------------------------------------ //
+
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
@@ -484,6 +496,10 @@ public class OgreMage extends OgreGrunt {
         registerArmyGoals();
     }
 
+    // ------------------------------------------------------------------ //
+    //  Animation controllers                                             //
+    // ------------------------------------------------------------------ //
+
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         castController = new SynchronizedAnimationController<>(this, "Mage Movement", 5, this::animateMage)
@@ -493,7 +509,7 @@ public class OgreMage extends OgreGrunt {
 
     // His robe hides his legs, so each step lands where his body bobs lowest: 0.5s and 1.5s into the
     // 2s walk, 0.29s and 0.88s into the 1.18s run (animation ticks).
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "walk", new double[]{10.0, 30.0},
             "run", new double[]{5.88, 17.65});
 
@@ -700,22 +716,22 @@ public class OgreMage extends OgreGrunt {
                 .add(0.0, POTION_RELEASE_HEIGHT_OFFSET, 0.0);
     }
 
-    private java.util.Optional<MageCast> choosePotionThrowInRange(LivingEntity hostileTarget) {
-        java.util.Optional<MageCast> supportCast = chooseSupportPotion();
+    private Optional<MageCast> choosePotionThrowInRange(LivingEntity hostileTarget) {
+        Optional<MageCast> supportCast = chooseSupportPotion();
         if (supportCast.isPresent()) {
             return supportCast;
         }
 
         if (distanceToSqr(hostileTarget) <= POTION_RANGE * POTION_RANGE) {
-            return java.util.Optional.of(chooseDebuffPotion(hostileTarget));
+            return Optional.of(chooseDebuffPotion(hostileTarget));
         }
 
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
-    private java.util.Optional<MageCast> chooseSupportPotion() {
-        java.util.List<MageCast> supportOptions = new java.util.ArrayList<>();
-        java.util.List<OgreGrunt> allies = level().getEntitiesOfClass(
+    private Optional<MageCast> chooseSupportPotion() {
+        List<MageCast> supportOptions = new ArrayList<>();
+        List<OgreGrunt> allies = level().getEntitiesOfClass(
                 OgreGrunt.class,
                 getBoundingBox().inflate(SUPPORT_RANGE),
                 ogre -> ogre != this && ogre.isAlive());
@@ -744,10 +760,10 @@ public class OgreMage extends OgreGrunt {
         }
 
         if (supportOptions.isEmpty()) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
 
-        return java.util.Optional.of(supportOptions.get(getRandom().nextInt(supportOptions.size())));
+        return Optional.of(supportOptions.get(getRandom().nextInt(supportOptions.size())));
     }
 
     private MageCast chooseDebuffPotion(LivingEntity target) {
@@ -819,7 +835,7 @@ public class OgreMage extends OgreGrunt {
         level().playSound(null, getX(), getY(), getZ(), ModSoundEvents.OGRE_MAGE_CAST_RELEASE.get(),
                 SoundSource.HOSTILE, 2.0F, 1.0F);
         DustParticleOptions greenBoltRelease =
-                new DustParticleOptions(new org.joml.Vector3f(0.12F, 0.9F, 0.18F), 1.25F);
+                new DustParticleOptions(new Vector3f(0.12F, 0.9F, 0.18F), 1.25F);
         serverLevel.sendParticles(greenBoltRelease, origin.x, origin.y, origin.z, 10, 0.1, 0.1, 0.1, 0.02);
         BogfumeBolt.shoot(serverLevel, this, cast.target(), origin);
     }
@@ -971,7 +987,7 @@ public class OgreMage extends OgreGrunt {
     }
 
     private void spawnMagicPushParticles(ServerLevel serverLevel, Vec3 origin) {
-        var greenDust = new DustParticleOptions(new org.joml.Vector3f(0.1f, 0.85f, 0.15f), 1.6f);
+        var greenDust = new DustParticleOptions(new Vector3f(0.1f, 0.85f, 0.15f), 1.6f);
         serverLevel.sendParticles(greenDust, origin.x, origin.y, origin.z, 32, 0.42, 0.42, 0.42, 0.22);
         serverLevel.sendParticles(ParticleTypes.WITCH, origin.x, origin.y, origin.z, 30, 0.38, 0.38, 0.38, 0.16);
         serverLevel.sendParticles(ParticleTypes.EXPLOSION, origin.x, origin.y, origin.z, 3, 0.14, 0.14, 0.14, 0.0);
@@ -982,7 +998,7 @@ public class OgreMage extends OgreGrunt {
     }
 
     private void spawnPendingPoisonCloud(LivingEntity target) {
-        if (level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+        if (level() instanceof ServerLevel serverLevel) {
             pendingPoisonCloud = PoisonFogCloud.spawn(serverLevel, target.getX(), target.getY(), target.getZ());
             pendingPoisonCloud.setSparesFriends(isArmyAlly());
         }
@@ -1343,7 +1359,7 @@ public class OgreMage extends OgreGrunt {
             }
 
             if (ticksUntilNextPotion <= 0) {
-                java.util.Optional<MageCast> potionCast = mage.choosePotionThrowInRange(target);
+                Optional<MageCast> potionCast = mage.choosePotionThrowInRange(target);
                 if (potionCast.isPresent()
                         && mage.getSensing().hasLineOfSight(potionCast.get().target())) {
                     mage.getNavigation().stop();

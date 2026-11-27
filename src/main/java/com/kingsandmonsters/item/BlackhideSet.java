@@ -1,5 +1,9 @@
 package com.kingsandmonsters.item;
 
+import com.kingsandmonsters.entity.OgreSpear;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrownTrident;
 import com.kingsandmonsters.KingsAndMonsters;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -56,10 +60,10 @@ public final class BlackhideSet {
     }
 
     /** Only arrows can be turned aside: thrown tridents and spears are heavy enough to pierce the hide. */
-    public static boolean isDeflectable(net.minecraft.world.entity.Entity missile) {
-        return missile instanceof net.minecraft.world.entity.projectile.AbstractArrow
-                && !(missile instanceof net.minecraft.world.entity.projectile.ThrownTrident)
-                && !(missile instanceof com.kingsandmonsters.entity.OgreSpear);
+    public static boolean isDeflectable(Entity missile) {
+        return missile instanceof AbstractArrow
+                && !(missile instanceof ThrownTrident)
+                && !(missile instanceof OgreSpear);
     }
 
     public static boolean hasFullSet(LivingEntity entity) {

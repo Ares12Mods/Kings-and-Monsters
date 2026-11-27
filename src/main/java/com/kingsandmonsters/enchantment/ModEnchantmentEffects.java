@@ -1,5 +1,6 @@
 package com.kingsandmonsters.enchantment;
 
+import com.kingsandmonsters.entity.OgreGrunt;
 import com.kingsandmonsters.Config;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -56,7 +57,7 @@ public final class ModEnchantmentEffects {
                 int hostiles = attacker.level().getEntitiesOfClass(Monster.class, area,
                         // Ogres at peace with the attacker are not a crowd to fight, so they add no damage.
                         mob -> mob.isAlive() && mob != target
-                                && !(mob instanceof com.kingsandmonsters.entity.OgreGrunt ogre
+                                && !(mob instanceof OgreGrunt ogre
                                         && !ogre.canAttack(attacker))).size();
                 // Fully surrounded, each level tops out at 1.6 / 2.75 / 3.75 bonus damage. Sharpness V adds 3.0,
                 // so a full crowd with Tyrant III hits a quarter harder than the best vanilla damage enchantment.

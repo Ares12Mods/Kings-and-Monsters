@@ -1,5 +1,7 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import com.kingsandmonsters.entity.MudsnoutBoar;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
@@ -102,7 +104,7 @@ public final class MudsnoutRecallTracker {
             Entity entity = level.getEntity(pending.boarId());
             if (entity instanceof MudsnoutBoar boar && boar.isAlive() && boar.isTamed() && boar.isOwner(owner)) {
                 if (boar.isVehicle()) {
-                    owner.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                    owner.displayClientMessage(Component.translatable(
                             "message.kingsandmonsters.boar_horn.ridden"), true);
                 } else {
                     boar.stopRiding();
@@ -111,13 +113,13 @@ public final class MudsnoutRecallTracker {
                     boar.getNavigation().stop();
                     boar.setTarget(null);
                     remember(boar, owner);
-                    owner.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                    owner.displayClientMessage(Component.translatable(
                             "message.kingsandmonsters.boar_horn.recalled"), true);
                 }
                 removeTicket(level, pending);
                 iterator.remove();
             } else if (pending.ticksLeft() <= 1) {
-                owner.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                owner.displayClientMessage(Component.translatable(
                         "message.kingsandmonsters.boar_horn.none"), true);
                 removeTicket(level, pending);
                 iterator.remove();
@@ -127,7 +129,7 @@ public final class MudsnoutRecallTracker {
         }
     }
 
-    private static void removeTicket(net.minecraft.server.level.ServerLevel level, PendingRecall pending) {
+    private static void removeTicket(ServerLevel level, PendingRecall pending) {
         level.getChunkSource().removeRegionTicket(RECALL_TICKET, new ChunkPos(pending.source()),
                 TICKET_RADIUS, pending.ownerId());
     }

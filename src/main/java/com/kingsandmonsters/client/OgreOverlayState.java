@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import net.minecraft.client.DeltaTracker;
 import com.kingsandmonsters.network.OgreOverlayPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -46,7 +47,7 @@ public final class OgreOverlayState {
         }
     }
 
-    public static void render(GuiGraphics graphics, net.minecraft.client.DeltaTracker deltaTracker) {
+    public static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
         if (active == null || Minecraft.getInstance().options.hideGui) {
             return;
         }

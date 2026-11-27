@@ -1,5 +1,9 @@
 package com.kingsandmonsters.command;
 
+import com.kingsandmonsters.entity.MudsnoutBoar;
+import java.util.Comparator;
+import java.util.Optional;
+import net.minecraft.core.BlockPos;
 import com.kingsandmonsters.api.patrol.PatrolTier;
 import com.kingsandmonsters.api.tribute.ITributeData;
 import com.kingsandmonsters.tribute.PatrolManager;
@@ -46,8 +50,8 @@ public final class TestingCommands {
     /** Lists the nearest boars and why each would or would not attack this player. */
     private static int describeBoars(ServerPlayer player) {
         var boars = player.serverLevel().getEntitiesOfClass(
-                com.kingsandmonsters.entity.MudsnoutBoar.class, player.getBoundingBox().inflate(32.0));
-        boars.sort(java.util.Comparator.comparingDouble(boar -> boar.distanceToSqr(player)));
+                MudsnoutBoar.class, player.getBoundingBox().inflate(32.0));
+        boars.sort(Comparator.comparingDouble(boar -> boar.distanceToSqr(player)));
         if (boars.isEmpty()) {
             player.sendSystemMessage(Component.literal("No Mudsnout Boars within 32 blocks."));
             return 0;
@@ -116,7 +120,7 @@ public final class TestingCommands {
         return spawned > 0 ? 1 : 0;
     }
 
-    private static java.util.Optional<net.minecraft.core.BlockPos> nearestCamp(
+    private static Optional<BlockPos> nearestCamp(
             ServerLevel level, ServerPlayer player) {
         return TributeManager.findNearestCamp(level, player.blockPosition(), WORLD_SEARCH_RADIUS);
     }

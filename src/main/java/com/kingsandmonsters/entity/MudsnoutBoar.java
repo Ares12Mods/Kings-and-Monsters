@@ -1,5 +1,32 @@
 package com.kingsandmonsters.entity;
 
+import com.kingsandmonsters.ModEntities;
+import com.kingsandmonsters.ModParticles;
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import com.kingsandmonsters.effect.CombatEffects;
+import com.kingsandmonsters.item.BlackhideSet;
+import com.kingsandmonsters.item.MudsnoutRecallTracker;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import com.kingsandmonsters.ModSoundEvents;
 import com.kingsandmonsters.entity.animation.CanonicalOneShotState;
 import com.kingsandmonsters.entity.animation.SynchronizedAnimationController;
@@ -209,7 +236,6 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     private static final double RAM_CONTACT_REACH = 0.8 + 1.2 + 0.3;
     // The ram clip starts this far from the target, so its impact tick (plus the lag) lands as the hit does.
     private static final double RAM_ANIMATION_RANGE = (9 + CLIP_LAG_TICKS) * CHARGE_SPEED + RAM_CONTACT_REACH;
-    private static final double RAM_HIT_RANGE = 1.9;
     private static final double RAM_KNOCKBACK = 2.6;
     private static final double RAM_LIFT = 0.95;
     /** How much harder a charge hits than a plain heavy blow, for wild, tamed and jockey boars alike. */
@@ -255,8 +281,6 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     private static final double RIDDEN_CHARGE_SPEED = 1.1;
     private static final double RIDDEN_CHARGE_ACCEL = 0.08;
     private static final int RIDDEN_RAM_TICKS = 28;
-    /** Left-click only rams at (nearly) a full sprint; slower than this it is the usual headbutt. */
-    private static final double RIDDEN_RAM_MIN_SPEED = 0.7;
     /** Winded after any ram, then no sprinting for five seconds if it connected. */
     private static final int RIDDEN_WINDED_TICKS = 24;
     private static final double RIDDEN_WINDED_SPEED = 0.07;
@@ -351,9 +375,9 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     // ------------------------------------------------------------------ //
 
     /** Blocks a boar will wallow in; a tag so packs or other mud can be added without code. */
-    private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> WALLOW_BLOCKS =
-            net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "boar_wallows"));
+    private static final TagKey<Block> WALLOW_BLOCKS =
+            TagKey.create(Registries.BLOCK,
+                    ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "boar_wallows"));
     private static final int WALLOW_SEARCH_RADIUS = 20;
     /** Wild boars drift back toward a wallow they know of when it is within this many blocks. */
     private static final double WALLOW_HOME_RANGE = 40.0;
@@ -439,7 +463,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     @Override
     public void openCustomInventoryScreen(Player player) {
-        if (!level().isClientSide && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer
+        if (!level().isClientSide && player instanceof ServerPlayer serverPlayer
                 && isTamed() && isOwner(player)) {
             serverPlayer.openMenu(
                     new SimpleMenuProvider((id, inventory, p) -> new MudsnoutBoarMenu(id, inventory, this),
@@ -563,7 +587,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         if (tickClimbOut() || !isInWater()) {
             return;
         }
-        double submerged = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
+        double submerged = getFluidHeight(FluidTags.WATER);
         Vec3 motion = getDeltaMovement();
         double y = motion.y;
         // Height is left alone while it pushes against a bank, so the climb out of the water is not flattened.
@@ -587,7 +611,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             input = input.normalize();
         }
         double pace = isRiderSprinting(rider) ? SWIM_SPRINT_BLOCKS_PER_TICK : SWIM_BLOCKS_PER_TICK;
-        Vec3 wanted = input.scale(pace).yRot(-getYRot() * net.minecraft.util.Mth.DEG_TO_RAD);
+        Vec3 wanted = input.scale(pace).yRot(-getYRot() * Mth.DEG_TO_RAD);
         return swimVelocity.add(wanted.subtract(swimVelocity).scale(SWIM_EASE));
     }
 
@@ -644,7 +668,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     private boolean isWaterAt(double rise) {
         return level().getFluidState(BlockPos.containing(getX(), getY() + rise, getZ()))
-                .is(net.minecraft.tags.FluidTags.WATER);
+                .is(FluidTags.WATER);
     }
 
     /** The vertical speed that carries a ridden boar toward its bobbing waterline this tick. */
@@ -652,7 +676,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         treadPhase += Math.PI * 2.0 / (moving ? TREAD_MOVING_PERIOD_TICKS : TREAD_IDLE_PERIOD_TICKS);
         double line = getBbHeight() * TREAD_DEPTH
                 + Math.sin(treadPhase) * (moving ? TREAD_MOVING_RISE : TREAD_IDLE_RISE);
-        return net.minecraft.util.Mth.clamp((submerged - line) * TREAD_PULL, -TREAD_MAX_SPEED, TREAD_MAX_SPEED);
+        return Mth.clamp((submerged - line) * TREAD_PULL, -TREAD_MAX_SPEED, TREAD_MAX_SPEED);
     }
 
     /**
@@ -722,8 +746,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             return;
         }
         if (isTamed() && !armyBoar && tickCount % 20 == 0
-                && getOwner() instanceof net.minecraft.server.level.ServerPlayer owner) {
-            com.kingsandmonsters.item.MudsnoutRecallTracker.remember(this, owner);
+                && getOwner() instanceof ServerPlayer owner) {
+            MudsnoutRecallTracker.remember(this, owner);
         }
         if (entityData.get(DATA_SPEED_TRAIT) == 0.0F) {
             // Averaging two rolls makes the extremes rare: most boars are near 10 blocks/s, a few are 8 or 12.
@@ -795,7 +819,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         if (target == rider || target instanceof MudsnoutBoar boar && boar.isTamed()) {
             return false;
         }
-        if (target instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isOwnedBy(rider)) {
+        if (target instanceof TamableAnimal pet && pet.isOwnedBy(rider)) {
             return false;
         }
         if (target instanceof Player other && (rider.isAlliedTo(other) || !rider.canHarmPlayer(other))) {
@@ -882,7 +906,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     /** Who has already been shoved aside by the charge in progress, so each one is only hit once. */
-    private final java.util.Set<UUID> shovedThisCharge = new java.util.HashSet<>();
+    private final Set<UUID> shovedThisCharge = new HashSet<>();
 
     /**
      * Anything other than the charge's target that is in the boar's path takes a headbutt's worth of
@@ -937,8 +961,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 candidate -> candidate != this && candidate != rider && candidate.isAlive()
                         && (only == null || candidate == only) && canStrike(candidate))) {
             boolean hurt = victim.hurt(damageSources().mobAttack(this), damage);
-            // A target still in its hit-immunity, or behind a raised shield, takes no damage but is still
-            // run into: the charge stops there instead of passing straight through them.
+            // Stop the charge on shields and hit immunity to avoid passing through the target.
             if (hurt || victim.invulnerableTime > 0 || victim.isBlocking()) {
                 double carried = 1.0 - Math.min(1.0, Math.max(0.0,
                         victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)));
@@ -947,15 +970,15 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 victim.hasImpulse = true;
                 if (hurt) {
                     // The full force of a charge leaves its victim reeling.
-                    com.kingsandmonsters.effect.CombatEffects.applyDazed(victim, RAM_DAZED_TICKS, this);
+                    CombatEffects.applyDazed(victim, RAM_DAZED_TICKS, this);
                 }
                 rammed = true;
                 ramImpactParticles(victim);
             }
         }
         if (rammed) {
-            if (rider instanceof net.minecraft.server.level.ServerPlayer charger) {
-                com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(charger, "boars/ramming_speed");
+            if (rider instanceof ServerPlayer charger) {
+                RoyalAdvancementEvents.awardPath(charger, "boars/ramming_speed");
             }
             if (!ramAnimationPlayed) {
                 ramAnimationPlayed = true;
@@ -973,7 +996,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
      * lands its impact as the boar reaches it. Without this the clip only began after the hit.
      */
     private boolean ramAhead(Vec3 direction, LivingEntity rider) {
-        double speed = net.minecraft.util.Mth.clamp(recentSpeed, CHARGE_SPEED, RIDDEN_CHARGE_SPEED);
+        double speed = Mth.clamp(recentSpeed, CHARGE_SPEED, RIDDEN_CHARGE_SPEED);
         double reach = (9 + CLIP_LAG_TICKS) * speed + RAM_CONTACT_REACH;
         AABB path = getBoundingBox().expandTowards(direction.scale(reach)).inflate(1.2, 0.5, 1.2);
         return !level().getEntitiesOfClass(LivingEntity.class, path,
@@ -1046,7 +1069,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     private static float yawOf(Vec3 direction) {
-        return (float) (net.minecraft.util.Mth.atan2(direction.z, direction.x) * (180.0 / Math.PI)) - 90.0F;
+        return (float) (Mth.atan2(direction.z, direction.x) * (180.0 / Math.PI)) - 90.0F;
     }
 
     private void setPhase(int phase) {
@@ -1238,7 +1261,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         }
         BlockState mud = serverLevel.getBlockState(getOnPos());
         if (!mud.is(WALLOW_BLOCKS)) {
-            mud = net.minecraft.world.level.block.Blocks.MUD.defaultBlockState();
+            mud = Blocks.MUD.defaultBlockState();
         }
         serverLevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, mud),
                 getX(), getY() + 0.3, getZ(), 40, 0.9, 0.25, 0.9, 0.15);
@@ -1257,7 +1280,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             return false;
         }
         if (!level().isClientSide && source.getDirectEntity() instanceof AbstractArrow arrow
-                && com.kingsandmonsters.item.BlackhideSet.isDeflectable(arrow)
+                && BlackhideSet.isDeflectable(arrow)
                 && random.nextFloat() < MISSILE_DEFLECT_CHANCE) {
             // Refusing the hit makes the arrow glance off. It is then sent back the way it came, at
             // the speed it arrived with, in the next tick (the arrow slows its own bounce this one).
@@ -1280,11 +1303,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         return hurt;
     }
 
-    /**
-     * Hitting a boar, or shooting at it, breaks whatever trust it had in you, and a wild one will not
-     * forgive you for a while even if you are holding food: a fed, calmed boar used to stay friendly
-     * however hard it was hit.
-     */
+    /** Hitting or shooting at a wild boar breaks trust and keeps food from calming it immediately. */
     private void angerAt(Player attacker) {
         if (isTamed()) {
             return;
@@ -1333,12 +1352,12 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     private static final int JOCKEY_REVENGE_TICKS = 200;
 
     /** A rare boar comes with an Ogre Archer on its back; the spawner adds him along with the boar. */
-    public void addJockey(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty) {
+    public void addJockey(ServerLevelAccessor level, DifficultyInstance difficulty) {
         if (!hasJockeyRoom(level)) {
             // Under a roof, ledge or overhang the rider would sit inside the blocks and suffocate.
             return;
         }
-        OgreArcher archer = com.kingsandmonsters.ModEntities.OGRE_ARCHER.get().create(level.getLevel());
+        OgreArcher archer = ModEntities.OGRE_ARCHER.get().create(level.getLevel());
         if (archer == null) {
             return;
         }
@@ -1361,8 +1380,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** Whether the space above the boar is clear for a seated Archer, seat height plus his full height. */
     private boolean hasJockeyRoom(ServerLevelAccessor level) {
-        double archerHeight = com.kingsandmonsters.ModEntities.OGRE_ARCHER.get().getDimensions().height();
-        net.minecraft.world.phys.AABB column = new net.minecraft.world.phys.AABB(
+        double archerHeight = ModEntities.OGRE_ARCHER.get().getDimensions().height();
+        AABB column = new AABB(
                 getX() - 0.5, getY() + getBbHeight(), getZ() - 0.5,
                 getX() + 0.5, getY() + JOCKEY_SEAT_HEIGHT + archerHeight + 0.2, getZ() + 0.5);
         return level.getLevel().noCollision(this, column);
@@ -1411,8 +1430,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         arrow.setOwner(this);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         arrow.setDeltaMovement(reflectedVelocity);
-        arrow.setYRot((float) (net.minecraft.util.Mth.atan2(reflectedVelocity.x, reflectedVelocity.z) * 57.3F));
-        arrow.setXRot((float) (net.minecraft.util.Mth.atan2(reflectedVelocity.y, reflectedVelocity.horizontalDistance()) * 57.3F));
+        arrow.setYRot((float) (Mth.atan2(reflectedVelocity.x, reflectedVelocity.z) * 57.3F));
+        arrow.setXRot((float) (Mth.atan2(reflectedVelocity.y, reflectedVelocity.horizontalDistance()) * 57.3F));
         arrow.hurtMarked = true;
     }
 
@@ -1457,7 +1476,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     private static float inheritTrait(float a, float b, float min, float max, RandomSource random) {
         float average = (a == 0.0F ? 1.0F : a) / 2.0F + (b == 0.0F ? 1.0F : b) / 2.0F;
-        return net.minecraft.util.Mth.clamp(average + (float) random.nextGaussian() * TRAIT_DRIFT, min, max);
+        return Mth.clamp(average + (float) random.nextGaussian() * TRAIT_DRIFT, min, max);
     }
 
     /** Two boars in love meet: a snoutlet is born with traits near the average of its parents. */
@@ -1465,7 +1484,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         if (!(level() instanceof ServerLevel serverLevel)) {
             return;
         }
-        MudsnoutBoar baby = com.kingsandmonsters.ModEntities.MUDSNOUT_BOAR.get().create(serverLevel);
+        MudsnoutBoar baby = ModEntities.MUDSNOUT_BOAR.get().create(serverLevel);
         if (baby != null) {
             baby.entityData.set(DATA_SPEED_TRAIT, inheritTrait(getSpeedTrait(), partner.getSpeedTrait(),
                     SPEED_TRAIT_MIN, SPEED_TRAIT_BRED_MAX, random));
@@ -1482,7 +1501,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             serverLevel.addFreshEntityWithPassengers(baby);
             serverLevel.sendParticles(ParticleTypes.HEART, baby.getX(), baby.getY() + 0.6, baby.getZ(),
                     7, 0.4, 0.3, 0.4, 0.02);
-            serverLevel.addFreshEntity(new net.minecraft.world.entity.ExperienceOrb(
+            serverLevel.addFreshEntity(new ExperienceOrb(
                     serverLevel, getX(), getY(), getZ(), random.nextInt(7) + 1));
         }
         loveTicks = 0;
@@ -1516,7 +1535,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             partner = boar.level().getEntitiesOfClass(MudsnoutBoar.class,
                             boar.getBoundingBox().inflate(BREED_SEEK_RANGE),
                             other -> other != boar && eligible(other)).stream()
-                    .min(java.util.Comparator.comparingDouble(boar::distanceToSqr)).orElse(null);
+                    .min(Comparator.comparingDouble(boar::distanceToSqr)).orElse(null);
             return partner != null;
         }
 
@@ -1563,7 +1582,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     @Override
-    protected EntityDimensions getDefaultDimensions(net.minecraft.world.entity.Pose pose) {
+    protected EntityDimensions getDefaultDimensions(Pose pose) {
         return isBaby() ? EntityDimensions.scalable(0.9F, 0.8F).withEyeHeight(0.6F) : super.getDefaultDimensions(pose);
     }
 
@@ -1571,10 +1590,10 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     @Override
     @Nullable
     @SuppressWarnings("deprecation")
-    public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(ServerLevelAccessor level,
-            net.minecraft.world.DifficultyInstance difficulty, MobSpawnType spawnType,
-            @Nullable net.minecraft.world.entity.SpawnGroupData group) {
-        net.minecraft.world.entity.SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, group);
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level,
+            DifficultyInstance difficulty, MobSpawnType spawnType,
+            @Nullable SpawnGroupData group) {
+        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, group);
         if (spawnType == MobSpawnType.NATURAL || spawnType == MobSpawnType.CHUNK_GENERATION) {
             MudsnoutPackData pack = group instanceof MudsnoutPackData existing
                     ? existing : new MudsnoutPackData();
@@ -1582,10 +1601,10 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             pack.spawned++;
             return pack;
         }
-        return data != null ? data : new net.minecraft.world.entity.SpawnGroupData() { };
+        return data != null ? data : new SpawnGroupData() { };
     }
 
-    private static final class MudsnoutPackData implements net.minecraft.world.entity.SpawnGroupData {
+    private static final class MudsnoutPackData implements SpawnGroupData {
         private int spawned;
     }
 
@@ -1604,7 +1623,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** One line saying why this boar would or would not go for this player; for the debug command. */
     public String describeAggroFor(Player player) {
-        return String.format(java.util.Locale.ROOT,
+        return String.format(Locale.ROOT,
                 "%s dist=%.1f baby=%s tamed=%s pose=%d phase=%d target=%s friendly=%s canAttack=%s los=%s"
                         + " fleeing=%s ogreRider=%s hurtTime=%d navDone=%s",
                 blockPosition().toShortString(), Math.sqrt(distanceToSqr(player)), isBaby(), isTamed(),
@@ -1691,8 +1710,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 if (!level().isClientSide && level().getGameTime() - saddledAtTick > 20) {
                     snapUp();
                     player.startRiding(this);
-                    if (player instanceof net.minecraft.server.level.ServerPlayer mounter) {
-                        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(mounter, "boars/hog_wild");
+                    if (player instanceof ServerPlayer mounter) {
+                        RoyalAdvancementEvents.awardPath(mounter, "boars/hog_wild");
                     }
                     player.displayClientMessage(Component.translatable("boar.kingsandmonsters.traits",
                             Component.translatable(getSpeedTierKey()), Component.translatable(getHealthTierKey())), true);
@@ -1762,9 +1781,9 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         trustedId = null;
         trust = 0;
         entityData.set(DATA_TAMED, true);
-        if (player instanceof net.minecraft.server.level.ServerPlayer tamer) {
-            com.kingsandmonsters.item.MudsnoutRecallTracker.remember(this, tamer);
-            com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(tamer, "boars/swine_friend");
+        if (player instanceof ServerPlayer tamer) {
+            MudsnoutRecallTracker.remember(this, tamer);
+            RoyalAdvancementEvents.awardPath(tamer, "boars/swine_friend");
         }
         setPersistenceRequired();
         setTarget(null);
@@ -1789,7 +1808,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         }
     }
 
-    private void sendParticles(net.minecraft.core.particles.ParticleOptions particle, int count) {
+    private void sendParticles(ParticleOptions particle, int count) {
         if (level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(particle, getX(), getY() + 1.4, getZ(), count, 0.6, 0.5, 0.6, 0.02);
         }
@@ -1857,14 +1876,14 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
     }
 
     @Override
-    protected Vec3 getPassengerAttachmentPoint(net.minecraft.world.entity.Entity passenger, EntityDimensions dimensions,
+    protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions,
                                                float scale) {
         boolean jockey = passenger instanceof OgreArcher;
         Vec3 seat = new Vec3(0.0, jockey ? JOCKEY_SEAT_HEIGHT : SEAT_HEIGHT, jockey ? JOCKEY_SEAT_OFFSET : 0.0);
         // The offset follows the way the body faces, which is what the model is drawn along. It is not
         // rotated for us, and the body lags the look direction at rest, so a fixed offset drifted around
         // the saddle and settled only once the boar started to walk.
-        return seat.yRot(-yBodyRot * net.minecraft.util.Mth.DEG_TO_RAD);
+        return seat.yRot(-yBodyRot * Mth.DEG_TO_RAD);
     }
 
     /**
@@ -1874,7 +1893,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
      */
     @Override
     protected int calculateFallDamage(float fallDistance, float damageMultiplier) {
-        return net.minecraft.util.Mth.ceil((fallDistance * 0.5F - 3.0F) * damageMultiplier);
+        return Mth.ceil((fallDistance * 0.5F - 3.0F) * damageMultiplier);
     }
 
     /** As on a horse, whoever is riding takes the same fall damage as the boar, instead of working out their own. */
@@ -1886,7 +1905,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         }
         hurt(source, damage);
         if (isVehicle()) {
-            for (net.minecraft.world.entity.Entity passenger : getIndirectPassengers()) {
+            for (Entity passenger : getIndirectPassengers()) {
                 passenger.hurt(source, damage);
             }
         }
@@ -1935,7 +1954,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             riddenSpeedNow = 0.0;
         }
         float target = player.getYRot();
-        float yaw = getYRot() + net.minecraft.util.Mth.wrapDegrees(target - getYRot()) * RIDDEN_TURN;
+        float yaw = getYRot() + Mth.wrapDegrees(target - getYRot()) * RIDDEN_TURN;
         setRot(yaw, player.getXRot() * 0.3F);
         yRotO = yBodyRot = yHeadRot = getYRot();
     }
@@ -1966,8 +1985,8 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         boolean sprint = isRiderSprinting(player);
         float trait = entityData.get(DATA_SPEED_TRAIT);
         // The speed trait runs 0.8 to 1.2 in the wild, spreading the sprint across 16 to 18 blocks a second;\n        // bred boars carry it on to 1.6, which is 20.
-        double traitShare = trait == 0.0F ? 0.5 : net.minecraft.util.Mth.clamp((trait - 0.8) / 0.4, 0.0, 2.0);
-        double sprintSpeed = net.minecraft.util.Mth.lerp(traitShare, RIDDEN_SPRINT_MIN_BLOCKS_PER_TICK,
+        double traitShare = trait == 0.0F ? 0.5 : Mth.clamp((trait - 0.8) / 0.4, 0.0, 2.0);
+        double sprintSpeed = Mth.lerp(traitShare, RIDDEN_SPRINT_MIN_BLOCKS_PER_TICK,
                 RIDDEN_SPRINT_MAX_BLOCKS_PER_TICK);
         // The trait mostly shows at full tilt; the walking pace barely changes.
         double walkSpeed = RIDDEN_BLOCKS_PER_TICK * (trait == 0.0F ? 1.0 : 1.0 + (trait - 1.0) * 0.3);
@@ -1979,7 +1998,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
             riddenSpeedNow = Math.min(riddenSpeedNow, RIDDEN_WINDED_SPEED);
         }
         double change = target - riddenSpeedNow;
-        riddenSpeedNow += net.minecraft.util.Mth.clamp(change, -RIDDEN_DECEL, RIDDEN_ACCEL);
+        riddenSpeedNow += Mth.clamp(change, -RIDDEN_DECEL, RIDDEN_ACCEL);
         return (float) (riddenSpeedNow / 2.92);
     }
 
@@ -2027,10 +2046,10 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** How many ticks the launched charge runs for a given hold, from the shortest to the longest. */
     private static int riddenChargeTicksFor(int heldTicks) {
-        double share = net.minecraft.util.Mth.clamp(
+        double share = Mth.clamp(
                 (heldTicks - RIDDEN_WINDUP_MIN_HOLD) / (double) (RIDDEN_WINDUP_MAX_HOLD - RIDDEN_WINDUP_MIN_HOLD),
                 0.0, 1.0);
-        return (int) Math.round(net.minecraft.util.Mth.lerp(share, RIDDEN_CHARGE_MIN_TICKS, RIDDEN_RAM_TICKS));
+        return (int) Math.round(Mth.lerp(share, RIDDEN_CHARGE_MIN_TICKS, RIDDEN_RAM_TICKS));
     }
 
     /** Blocks a charge of this many ticks covers: it starts slow and speeds up to its top speed. */
@@ -2062,17 +2081,17 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** The rider's action bar while the charge winds up: how far it will go if they let go now. */
     private void showChargeMeter(LivingEntity rider) {
-        if (!(rider instanceof net.minecraft.server.level.ServerPlayer player) || riddenWindupHeld % 2 != 0) {
+        if (!(rider instanceof ServerPlayer player) || riddenWindupHeld % 2 != 0) {
             return;
         }
         int segments = 10;
-        int filled = net.minecraft.util.Mth.clamp(
+        int filled = Mth.clamp(
                 Math.round(riddenWindupHeld * segments / (float) RIDDEN_WINDUP_MAX_HOLD), 0, segments);
         int blocks = (int) Math.round(riddenChargeDistance(riddenChargeTicksFor(riddenWindupHeld)));
-        player.displayClientMessage(Component.literal("Charge  ").withStyle(net.minecraft.ChatFormatting.GRAY)
-                .append(Component.literal("|".repeat(filled)).withStyle(net.minecraft.ChatFormatting.GOLD))
-                .append(Component.literal("|".repeat(segments - filled)).withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
-                .append(Component.literal("  " + blocks + " blocks").withStyle(net.minecraft.ChatFormatting.GRAY)), true);
+        player.displayClientMessage(Component.literal("Charge  ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("|".repeat(filled)).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal("|".repeat(segments - filled)).withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal("  " + blocks + " blocks").withStyle(ChatFormatting.GRAY)), true);
     }
 
     /** Who the rider aimed the charge at when it launched, if anyone was in the line. */
@@ -2238,15 +2257,15 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         return true;
     }
 
-    private static final net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.structure.Structure>
-            WALLOW_STRUCTURE = net.minecraft.resources.ResourceKey.create(
-                    net.minecraft.core.registries.Registries.STRUCTURE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "mud_wallow"));
+    private static final ResourceKey<Structure>
+            WALLOW_STRUCTURE = ResourceKey.create(
+                    Registries.STRUCTURE,
+                    ResourceLocation.fromNamespaceAndPath("kingsandmonsters", "mud_wallow"));
 
     /** True inside the footprint of a generated wallow. */
     private static boolean isAtWallow(ServerLevelAccessor level, BlockPos pos) {
         var structure = level.getLevel().registryAccess()
-                .registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE).get(WALLOW_STRUCTURE);
+                .registryOrThrow(Registries.STRUCTURE).get(WALLOW_STRUCTURE);
         return structure != null && level.getLevel().structureManager().getStructureAt(pos, structure).isValid();
     }
 
@@ -2305,7 +2324,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     // Each hoof lands when its leg swings furthest forward (animation ticks). The walks are a four-beat
     // gait over 2s, the run a pair of hind then a pair of fore hooves every half second.
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "WALK", new double[]{6.67, 13.33, 26.67, 33.33},
             "COMBAT_WALK", new double[]{3.33, 6.67, 13.33, 16.67, 23.33, 26.67, 33.33, 36.67},
             "RUN", new double[]{0.8, 5.8, 10.8, 15.8, 20.8, 25.8, 30.8, 35.8});
@@ -2909,9 +2928,9 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** Eases the boar round to face a target while it stands still, so the rider can shoot. */
     private void turnToward(LivingEntity target) {
-        float desired = (float) (net.minecraft.util.Mth.atan2(target.getZ() - getZ(), target.getX() - getX())
+        float desired = (float) (Mth.atan2(target.getZ() - getZ(), target.getX() - getX())
                 * (180.0 / Math.PI)) - 90.0F;
-        float yaw = getYRot() + net.minecraft.util.Mth.wrapDegrees(desired - getYRot()) * 0.12F;
+        float yaw = getYRot() + Mth.wrapDegrees(desired - getYRot()) * 0.12F;
         setYRot(yaw);
         yBodyRot = yaw;
         yHeadRot = yaw;
@@ -2919,7 +2938,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
 
     /** Faces a target on the spot. */
     private void snapFace(LivingEntity target) {
-        float yaw = (float) (net.minecraft.util.Mth.atan2(target.getZ() - getZ(), target.getX() - getX())
+        float yaw = (float) (Mth.atan2(target.getZ() - getZ(), target.getX() - getX())
                 * (180.0 / Math.PI)) - 90.0F;
         setYRot(yaw);
         yBodyRot = yaw;
@@ -3192,7 +3211,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                     continue;
                 }
                 BlockPos top = boar.level().getHeightmapPos(
-                        net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos(x, 0, z));
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos(x, 0, z));
                 if (boar.level().getBlockState(top.below()).is(Blocks.GRASS_BLOCK)
                         && boar.level().getFluidState(top).isEmpty()
                         && boar.getNavigation().createPath(top, 1) != null) {
@@ -3295,7 +3314,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
         double z = getZ() + forward.z * 1.3;
         // Vanilla block debris can randomly live well past the two-second grazing clip. These crumbs
         // have a fixed six-tick lifetime, so even the final bite is gone before the head rises.
-        serverLevel.sendParticles(com.kingsandmonsters.ModParticles.GRAZING_CRUMB.get(),
+        serverLevel.sendParticles(ModParticles.GRAZING_CRUMB.get(),
                 x, getY() + 0.15, z, 6, 0.18, 0.05, 0.18, 0.04);
         playSound(SoundEvents.GENERIC_EAT, 0.35F, 0.8F);
     }
@@ -3318,7 +3337,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                 BlockPos around = home.offset(boar.getRandom().nextInt(19) - 9, 0, boar.getRandom().nextInt(19) - 9);
                 if (boar.level().hasChunk(around.getX() >> 4, around.getZ() >> 4)) {
                     BlockPos top = boar.level().getHeightmapPos(
-                            net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, around);
+                            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, around);
                     return Vec3.atBottomCenterOf(top);
                 }
             }
@@ -3383,7 +3402,7 @@ public class MudsnoutBoar extends PathfinderMob implements GeoEntity, PlayerRide
                     continue;
                 }
                 BlockPos top = boar.level().getHeightmapPos(
-                        net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                         new BlockPos(x, 0, z));
                 if (!boar.level().getFluidState(top.below()).isEmpty() || !boar.isWithinRestriction(top)
                         || boar.distanceToSqr(Vec3.atBottomCenterOf(top)) < 36.0) {

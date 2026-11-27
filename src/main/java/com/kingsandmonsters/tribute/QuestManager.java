@@ -1,5 +1,10 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.Config;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Random;
 import com.kingsandmonsters.ModParticles;
 import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
 import com.kingsandmonsters.entity.OgreGrunt;
@@ -82,9 +87,9 @@ public final class QuestManager {
         // ones that come free soonest fill the gaps, so there is always a choice.
         TributeSavedData data = TributeManager.playerData(level);
         long now = level.getGameTime();
-        List<OgreQuest> fresh = new java.util.ArrayList<>();
-        List<OgreQuest> recent = new java.util.ArrayList<>();
-        List<OgreQuest> bigQuests = new java.util.ArrayList<>();
+        List<OgreQuest> fresh = new ArrayList<>();
+        List<OgreQuest> recent = new ArrayList<>();
+        List<OgreQuest> bigQuests = new ArrayList<>();
         for (OgreQuest quest : pool) {
             if (quest.isBigQuest()) {
                 bigQuests.add(quest);
@@ -92,29 +97,29 @@ public final class QuestManager {
                 (data.questLockedUntil(id, quest.ordinal()) > now ? recent : fresh).add(quest);
             }
         }
-        recent.sort(java.util.Comparator.comparingLong(quest -> data.questLockedUntil(id, quest.ordinal())));
+        recent.sort(Comparator.comparingLong(quest -> data.questLockedUntil(id, quest.ordinal())));
         // The order is shuffled by a seed that only changes when an errand is finished, so the offer is
         // the same every time this player looks (and cannot be rerolled by walking away) but is not a
         // pattern that comes round again.
         long seed = id.getMostSignificantBits() * 31 + id.getLeastSignificantBits()
                 + giver.getUUID().getLeastSignificantBits() * 17 + record.completed() * 0x9E3779B97F4A7C15L;
-        java.util.Collections.shuffle(fresh, new java.util.Random(seed));
+        Collections.shuffle(fresh, new Random(seed));
         fresh.addAll(recent);
-        List<Integer> choices = new java.util.ArrayList<>();
+        List<Integer> choices = new ArrayList<>();
         for (int i = 0; i < Math.min(CHOICES, fresh.size()); i++) {
             choices.add(fresh.get(i).ordinal());
         }
         // One of the King's biggest errands is an optional extra beside the three, for anyone bold
         // enough. It is picked the same way: shuffled by the same kind of seed, so it is stable for
         // this player until they finish an errand, and skipping any they finished recently.
-        List<OgreQuest> boldPool = new java.util.ArrayList<>();
+        List<OgreQuest> boldPool = new ArrayList<>();
         for (OgreQuest big : bigQuests) {
             if (data.questLockedUntil(id, big.ordinal()) <= now) {
                 boldPool.add(big);
             }
         }
         if (!boldPool.isEmpty()) {
-            java.util.Collections.shuffle(boldPool, new java.util.Random(seed ^ 0x5DEECE66DL));
+            Collections.shuffle(boldPool, new Random(seed ^ 0x5DEECE66DL));
             choices.add(boldPool.get(0).ordinal());
         }
         return new View(OFFER, choices.get(0), 0, choices);
@@ -130,7 +135,7 @@ public final class QuestManager {
         PacketDistributor.sendToPlayer(player, new QuestDialoguePayload(
                 giver.getId(), king, view.state(), view.quest(), view.progress(), view.choices(),
                 TributeManager.getFavor(player.serverLevel(), player.getUUID()),
-                com.kingsandmonsters.Config.TRIBUTE_APPEASED_FAVOR.get(),
+                Config.TRIBUTE_APPEASED_FAVOR.get(),
                 TributeManager.isAppeased(player.serverLevel(), player.getUUID())));
     }
 
@@ -175,9 +180,9 @@ public final class QuestManager {
         player.giveExperiencePoints(quest.reward() * XP_PER_FAVOR);
         TributeManager.addFavor(player.serverLevel(), player, quest.reward());
         for (ItemStack bonus : quest.bonuses()) {
-            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+            player.sendSystemMessage(Component.translatable(
                     "message.kingsandmonsters.errand_bonus", bonus.getCount(), bonus.getHoverName())
-                    .withStyle(net.minecraft.ChatFormatting.GOLD));
+                    .withStyle(ChatFormatting.GOLD));
             if (!player.getInventory().add(bonus)) {
                 player.drop(bonus, false);
             }

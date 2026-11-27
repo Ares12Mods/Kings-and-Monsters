@@ -1,5 +1,23 @@
 package com.kingsandmonsters.entity;
 
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import com.kingsandmonsters.api.patrol.PatrolTier;
+import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.target.TargetGoal;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.npc.AbstractVillager;
+import net.minecraft.world.item.Items;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModEntities;
@@ -204,10 +222,10 @@ public class OgreGrunt extends Monster implements GeoEntity {
      */
     public static boolean spareByArmy(LivingEntity victim) {
         return victim instanceof Player
-                || victim instanceof net.minecraft.world.entity.npc.AbstractVillager
-                || victim instanceof net.minecraft.world.entity.animal.IronGolem
-                || victim instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isTame()
-                || victim instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse && horse.isTamed()
+                || victim instanceof AbstractVillager
+                || victim instanceof IronGolem
+                || victim instanceof TamableAnimal pet && pet.isTame()
+                || victim instanceof AbstractHorse horse && horse.isTamed()
                 || victim instanceof MudsnoutBoar boar && boar.isTamed();
     }
 
@@ -253,8 +271,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if (owner == null || !(level() instanceof ServerLevel server)) {
             return true;
         }
-        if (!com.kingsandmonsters.tribute.TributeManager.isAppeased(server, owner.getUUID())
-                || com.kingsandmonsters.tribute.TributeManager.isProvoked(server, owner.getUUID())) {
+        if (!TributeManager.isAppeased(server, owner.getUUID())
+                || TributeManager.isProvoked(server, owner.getUUID())) {
             return true;
         }
         return wild.getLastHurtByMob() == owner || getLastHurtByMob() == wild || wild.isFightingArmyOf(this);
@@ -332,7 +350,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
      * Picks the army ogre's enemy: whatever last hurt its summoner, or what its summoner last hit, or
      * else the nearest hostile monster. Never a player, and never another ogre (except the Plague).
      */
-    private final class ArmyTargetGoal extends net.minecraft.world.entity.ai.goal.target.TargetGoal {
+    private final class ArmyTargetGoal extends TargetGoal {
         @Nullable
         private LivingEntity candidate;
 
@@ -361,7 +379,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
             }
             return level().getEntitiesOfClass(Mob.class, owner.getBoundingBox().inflate(16.0, 6.0, 16.0),
                             mob -> worthFighting(mob)).stream()
-                    .min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(OgreGrunt.this)))
+                    .min(Comparator.comparingDouble(mob -> mob.distanceToSqr(OgreGrunt.this)))
                     .orElse(null);
         }
 
@@ -377,13 +395,13 @@ public class OgreGrunt extends Monster implements GeoEntity {
             if (target instanceof OgreGrunt) {
                 return true;
             }
-            if (target instanceof net.minecraft.world.entity.NeutralMob neutral) {
+            if (target instanceof NeutralMob neutral) {
                 return neutral.isAngry();
             }
-            if (target instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) {
+            if (target instanceof AbstractPiglin piglin) {
                 return piglin.getTarget() != null;
             }
-            return target instanceof net.minecraft.world.entity.monster.Enemy || isTerritorialInvaderType(target)
+            return target instanceof Enemy || isTerritorialInvaderType(target)
                     || target instanceof MudsnoutBoar boar && boar.getTarget() != null;
         }
 
@@ -464,7 +482,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
     private static final double SMACK_CARRY_LIFT = 0.2;
     private static final double SMACK_CLOSE_RANGE = 3.5;
     // Animation ticks where a foot lands, from the leg keyframes.
-    private static final java.util.Map<String, double[]> FOOT_CONTACTS = java.util.Map.of(
+    private static final Map<String, double[]> FOOT_CONTACTS = Map.of(
             "walk", new double[]{0.0, 20.0},
             "combat walk", new double[]{0.0, 12.74});
     // Diamond armor's reduction curve eats most flat damage increases, so these raw values are
@@ -566,8 +584,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         // Pointed dripstone and similar damaging floor nodes can strand the Ogre's wide collision
         // box and cause repeated path recalculation/turning. Never select them as walk nodes.
         setPathfindingMalus(PathType.DAMAGE_OTHER, -1.0F);
-        // Campfires and flames are never walked through, and the squares beside them are costly enough
-        // that a path passes a block or so clear instead of brushing the fire.
+        // Block paths through fire and penalize nearby tiles so paths give flames room.
         setPathfindingMalus(PathType.DAMAGE_FIRE, -1.0F);
         setPathfindingMalus(PathType.DANGER_FIRE, 16.0F);
         // Grunts keep vanilla's discouraged-but-crossable water behavior so they can fight in one
@@ -613,6 +630,10 @@ public class OgreGrunt extends Monster implements GeoEntity {
         setPathfindingMalus(PathType.WATER, -1.0F);
     }
 
+    // ------------------------------------------------------------------ //
+    //  Attributes                                                        //
+    // ------------------------------------------------------------------ //
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 60.0)
@@ -632,11 +653,11 @@ public class OgreGrunt extends Monster implements GeoEntity {
 
     @Override
     @SuppressWarnings("deprecation")
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, net.minecraft.world.DifficultyInstance difficulty,
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
                                         MobSpawnType spawnType, SpawnGroupData spawnData) {
         SpawnGroupData result = super.finalizeSpawn(level, difficulty, spawnType, spawnData);
         if (getClass() == OgreGrunt.class && getRandom().nextFloat() < BONE_CLUB_SPAWN_CHANCE) {
-            net.minecraft.world.item.ItemStack club = new net.minecraft.world.item.ItemStack(ModItems.BONE_CLUB.get());
+            ItemStack club = new ItemStack(ModItems.BONE_CLUB.get());
             club.setDamageValue(Mth.nextInt(getRandom(), club.getMaxDamage() / 2, club.getMaxDamage() * 4 / 5));
             setItemSlot(EquipmentSlot.MAINHAND, club);
             setDropChance(EquipmentSlot.MAINHAND, BONE_CLUB_DROP_CHANCE);
@@ -665,7 +686,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         }
     }
 
-    protected void setAttributeBaseValue(net.minecraft.core.Holder<Attribute> attribute, double value) {
+    protected void setAttributeBaseValue(Holder<Attribute> attribute, double value) {
         AttributeInstance instance = getAttribute(attribute);
         if (instance != null) {
             instance.setBaseValue(value);
@@ -722,7 +743,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 Math.max(0, pieces - 1) * 0.05, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     }
 
-    private void replaceBlackhideModifier(net.minecraft.core.Holder<Attribute> attribute,
+    private void replaceBlackhideModifier(Holder<Attribute> attribute,
                                            ResourceLocation id, double amount,
                                            AttributeModifier.Operation operation) {
         AttributeInstance instance = getAttribute(attribute);
@@ -789,6 +810,10 @@ public class OgreGrunt extends Monster implements GeoEntity {
     protected boolean usesRunningTurnSmoothing() {
         return isRunMovementState();
     }
+
+    // ------------------------------------------------------------------ //
+    //  AI goals                                                          //
+    // ------------------------------------------------------------------ //
 
     @Override
     protected void registerGoals() {
@@ -946,7 +971,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         // An army ogre never turns on players, its summoner's pets, or its own army's boars.
         if (armyOwnerId != null && (spareByArmy(target)
                 || target instanceof MudsnoutBoar boar && armyOwnerId.equals(boar.getArmyOwnerId())
-                || target instanceof net.minecraft.world.entity.OwnableEntity pet
+                || target instanceof OwnableEntity pet
                         && armyOwnerId.equals(pet.getOwnerUUID()))) {
             return false;
         }
@@ -1002,9 +1027,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
     }
 
     /**
-     * A player who pays the toll or is otherwise appeased mid-fight stops being a target. The target
-     * goals only re-check what they picked themselves, so a target taken from a mount, a boar or an
-     * alert used to stay locked on after the peace was made.
+     * Clear appeased players here because target goals only recheck targets they picked.
+     * A mount, boar, or alert can also supply a target.
      */
     private void dropAppeasedPlayerTarget() {
         if (tickCount % 10 == 0 && getTarget() instanceof Player player && tribeIsAppeasedWith(player)) {
@@ -1037,8 +1061,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if (TributeManager.isAppeased(server, player.getUUID())) {
             return true;
         }
-        if (com.kingsandmonsters.api.patrol.PatrolTier.fromAnger(TributeManager.getFactionAngerLevel(server))
-                != com.kingsandmonsters.api.patrol.PatrolTier.SMALL) {
+        if (PatrolTier.fromAnger(TributeManager.getFactionAngerLevel(server))
+                != PatrolTier.SMALL) {
             return false;
         }
         if (TributeManager.hasTollPass(server, player.getUUID())) {
@@ -1063,15 +1087,15 @@ public class OgreGrunt extends Monster implements GeoEntity {
             coin.shrink(1);
         }
         TributeManager.grantTollPass(payer.serverLevel(), payer.getUUID());
-        com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(payer, "tribute/toll_paid");
+        RoyalAdvancementEvents.awardPath(payer, "tribute/toll_paid");
         playAmbientSound();
-        payer.sendSystemMessage(net.minecraft.network.chat.Component.empty()
-                .append(getDisplayName().copy().withStyle(net.minecraft.ChatFormatting.GOLD))
-                .append(net.minecraft.network.chat.Component.literal(": ")
-                        .withStyle(net.minecraft.ChatFormatting.GRAY))
-                .append(net.minecraft.network.chat.Component.translatable(
+        payer.sendSystemMessage(Component.empty()
+                .append(getDisplayName().copy().withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(": ")
+                        .withStyle(ChatFormatting.GRAY))
+                .append(Component.translatable(
                                 "dialogue.kingsandmonsters.ogre_toll." + (1 + getRandom().nextInt(TOLL_LINES)))
-                        .withStyle(net.minecraft.ChatFormatting.WHITE, net.minecraft.ChatFormatting.ITALIC)));
+                        .withStyle(ChatFormatting.WHITE, ChatFormatting.ITALIC)));
     }
 
     /** For captains summoned to the King's side: they fight whatever the tribe thinks of the player. */
@@ -1196,8 +1220,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         if (getTarget() == null) {
             outpostRetreatCounterattackTicks = 0;
         }
-        // Preserve the original combat AI inside a generous pursuit envelope, then force a
-        // clean disengage so a resident cannot be dragged indefinitely across the world.
+        // Limit pursuit so players can't kite a resident indefinitely.
         if (getTarget() != null
                 && ++outpostChaseTicks <= OUTPOST_MAX_CHASE_TICKS
                 && homeDistanceSqr <= (long) OUTPOST_MAX_CHASE_RADIUS * OUTPOST_MAX_CHASE_RADIUS) {
@@ -1469,7 +1492,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
 
     public void assignMerchantGuard(UUID merchantId) {
         merchantOwnerId = merchantId;
-        setCustomName(net.minecraft.network.chat.Component.literal("Merchant Guard"));
+        setCustomName(Component.literal("Merchant Guard"));
         setCustomNameVisible(false);
         setPersistenceRequired();
         setTarget(null);
@@ -1744,7 +1767,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
     }
 
     /** Animation ticks at which a foot lands in each walk clip; a subclass with its own clips overrides this. */
-    protected java.util.Map<String, double[]> getFootContacts() {
+    protected Map<String, double[]> getFootContacts() {
         return FOOT_CONTACTS;
     }
 
@@ -1834,6 +1857,10 @@ public class OgreGrunt extends Monster implements GeoEntity {
     public void animateHurt(float yaw) {
         // GeckoLib drives the ogre body animations; the vanilla hurt pose can snap one-shot attacks back to frame 0.
     }
+
+    // ------------------------------------------------------------------ //
+    //  Animation controllers                                             //
+    // ------------------------------------------------------------------ //
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -2112,8 +2139,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
             level().playSound(null, at.x, at.y, at.z, SoundEvents.MACE_SMASH_GROUND,
                     SoundSource.HOSTILE, 0.2F, 0.9F);
             if (level() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(new net.minecraft.core.particles.ItemParticleOption(
-                                ParticleTypes.ITEM, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.BONE)),
+                serverLevel.sendParticles(new ItemParticleOption(
+                                ParticleTypes.ITEM, new ItemStack(Items.BONE)),
                         at.x, at.y + 0.2, at.z, 10, 0.35, 0.15, 0.35, 0.12);
             }
         }
@@ -2155,8 +2182,8 @@ public class OgreGrunt extends Monster implements GeoEntity {
                 : (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * damageMultiplier;
         boolean hurt = hurtTargetWithTemporaryArmorPierce(target, damage, armorPierceFraction);
         if (hurt && activeGruntAttackId == ATTACK_ID_BITE && healsOnBite()) {
-            addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                    net.minecraft.world.effect.MobEffects.REGENERATION, BITE_REGENERATION_TICKS, 1));
+            addEffect(new MobEffectInstance(
+                    MobEffects.REGENERATION, BITE_REGENERATION_TICKS, 1));
         }
         return hurt;
     }
@@ -2277,8 +2304,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
 
     protected boolean isMovingForGruntAnimation(AnimationState<OgreGrunt> state) {
         boolean moving = state.isMoving() || getDeltaMovement().horizontalDistanceSqr() > 1.0E-6;
-        // Counted in game ticks: this runs once per rendered frame, so a frame counter would let the
-        // walk drop to idle for a moment at high frame rates whenever the ogre paused for an instant.
+        // Use game ticks so brief pauses don't drop the walk animation at high frame rates.
         long now = level().getGameTime();
         if (moving) {
             lastMovingAnimationTick = now;
@@ -2741,9 +2767,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
             ticksUntilNextPathRecalculation = Math.max(ticksUntilNextPathRecalculation - 1, 0);
             boolean cooldownRunsDuringAttack = usesFinishedMeleeFlow || polishedMeleePursuit;
             if (cooldownRunsDuringAttack) {
-                // Recovery counts from attack commitment, not from the end of the animation. The
-                // timer used to freeze inside the early-return animation lock and left mobs staring
-                // for seconds after a hit.
+                // Count recovery from attack commitment so the animation lock can't freeze it.
                 ticksUntilNextAttack = Math.max(ticksUntilNextAttack - 1, 0);
             }
 
@@ -3143,8 +3167,7 @@ public class OgreGrunt extends Monster implements GeoEntity {
         double dx = target.getX() - getX();
         double dz = target.getZ() - getZ();
         float yaw = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
-        // The previous rotations are left as they were, so the renderer blends from the old facing to
-        // the new one across the tick rather than popping to it in a single frame.
+        // Keep previous rotations so the renderer interpolates the turn across the tick.
         setYRot(yaw);
         setYBodyRot(yaw);
         setYHeadRot(yaw);

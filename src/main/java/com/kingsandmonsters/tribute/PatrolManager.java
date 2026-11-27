@@ -1,5 +1,6 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.entity.OgreGuard;
 import com.kingsandmonsters.Config;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.api.patrol.PatrolTier;
@@ -473,7 +474,7 @@ public final class PatrolManager {
 
     private static int patrolAngerReduction(OgreGrunt ogre) {
         if (ogre instanceof OgreBrute) return 3;
-        if (ogre instanceof com.kingsandmonsters.entity.OgreGuard) return 2;
+        if (ogre instanceof OgreGuard) return 2;
         if (ogre instanceof OgreMage || ogre instanceof OgreGruntCaptain || ogre instanceof OgreTrapper) return 2;
         return 1; // grunt or archer
     }

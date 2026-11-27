@@ -1,5 +1,7 @@
 package com.kingsandmonsters.world;
 
+import java.util.Locale;
+import net.minecraft.world.level.biome.Biome;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -127,7 +129,7 @@ public class OgreOutpostStructure extends Structure {
         int x = chunk.getMinBlockX();
         int z = chunk.getMinBlockZ();
         int y = context.chunkGenerator().getSeaLevel();
-        Holder<net.minecraft.world.level.biome.Biome> biome =
+        Holder<Biome> biome =
                 context.biomeSource().getNoiseBiome(
                         QuartPos.fromBlock(x),
                         QuartPos.fromBlock(y),
@@ -349,7 +351,7 @@ public class OgreOutpostStructure extends Structure {
         String templateDescription = pieces.pieces().stream()
                 .filter(PoolElementStructurePiece.class::isInstance)
                 .map(PoolElementStructurePiece.class::cast)
-                .map(piece -> piece.getElement().toString().toLowerCase(java.util.Locale.ROOT))
+                .map(piece -> piece.getElement().toString().toLowerCase(Locale.ROOT))
                 .findFirst()
                 .orElse("");
 

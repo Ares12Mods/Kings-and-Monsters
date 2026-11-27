@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client.particle;
 
+import java.util.Arrays;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
@@ -11,7 +12,7 @@ import net.minecraft.core.particles.SimpleParticleType;
 /** The supplied pixel-art reaction that builds, holds, and disappears above a dialogue giver. */
 public final class DialogueExclamationParticle extends TextureSheetParticle {
     private static final int[] FRAME_TICKS = {2, 2, 2, 3, 4, 4, 3, 2, 2, 2};
-    private static final int LIFETIME = java.util.Arrays.stream(FRAME_TICKS).sum();
+    private static final int LIFETIME = Arrays.stream(FRAME_TICKS).sum();
     private static final float SIZE = 0.42F;
 
     private final SpriteSet sprites;

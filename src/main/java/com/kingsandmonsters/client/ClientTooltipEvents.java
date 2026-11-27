@@ -1,5 +1,6 @@
 package com.kingsandmonsters.client;
 
+import com.kingsandmonsters.enchantment.ModEnchantments;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ClientConfig;
 import com.kingsandmonsters.ModItems;
@@ -189,7 +190,7 @@ public final class ClientTooltipEvents {
     /** A bog iron axe the King has enchanted carries Timber; any item with the enchantment counts. */
     private static boolean hasTimber(ItemStack stack) {
         return EnchantmentHelper.getEnchantmentsForCrafting(stack).keySet().stream()
-                .anyMatch(holder -> holder.is(com.kingsandmonsters.enchantment.ModEnchantments.TIMBER));
+                .anyMatch(holder -> holder.is(ModEnchantments.TIMBER));
     }
 
     private static void addNewOgreItemAbilities(ItemTooltipEvent event) {
@@ -254,7 +255,7 @@ public final class ClientTooltipEvents {
                     "tooltip.kingsandmonsters.ironbelly_stew.poison_resistance",
                     "tooltip.kingsandmonsters.ironbelly_stew.resistance",
                     "tooltip.kingsandmonsters.ironbelly_stew.absorption");
-        } else if (stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())) {
+        } else if (stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())) {
             addFoodEffects(event, "tooltip.kingsandmonsters.haunch_platter.feast",
                     "tooltip.kingsandmonsters.haunch_platter.servings",
                     "tooltip.kingsandmonsters.haunch_platter.serve");
@@ -312,7 +313,7 @@ public final class ClientTooltipEvents {
         else if (stack.is(ModItems.RAW_MUDSNOUT_HAUNCH.get())) lore = "A heavy cut of wild boar, bone and all.";
         else if (stack.is(ModItems.ROASTED_MUDSNOUT_HAUNCH.get())) lore = "Meat on the inside, a lifetime of chewing on the bone left over.";
         else if (stack.is(ModItems.BONE_BROTH.get())) lore = "Boiled bones, healed bones. The circle of life, with salt.";
-        else if (stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())) lore = "A whole roast with an apple on the side. Whoever carves it takes the best bit.";
+        else if (stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())) lore = "A whole roast with an apple on the side. Whoever carves it takes the best bit.";
         else if (stack.is(ModItems.HAUNCH_PLATTER_SERVING.get())) lore = "Gone before you finish saying \"just a taste\".";
         else if (stack.is(ModItems.IRONBELLY_STEW.get())) lore = "Sits in your stomach like a boulder. Ogres call it a light snack.";
         else if (stack.is(ModItems.OGRE_HOOKBLADE.get())) lore = "A merchant's answer to anyone foolish enough to flee with his gold.";
@@ -765,7 +766,7 @@ public final class ClientTooltipEvents {
                 || stack.is(ModItems.ROASTED_MUDSNOUT_HAUNCH.get())
                 || stack.is(ModItems.BONE_BROTH.get())
                 || stack.is(ModItems.IRONBELLY_STEW.get())
-                || stack.is(com.kingsandmonsters.ModBlocks.HAUNCH_PLATTER_ITEM.get())
+                || stack.is(ModBlocks.HAUNCH_PLATTER_ITEM.get())
                 || stack.is(ModItems.HAUNCH_PLATTER_SERVING.get());
     }
 

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.world.entity.EquipmentSlot;
 import com.kingsandmonsters.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -86,7 +87,7 @@ public final class BogIronEquipmentEvents {
 
         player.serverLevel().setBlock(extra, tilled, Block.UPDATE_ALL_IMMEDIATE);
         player.serverLevel().playSound(null, extra, SoundEvents.HOE_TILL, SoundSource.BLOCKS, 1.0F, 1.0F);
-        player.getMainHandItem().hurtAndBreak(1, player, net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+        player.getMainHandItem().hurtAndBreak(1, player, EquipmentSlot.MAINHAND);
         startHeavySwingCooldown(player);
     }
 

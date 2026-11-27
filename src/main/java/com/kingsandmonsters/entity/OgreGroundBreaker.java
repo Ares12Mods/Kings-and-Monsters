@@ -1,5 +1,7 @@
 package com.kingsandmonsters.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
@@ -74,7 +76,7 @@ final class OgreGroundBreaker {
      */
     static void breakNearby(ServerLevel level, Mob ogre, Vec3 center, int count, Strength strength) {
         BlockPos centerPos = BlockPos.containing(center.x, center.y, center.z);
-        java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
+        List<BlockPos> candidates = new ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(centerPos.offset(-1, -1, -1), centerPos.offset(1, 1, 1))) {
             candidates.add(pos.immutable());
         }

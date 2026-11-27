@@ -1,5 +1,9 @@
 package com.kingsandmonsters.world;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.world.level.block.BushBlock;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.entity.MudsnoutBoar;
@@ -40,8 +44,8 @@ public final class MudWallowGenerator {
      * template starts with an extra foundation layer, so its surface is one layer higher up.
      */
     private static final int[] SURFACE_LAYERS = {3, 4};
-    private static final java.util.Map<Integer, boolean[][]> COLUMN_CACHE =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<Integer, boolean[][]> COLUMN_CACHE =
+            new ConcurrentHashMap<>();
 
     private MudWallowGenerator() {
     }
@@ -160,7 +164,7 @@ public final class MudWallowGenerator {
     private static int[][] highestBlockBelowSurface(StructureTemplate template, int templateIndex, int surfaceLayer) {
         int[][] result = new int[31][31];
         for (int[] row : result) {
-            java.util.Arrays.fill(row, -1);
+            Arrays.fill(row, -1);
         }
         for (int layer = 0; layer < surfaceLayer; layer++) {
             boolean[][] columns = columnsWithBlocks(template, templateIndex, layer);
@@ -260,7 +264,7 @@ public final class MudWallowGenerator {
         for (int y = targetY + 1; y <= clearTop; y++) {
             BlockPos pos = new BlockPos(x, y, z);
             BlockState state = level.getBlockState(pos);
-            if (state.is(BlockTags.REPLACEABLE) || state.getBlock() instanceof net.minecraft.world.level.block.BushBlock) {
+            if (state.is(BlockTags.REPLACEABLE) || state.getBlock() instanceof BushBlock) {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
             }
         }

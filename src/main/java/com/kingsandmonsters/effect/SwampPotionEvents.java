@@ -1,5 +1,6 @@
 package com.kingsandmonsters.effect;
 
+import net.minecraft.world.entity.LivingEntity;
 import com.kingsandmonsters.KingsAndMonsters;
 import com.kingsandmonsters.ModMobEffects;
 import net.minecraft.resources.ResourceLocation;
@@ -44,7 +45,7 @@ public final class SwampPotionEvents {
         double range = sight.getAmplifier() > 0 ? 30.0 : 20.0;
         AABB area = player.getBoundingBox().inflate(range);
         for (var target : serverPlayer.serverLevel().getEntitiesOfClass(
-                net.minecraft.world.entity.LivingEntity.class, area,
+                LivingEntity.class, area,
                 entity -> entity instanceof Enemy && entity.isAlive())) {
             target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 15, 0, false, false, false), player);
         }

@@ -1,5 +1,6 @@
 package com.kingsandmonsters.block;
 
+import net.minecraft.world.level.block.Blocks;
 import com.kingsandmonsters.block.entity.OgreKingsCrownBlockEntity;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
@@ -51,7 +52,7 @@ public final class OgreKingsCrownBlock extends BaseEntityBlock {
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
                                      LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
         return direction == Direction.DOWN && !state.canSurvive(level, pos)
-                ? net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
+                ? Blocks.AIR.defaultBlockState()
                 : super.updateShape(state, direction, neighborState, level, pos, neighborPos);
     }
 

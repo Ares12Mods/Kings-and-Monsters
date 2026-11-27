@@ -1,5 +1,9 @@
 package com.kingsandmonsters.tribute;
 
+import com.kingsandmonsters.entity.OgreGrunt;
+import com.kingsandmonsters.entity.OgreLord;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.levelgen.Heightmap;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.entity.MudsnoutBoar;
 import net.minecraft.core.BlockPos;
@@ -119,7 +123,7 @@ public final class StructureJockeyPopulationManager {
                     : insideSpot(level, site);
             if (pos == null) continue;
             BlockState floor = level.getBlockState(pos.below());
-            if (!floor.isFaceSturdy(level, pos.below(), net.minecraft.core.Direction.UP)
+            if (!floor.isFaceSturdy(level, pos.below(), Direction.UP)
                     || !level.getFluidState(pos).isEmpty()) continue;
             MudsnoutBoar boar = ModEntities.MUDSNOUT_BOAR.get().spawn(level, pos, MobSpawnType.STRUCTURE);
             if (boar == null) continue;
@@ -144,7 +148,7 @@ public final class StructureJockeyPopulationManager {
         int z = randomBetween(level, site.minZ() - 14, site.maxZ() + 14);
         boolean nearWalls = x >= site.minX() - 5 && x <= site.maxX() + 5 && z >= site.minZ() - 5 && z <= site.maxZ() + 5;
         if (nearWalls || !level.hasChunk(x >> 4, z >> 4)) return null;
-        BlockPos top = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+        BlockPos top = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 new BlockPos(x, 0, z));
         return Math.abs(top.getY() - site.groundY()) <= 10 ? top : null;
     }
@@ -159,10 +163,10 @@ public final class StructureJockeyPopulationManager {
     private static BlockPos fortSpot(ServerLevel level, TributeSavedData.JockeyPopulationState site) {
         AABB area = new AABB(site.minX(), site.groundY() - 8, site.minZ(), site.maxX() + 1, site.groundY() + 32,
                 site.maxZ() + 1);
-        List<com.kingsandmonsters.entity.OgreGrunt> anchors = level.getEntitiesOfClass(
-                com.kingsandmonsters.entity.OgreGrunt.class, area,
+        List<OgreGrunt> anchors = level.getEntitiesOfClass(
+                OgreGrunt.class, area,
                 ogre -> ogre.isAlive() && ogre.getVehicle() == null
-                        && (ogre instanceof com.kingsandmonsters.entity.OgreLord
+                        && (ogre instanceof OgreLord
                         || ogre.getTags().stream().anyMatch(tag -> tag.startsWith(FORT_RESIDENT_TAG_PREFIX))));
         if (anchors.isEmpty()) {
             return null;
@@ -177,7 +181,7 @@ public final class StructureJockeyPopulationManager {
         }
         for (int y = anchor.getY() + 2; y >= anchor.getY() - 2; y--) {
             BlockPos pos = new BlockPos(x, y, z);
-            if (level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), net.minecraft.core.Direction.UP)
+            if (level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
                     && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
                 return pos;
             }
@@ -190,7 +194,7 @@ public final class StructureJockeyPopulationManager {
         int z = randomBetween(level, site.minZ() + 3, site.maxZ() - 3);
         for (int y = site.groundY(); y <= site.groundY() + 12; y++) {
             BlockPos pos = new BlockPos(x, y, z);
-            if (level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), net.minecraft.core.Direction.UP)
+            if (level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
                     && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
                 return pos;
             }

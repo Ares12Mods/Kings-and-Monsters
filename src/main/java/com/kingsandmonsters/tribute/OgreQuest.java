@@ -1,5 +1,9 @@
 package com.kingsandmonsters.tribute;
 
+import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.entity.monster.Illusioner;
+import net.minecraft.world.entity.monster.breeze.Breeze;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.entity.BogToad;
 import com.kingsandmonsters.entity.PlagueOgre;
@@ -48,10 +52,10 @@ public enum OgreQuest {
     KING_FEAST("king_feast", 20, 8, true, items(OgreQuest::isCookedMeat)),
     // Proof of the kill: a Ghast only weeps its tears when it dies.
     GHAST_TEARS("ghast_tears", 2, 15, true, items(stack -> stack.is(Items.GHAST_TEAR))),
-    ELDER_GUARDIAN("elder_guardian", 1, 20, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.ElderGuardian)),
-    EVOKERS("evokers", 5, 12, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.Evoker)),
-    ILLUSIONERS("illusioners", 3, 10, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.Illusioner)),
-    BREEZES("breezes", 4, 12, true, hunt(victim -> victim instanceof net.minecraft.world.entity.monster.breeze.Breeze));
+    ELDER_GUARDIAN("elder_guardian", 1, 20, true, hunt(victim -> victim instanceof ElderGuardian)),
+    EVOKERS("evokers", 5, 12, true, hunt(victim -> victim instanceof Evoker)),
+    ILLUSIONERS("illusioners", 3, 10, true, hunt(victim -> victim instanceof Illusioner)),
+    BREEZES("breezes", 4, 12, true, hunt(victim -> victim instanceof Breeze));
 
     public enum Kind { DELIVER, CULL }
 

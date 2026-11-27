@@ -1,5 +1,6 @@
 package com.kingsandmonsters.item;
 
+import net.minecraft.core.HolderLookup;
 import com.kingsandmonsters.ClientConfig;
 
 import com.kingsandmonsters.menu.OgreMerchantBackpackMenu;
@@ -51,7 +52,7 @@ public class OgreMerchantBackpackItem extends CurioItem {
                 buffer -> buffer.writeVarInt(lockedInventorySlot));
     }
 
-    public static ItemStackHandler loadInventory(ItemStack backpack, net.minecraft.core.HolderLookup.Provider registries) {
+    public static ItemStackHandler loadInventory(ItemStack backpack, HolderLookup.Provider registries) {
         boolean[] loading = {true};
         ItemStackHandler handler = new ItemStackHandler(SLOT_COUNT) {
             @Override
@@ -88,7 +89,7 @@ public class OgreMerchantBackpackItem extends CurioItem {
      * stack or shift-clicking), because setStackInSlot sees the same, already-mutated stack as unchanged.
      */
     public static void saveInventory(ItemStack backpack, ItemStackHandler handler,
-                                     net.minecraft.core.HolderLookup.Provider registries) {
+                                     HolderLookup.Provider registries) {
         CustomData.update(DataComponents.CUSTOM_DATA, backpack,
                 tag -> tag.put(INVENTORY_TAG, handler.serializeNBT(registries)));
     }

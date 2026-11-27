@@ -1,5 +1,6 @@
 package com.kingsandmonsters;
 
+import com.kingsandmonsters.menu.MudsnoutBoarMenu;
 import com.kingsandmonsters.menu.OgreMerchantBackpackMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -14,9 +15,9 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<OgreMerchantBackpackMenu>> OGRE_MERCHANT_BACKPACK =
             MENUS.register("ogre_merchant_backpack", () -> IMenuTypeExtension.create(OgreMerchantBackpackMenu::new));
 
-    public static final DeferredHolder<MenuType<?>, MenuType<com.kingsandmonsters.menu.MudsnoutBoarMenu>> MUDSNOUT_BOAR =
+    public static final DeferredHolder<MenuType<?>, MenuType<MudsnoutBoarMenu>> MUDSNOUT_BOAR =
             MENUS.register("mudsnout_boar",
-                    () -> IMenuTypeExtension.create(com.kingsandmonsters.menu.MudsnoutBoarMenu::new));
+                    () -> IMenuTypeExtension.create(MudsnoutBoarMenu::new));
 
     private ModMenus() {}
 }

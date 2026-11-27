@@ -1,5 +1,14 @@
 package com.kingsandmonsters.entity;
 
+import com.kingsandmonsters.advancement.RoyalAdvancementEvents;
+import java.util.EnumSet;
+import java.util.Optional;
+import java.util.Random;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.level.ItemLike;
 import com.kingsandmonsters.ModEntities;
 import com.kingsandmonsters.ModItems;
 import com.kingsandmonsters.ModSoundEvents;
@@ -17,8 +26,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.*;
@@ -135,7 +142,7 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
                 () -> doubleCost(ModItems.GOLDEN_OGRE_TOOTH.get(), 2, Items.DIAMOND, 6, ModItems.OGREBLOOD_TOTEM.get().getDefaultInstance()),
                 premium.get(0), premium.get(1));
 
-        Set<net.minecraft.world.item.Item> results = new HashSet<>();
+        Set<Item> results = new HashSet<>();
         addRandomOffers(cheap, 1, results);
         addRandomOffers(medium, 2, results);
         addRandomOffers(premium, 1, results);
@@ -147,9 +154,9 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
         ensureFortMapOffer();
     }
 
-    private void addRandomOffers(List<Supplier<MerchantOffer>> pool, int count, Set<net.minecraft.world.item.Item> results) {
+    private void addRandomOffers(List<Supplier<MerchantOffer>> pool, int count, Set<Item> results) {
         List<Supplier<MerchantOffer>> shuffled = new ArrayList<>(pool);
-        Collections.shuffle(shuffled, new java.util.Random(random.nextLong()));
+        Collections.shuffle(shuffled, new Random(random.nextLong()));
         for (Supplier<MerchantOffer> supplier : shuffled) {
             if (count <= 0) break;
             MerchantOffer offer = supplier.get();
@@ -202,15 +209,15 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     private MerchantOffer createBribeOffer() {
         ItemStack receipt = new ItemStack(Items.WRITABLE_BOOK);
-        receipt.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, Component.literal(BRIBE_RECEIPT_NAME));
-        receipt.set(net.minecraft.core.component.DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(List.of(
-                Component.translatable("tooltip.kingsandmonsters.ogre_truce.mechanic").withStyle(net.minecraft.ChatFormatting.DARK_GRAY),
-                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_1").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.ITALIC),
-                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_2").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.ITALIC))));
+        receipt.set(DataComponents.CUSTOM_NAME, Component.literal(BRIBE_RECEIPT_NAME));
+        receipt.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.translatable("tooltip.kingsandmonsters.ogre_truce.mechanic").withStyle(ChatFormatting.DARK_GRAY),
+                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_1").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC),
+                Component.translatable("tooltip.kingsandmonsters.ogre_truce.flavor_2").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC))));
         return singleCost(ModItems.GOLDEN_OGRE_TOOTH.get(), 1, receipt, 3);
     }
 
-    private static MerchantOffer singleCost(net.minecraft.world.level.ItemLike cost, int amount, ItemStack result, int uses) {
+    private static MerchantOffer singleCost(ItemLike cost, int amount, ItemStack result, int uses) {
         return new MerchantOffer(new ItemCost(cost.asItem(), amount), result, uses, 1, 0.05F);
     }
 
@@ -220,10 +227,10 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
         return singleCost(Items.GOLD_NUGGET, nuggets, result, uses);
     }
 
-    private static MerchantOffer doubleCost(net.minecraft.world.level.ItemLike first, int firstAmount,
-            net.minecraft.world.level.ItemLike second, int secondAmount, ItemStack result) {
+    private static MerchantOffer doubleCost(ItemLike first, int firstAmount,
+            ItemLike second, int secondAmount, ItemStack result) {
         return new MerchantOffer(new ItemCost(first.asItem(), firstAmount),
-                java.util.Optional.of(new ItemCost(second.asItem(), secondAmount)), result, 1, 1, 0.05F);
+                Optional.of(new ItemCost(second.asItem(), secondAmount)), result, 1, 1, 0.05F);
     }
 
     @Override protected void rewardTradeXp(MerchantOffer offer) { }
@@ -304,7 +311,7 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
             TributeManager.decayFactionAnger(player.serverLevel(), TradePrices.TOOTH_BRIBE_ANGER_REDUCTION);
             int reduced = before - TributeManager.getFactionAngerLevel(player.serverLevel());
             if (reduced > 0) {
-                com.kingsandmonsters.advancement.RoyalAdvancementEvents.awardPath(player, "tribute/parley");
+                RoyalAdvancementEvents.awardPath(player, "tribute/parley");
             }
             if (reduced <= 0) {
                 // Nothing left to ease, so the tooth goes back to the player.
@@ -529,7 +536,7 @@ public class OgreMerchant extends AbstractVillager implements GeoEntity {
 
     private class TradeWithCustomerGoal extends Goal {
         private TradeWithCustomerGoal() {
-            setFlags(java.util.EnumSet.of(Flag.MOVE, Flag.LOOK));
+            setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
         }
 
         @Override
