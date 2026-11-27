@@ -53,6 +53,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import com.kingsandmonsters.network.ModNetwork;
+import com.kingsandmonsters.world.OgreTrialSpawnerProcessor;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationState;
@@ -594,10 +595,6 @@ public class OgreLord extends OgreGrunt {
             BossEvent.BossBarColor.PURPLE,
             BossEvent.BossBarOverlay.PROGRESS);
     private int completedRoyalTrialsMask;
-    /** Leaders of each royal trial (Mage, Brute, Grunt Captain) beaten so far; a trial is won at its target. */
-    private final int[] royalTrialKills = new int[ROYAL_TRIAL_COUNT];
-    private static final int[] ROYAL_TRIAL_KILL_TARGETS = {5, 5, 4};
-    private static final String ROYAL_TRIAL_KILLS_TAG = "KingsAndMonstersRoyalTrialKills";
     private boolean royalDefenceStarted;
     private int wakeUpTicks;
     @Nullable private UUID courtGuestId;
@@ -676,7 +673,6 @@ public class OgreLord extends OgreGrunt {
         tag.putLongArray(ROYAL_TRIAL_POSITIONS_TAG,
                 royalTrialPositions.stream().mapToLong(BlockPos::asLong).toArray());
         tag.putInt(COMPLETED_ROYAL_TRIALS_TAG, completedRoyalTrialsMask);
-        tag.putIntArray(ROYAL_TRIAL_KILLS_TAG, royalTrialKills);
         tag.putBoolean(ROYAL_DEFENCE_STARTED_TAG, royalDefenceStarted);
         if (duelistId != null) {
             tag.putUUID(DUELIST_TAG, duelistId);
@@ -758,10 +754,6 @@ public class OgreLord extends OgreGrunt {
             royalTrialPositions.add(BlockPos.of(packedPos));
         }
         completedRoyalTrialsMask = tag.getInt(COMPLETED_ROYAL_TRIALS_TAG);
-        int[] savedKills = tag.getIntArray(ROYAL_TRIAL_KILLS_TAG);
-        for (int i = 0; i < royalTrialKills.length; i++) {
-            royalTrialKills[i] = i < savedKills.length ? savedKills[i] : 0;
-        }
         royalDefenceStarted = tag.getBoolean(ROYAL_DEFENCE_STARTED_TAG);
         duelistId = tag.hasUUID(DUELIST_TAG) ? tag.getUUID(DUELIST_TAG) : null;
         thronePos = tag.contains(THRONE_POS_TAG) ? BlockPos.of(tag.getLong(THRONE_POS_TAG)) : null;
@@ -803,7 +795,6 @@ public class OgreLord extends OgreGrunt {
         royalTrialPositions.clear();
         royalTrialPositions.addAll(trialPositions.stream().limit(ROYAL_TRIAL_COUNT).toList());
         completedRoyalTrialsMask = 0;
-        java.util.Arrays.fill(royalTrialKills, 0);
         royalDefenceStarted = false;
         wakeUpTicks = 0;
         thronePos = blockPosition();
@@ -963,7 +954,8 @@ public class OgreLord extends OgreGrunt {
     /**
      * If everyone who started the Royal Trials has died or left, the attempt is abandoned: the
      * trials reset, the ogres still standing in them are sent away, and he can sleep and talk again.
-     * Trials already cleared stay cleared. Returns true on the tick it resets.
+     * Captains stay until beaten, and trials already cleared stay cleared. Returns true on the tick it
+     * resets.
      */
     private boolean tickRoyalTrialAbandon(ServerLevel serverLevel) {
         if (!royalDefenceStarted || serverLevel.getNearestPlayer(this, ROYAL_TRIAL_BAR_RANGE) != null) {
@@ -981,7 +973,8 @@ public class OgreLord extends OgreGrunt {
         clearRoyalTrialBossBarPlayers();
         for (OgreGrunt ogre : serverLevel.getEntitiesOfClass(OgreGrunt.class,
                 getBoundingBox().inflate(ROYAL_TRIAL_BAR_RANGE),
-                candidate -> candidate != this && candidate.isRoyalTrialOgre() && candidate.isAlive())) {
+                candidate -> candidate != this && candidate.isRoyalTrialOgre() && candidate.isAlive()
+                        && royalTrialLedBy(candidate) < 0)) {
             serverLevel.sendParticles(ParticleTypes.POOF, ogre.getX(), ogre.getY() + ogre.getBbHeight() * 0.5,
                     ogre.getZ(), 12, 0.4, 0.6, 0.4, 0.02);
             ogre.discard();
@@ -1032,71 +1025,84 @@ public class OgreLord extends OgreGrunt {
 
     private static final double ROYAL_TRIAL_SPAWNER_WAKE_RANGE = 3.0;
 
-    /** Called when a royal trial leader dies; wins the trial once enough of them have fallen. */
-    public static void onRoyalTrialLeaderDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event) {
-        LivingEntity dead = event.getEntity();
-        int trial;
-        if (dead instanceof OgreMage mage && mage.isRoyalTrialSquadLeader()) {
-            trial = 0;
-        } else if (dead instanceof OgreBrute brute && brute.isRoyalPatrolSquadLeader()) {
-            trial = 1;
-        } else if (dead instanceof OgreGruntCaptain captain && captain.isRoyalPatrolSquadLeader()) {
-            trial = 2;
-        } else {
+    /** The trial this ogre leads (0 Mage, 1 Brute, 2 Grunt Captain), or -1 for anyone else. */
+    private static int royalTrialLedBy(net.minecraft.world.entity.Entity ogre) {
+        if (ogre instanceof OgreMage mage && mage.isRoyalTrialSquadLeader()) {
+            return 0;
+        }
+        if (ogre instanceof OgreBrute brute && brute.isRoyalPatrolSquadLeader()) {
+            return 1;
+        }
+        if (ogre instanceof OgreGruntCaptain captain && captain.isRoyalPatrolSquadLeader()) {
+            return 2;
+        }
+        return -1;
+    }
+
+    /** Trial captains come out of their spawners whatever the light is, and stay until they are beaten. */
+    public static void onRoyalTrialCaptainSpawnCheck(
+            net.minecraftforge.event.entity.living.MobSpawnEvent.PositionCheck event) {
+        if (event.getSpawnType() == MobSpawnType.SPAWNER && royalTrialLedBy(event.getEntity()) >= 0
+                && event.getEntity().checkSpawnObstruction(event.getLevel())) {
+            event.getEntity().setPersistenceRequired();
+            event.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);
+        }
+    }
+
+    /** A captain's spawner cannot be mined until its captain is out, or the trial has been won. */
+    public static void onRoyalTrialSpawnerBreak(net.minecraftforge.event.level.BlockEvent.BreakEvent event) {
+        BlockPos pos = event.getPos();
+        if (event.getPlayer().isCreative() || !(event.getLevel() instanceof ServerLevel serverLevel)
+                || !(serverLevel.getBlockEntity(pos)
+                instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner)) {
             return;
         }
-        if (!(dead.level() instanceof ServerLevel serverLevel)) {
+        CompoundTag tag = spawner.saveWithoutMetadata();
+        CompoundTag entity = tag.getCompound("SpawnData").getCompound("entity");
+        boolean captainSpawner = entity.getBoolean(OgreTrialSpawnerProcessor.ROYAL_MAGE_SQUAD_TAG)
+                || entity.getBoolean(OgreGrunt.ROYAL_PATROL_SQUAD_TAG);
+        // A won trial's spawner is the one on the long cooldown.
+        if (!captainSpawner || tag.getShort("MinSpawnDelay") == Short.MAX_VALUE) {
+            return;
+        }
+        if (serverLevel.getEntitiesOfClass(OgreGrunt.class, new AABB(pos).inflate(ROYAL_TRIAL_BAR_RANGE),
+                ogre -> ogre.isAlive() && royalTrialLedBy(ogre) >= 0
+                        && EntityType.getKey(ogre.getType()).toString().equals(entity.getString("id"))).isEmpty()) {
+            event.setCanceled(true);
+        }
+    }
+
+    /** Called when a royal trial leader dies, which wins that trial. */
+    public static void onRoyalTrialLeaderDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event) {
+        LivingEntity dead = event.getEntity();
+        int trial = royalTrialLedBy(dead);
+        if (trial < 0 || !(dead.level() instanceof ServerLevel serverLevel)) {
             return;
         }
         for (OgreLord lord : serverLevel.getEntitiesOfClass(OgreLord.class,
                 dead.getBoundingBox().inflate(ROYAL_TRIAL_BAR_RANGE * 1.5))) {
-            lord.recordRoyalTrialKill(serverLevel, trial, dead.blockPosition());
+            lord.completeRoyalTrial(serverLevel, trial);
         }
     }
 
-    private static final String[] ROYAL_TRIAL_REWARD_TABLES = {
-            "spawners/ogre_mage", "spawners/ogre_brute", "spawners/ogre_guard"};
-
-    /** The reward a won trial used to eject: its loot table is dropped where the spawner stood. */
-    private static void dropRoyalTrialReward(ServerLevel serverLevel, int trial, BlockPos at) {
-        net.minecraft.world.level.storage.loot.LootTable table = serverLevel.getServer().getLootData()
-                .getLootTable(new net.minecraft.resources.ResourceLocation(KingsAndMonsters.MODID,
-                        ROYAL_TRIAL_REWARD_TABLES[trial]));
-        net.minecraft.world.level.storage.loot.LootParams params =
-                new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
-                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,
-                                net.minecraft.world.phys.Vec3.atCenterOf(at))
-                        .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
-        for (ItemStack stack : table.getRandomItems(params)) {
-            net.minecraft.world.entity.item.ItemEntity drop = new net.minecraft.world.entity.item.ItemEntity(
-                    serverLevel, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, stack);
-            serverLevel.addFreshEntity(drop);
-        }
-    }
-
-    private void recordRoyalTrialKill(ServerLevel serverLevel, int trial, BlockPos deathPos) {
+    /** Wins a trial and puts its spawner on a long cooldown, leaving it there to be mined. */
+    private void completeRoyalTrial(ServerLevel serverLevel, int trial) {
         int bit = 1 << trial;
-        if ((completedRoyalTrialsMask & bit) != 0 || trial >= royalTrialKills.length) {
+        if ((completedRoyalTrialsMask & bit) != 0) {
             return;
         }
         royalDefenceStarted = true;
-        royalTrialKills[trial]++;
-        if (royalTrialKills[trial] < ROYAL_TRIAL_KILL_TARGETS[trial]) {
-            return;
-        }
         completedRoyalTrialsMask |= bit;
-        BlockPos nearest = null;
-        for (BlockPos trialPos : royalTrialPositions) {
-            if (serverLevel.getBlockState(trialPos).is(net.minecraft.world.level.block.Blocks.SPAWNER)
-                    && (nearest == null || trialPos.distSqr(deathPos) < nearest.distSqr(deathPos))) {
-                nearest = trialPos;
-            }
-        }
-        if (nearest != null && nearest.distSqr(deathPos) < 24.0 * 24.0) {
-            serverLevel.sendParticles(ParticleTypes.POOF, nearest.getX() + 0.5, nearest.getY() + 0.5,
-                    nearest.getZ() + 0.5, 20, 0.4, 0.4, 0.4, 0.02);
-            serverLevel.removeBlock(nearest, false);
-            dropRoyalTrialReward(serverLevel, trial, nearest);
+        if (trial < royalTrialPositions.size()
+                && serverLevel.getBlockEntity(royalTrialPositions.get(trial))
+                instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
+            // The longest delay a spawner can store, about 27 minutes with a player beside it.
+            CompoundTag tag = spawner.saveWithoutMetadata();
+            tag.putShort("MinSpawnDelay", Short.MAX_VALUE);
+            tag.putShort("MaxSpawnDelay", Short.MAX_VALUE);
+            tag.putShort("Delay", Short.MAX_VALUE);
+            spawner.load(tag);
+            spawner.setChanged();
         }
     }
 

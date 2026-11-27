@@ -1,6 +1,11 @@
 # Kings & Monsters 2.0.4 (1.20.1 Forge)
 
 - Fixed a crash on launch with Boss Checklist installed
+- Fixed the Royal Trials needing several captains each. Defeating the first captain of each trial now counts toward the bar
+- A beaten trial's spawner now stays in place on a long cooldown and can be mined
+- Royal Trial spawners can no longer be mined before their captain appears
+- Royal Trial captains now spawn in any light and stay until defeated
+- Winning a trial no longer drops items from its spawner
 - Fewer patrols in multiplayer: a group at one base now gets one patrol per cooldown, even after a server restart
 - Robbing a camp as a group now sends one retaliation patrol instead of one per player
 - Fixed updated worlds keeping the old 10-15 minute patrol cooldown. It is now 40-60 minutes (custom values need to be set again under `patrolMinCooldownTicks` and `patrolMaxCooldownTicks`)

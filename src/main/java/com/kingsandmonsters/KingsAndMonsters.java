@@ -231,6 +231,8 @@ public class KingsAndMonsters {
         MinecraftForge.EVENT_BUS.addListener(OgreBruteCombatEvents::onShieldBlock);
         MinecraftForge.EVENT_BUS.addListener(OgreLordCombatEvents::onShieldBlock);
         MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialLeaderDeath);
+        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialCaptainSpawnCheck);
+        MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreLord::onRoyalTrialSpawnerBreak);
         MinecraftForge.EVENT_BUS.addListener(OgreDamageCapEvents::onLivingDamagePre);
         MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreRallyEvents::onLivingDamagePost);
         MinecraftForge.EVENT_BUS.addListener(com.kingsandmonsters.entity.OgreVanillaHostilityEvents::onEntityTick);
