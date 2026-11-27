@@ -122,7 +122,7 @@ public final class Config {
 
         BUILDER.push("Grunt Captain");
         OGRE_GRUNT_CAPTAIN_MAX_HEALTH = BUILDER.comment("Maximum health.").defineInRange("maxHealth", 100.0, 1.0, 300.0);
-        OGRE_GRUNT_CAPTAIN_ARMOR = BUILDER.comment("Base armor points.").defineInRange("armor", 20.0, 0.0, 40.0);
+        OGRE_GRUNT_CAPTAIN_ARMOR = BUILDER.comment("Base armor points.").defineInRange("baseArmor", 15.0, 0.0, 40.0);
         BUILDER.pop();
 
         BUILDER.push("Ogre Archer");
@@ -156,7 +156,7 @@ public final class Config {
         OGRE_BRUTE_ATTACK_DAMAGE  = BUILDER.comment("Base melee damage.").defineInRange("attackDamage", 11.0, 0.0, 100.0);
         OGRE_BRUTE_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.325, 0.0, 1.0);
         OGRE_BRUTE_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 30.0, 1.0, 128.0);
-        OGRE_BRUTE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 20.0, 0.0, 40.0);
+        OGRE_BRUTE_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("baseArmor", 18.0, 0.0, 40.0);
         BUILDER.pop(2);
 
         BUILDER.comment("Configure name plate display for elite ogre variants.").push("Display");
@@ -175,7 +175,7 @@ public final class Config {
         OGRE_LORD_ATTACK_DAMAGE  = BUILDER.comment("Base melee damage.").defineInRange("attackDamage", 18.0, 0.0, 100.0);
         OGRE_LORD_MOVEMENT_SPEED = BUILDER.comment("Movement speed.").defineInRange("movementSpeed", 0.30, 0.0, 1.0);
         OGRE_LORD_FOLLOW_RANGE   = BUILDER.comment("How far away it can notice targets.").defineInRange("followRange", 34.0, 1.0, 128.0);
-        OGRE_LORD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("armor", 25.0, 0.0, 50.0);
+        OGRE_LORD_ARMOR          = BUILDER.comment("Base armor points.").defineInRange("baseArmor", 20.0, 0.0, 50.0);
         OGRE_LORD_PULL_OUT_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to the phase-transition club swing.").defineInRange("pullOutBonusDamage", 10.0, 0.0, 100.0);
         OGRE_LORD_CLUB_UPSWING_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to the phase-two club upswing.").defineInRange("clubUpswingBonusDamage", 10.0, 0.0, 100.0);
         OGRE_LORD_CLUB_DOUBLE_OVERHEAD_BONUS_DAMAGE = BUILDER.comment("Flat bonus damage added to Club Double Overhead.").defineInRange("clubDoubleOverheadBonusDamage", 10.0, 0.0, 100.0);
